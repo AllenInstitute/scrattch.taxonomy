@@ -1,10 +1,6 @@
 # scrattch.taxonomy
 
-Generalized mapping and taxonomy building scripts for RNA-seq, Patch-seq or any gene expression data.
-
-## Workflow
-
-![](https://github.com/AllenInstitute/scrattch-taxonomy/blob/main/schematic.png)
+Generalized taxonomy building scripts for RNA-seq based taxonomies following the [Allen Institute schema](https://github.com/AllenInstitute/AllenInstituteTaxonomy).
 
 ## Documentation
 
