@@ -10,7 +10,7 @@ Update notes are here: ![Versions](https://github.com/AllenInstitute/scrattch-ta
 
 ## Docker
 
-We have setup a docker environemnt for scattch.taxonomy and scrattch.mapping that contains all the required dependencies and the current version of both scrattch.taxonomy and scrattch.mapping. This docker is accessible through docker hub via: `bicore/scrattch_mapping:latest`.
+We have setup a docker environemnt for scrattch.taxonomy and scrattch.mapping that contains all the required dependencies and the current version of both scrattch.taxonomy and scrattch.mapping. This docker is accessible through docker hub via: `bicore/scrattch_mapping:latest`.
 
 #### HPC usage:
 
