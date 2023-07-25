@@ -6,7 +6,7 @@ Generalized taxonomy building scripts for RNA-seq based taxonomies following the
 
 You can find a detail description of all scrattch.taxonomy functions here: ![Documentation](https://github.com/AllenInstitute/scrattch-taxonomy/blob/main/scrattch.taxonomy_0.1.pdf)
 
-Update notes are here: ![Versions](https://github.com/AllenInstitute/scrattch-taxonomy/blob/dev_njj/VERSIONS.md)
+Update notes are here: ![Versions](https://github.com/AllenInstitute/scrattch-taxonomy/blob/main/VERSIONS.md)
 
 ## Docker
 
