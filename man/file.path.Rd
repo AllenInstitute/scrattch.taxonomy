@@ -2,15 +2,8 @@
 % Please edit documentation in R/utils.R
 \name{file.path}
 \alias{file.path}
-\title{Function to set mapping mode}
+\title{Construct Path to File across platforms}
 \usage{
-file.path(
-  ...,
-  path_separator = getOption("path_separator"),
-  leading_string = getOption("leading_string"),
-  change_chars = NULL
-)
-
 file.path(
   ...,
   path_separator = getOption("path_separator"),
@@ -26,14 +19,8 @@ file.path(
 \item{leading_string}{what is the leading character(s) (e.g., '/' or '\\\\'). A string can be provided, or by default if the "leading_string" global variable is set it takes that variable, otherwise this is guessed at based on operating system and/or existence of a file at the file path}
 
 \item{change_chars}{which characters should be changes to the path_separator value (default NULL = "none"). If you want to change all slashes in the file path to the correct direction set change_chars = c("/","\\"))}
-
-\item{AIT.anndata}{A vector of cluster names in the reference taxonomy.}
-
-\item{mode}{Number of cells to keep per cluster.}
 }
 \value{
-AIT anndata with mode set for mapping
-
 A file path with slashes going the correct direction.
 }
 \description{
