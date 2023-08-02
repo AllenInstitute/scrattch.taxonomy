@@ -8,7 +8,8 @@ file.path(
   ...,
   path_separator = getOption("path_separator"),
   leading_string = getOption("leading_string"),
-  change_chars = NULL
+  change_path_chars = NULL,
+  change_leading_chars = c("/", "\\\\", "\\\\\\\\")
 )
 }
 \arguments{
@@ -18,7 +19,9 @@ file.path(
 
 \item{leading_string}{what is the leading character(s) (e.g., '/' or '\\\\'). A string can be provided, or by default if the "leading_string" global variable is set it takes that variable, otherwise this is guessed at based on operating system and/or existence of a file at the file path}
 
-\item{change_chars}{which characters should be changes to the path_separator value (default NULL = "none"). If you want to change all slashes in the file path to the correct direction set change_chars = c("/","\\"))}
+\item{change_path_chars}{which characters should be changes to the path_separator value (default NULL = "none"). If you want to change all slashes in the file path to the correct direction set change_chars = c("/","\\"))}
+
+\item{change_leading_chars}{which characters should be changes to the leading_string value (default = c("/","\\","\\\\")). This will preserve local file paths.}
 }
 \value{
 A file path with slashes going the correct direction.

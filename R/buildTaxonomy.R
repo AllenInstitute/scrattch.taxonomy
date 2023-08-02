@@ -315,7 +315,7 @@ buildTaxonomy = function(counts,
       clustersUse = clustersUse,
       clusterInfo = clusterInfo,
       taxonomyName = taxonomyName,
-      taxonomyDir = taxonomyDir
+      taxonomyDir = file.path(taxonomyDir, leading_string="/")
     )
   )
   AIT.anndata$write_h5ad(file.path(taxonomyDir, "AI_taxonomy.h5ad"))

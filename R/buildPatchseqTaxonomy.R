@@ -112,7 +112,7 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   saveRDS(dend, file.path(taxonomyModeDir,"dend.RData"))
 
   ## Store the pruned dendrogram, in dend list under "patchseq" mode.name
-  AIT.anndata$uns$dend[[mode.name]] = file.path(taxonomyModeDir,"dend.RData")
+  AIT.anndata$uns$dend[[mode.name]] = file.path(taxonomyModeDir,"dend.RData", leading_string="/")
 
   ## Save patch-seq taxonomy anndata
   AIT.anndata$write_h5ad(file.path(taxonomyDir, "AI_taxonomy.h5ad"))
