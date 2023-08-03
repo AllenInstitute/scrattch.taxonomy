@@ -22,6 +22,7 @@
 #' @import dplyr
 #' @import Matrix
 #' @import pvclust
+#' @import anndata
 #'
 #' @return AIT anndata object in the specified format (only if return.anndata=TRUE)
 #'
@@ -30,7 +31,7 @@ buildTaxonomy = function(counts,
                          meta.data,
                          feature.set,
                          umap.coords,
-                         taxonomyDir,
+                         taxonomyDir = getwd(),
                          taxonomyName = "AI_taxonomy",
                          celltypeColumn = "cluster",
                          cluster_colors = NULL,

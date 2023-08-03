@@ -9,7 +9,7 @@ buildTaxonomy(
   meta.data,
   feature.set,
   umap.coords,
-  taxonomyDir,
+  taxonomyDir = getwd(),
   taxonomyName = "AI_taxonomy",
   celltypeColumn = "cluster",
   cluster_colors = NULL,
