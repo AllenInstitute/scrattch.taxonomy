@@ -189,12 +189,29 @@ buildMappingDirectory = function(AIT.anndata,
   rownames(ref.umap) <- rownames(AIT.anndata$obsm[["umap"]])
   ref.umap[is.na(ref.umap)] <- 0
   
+  ## Check for cells with empty data
+  bad.cells    <- which(colSums(query.cpm[binary.genes,]>0)<=1)
+  if(length(bad.cells)>0){
+    query.cpm[,bad.cells] <- rowMeans(query.cpm)
+    warning(paste("WARNING: the following query cells do not express any marker genes and are almost definitely bad cells:",
+                  paste(colnames(query.cpm)[bad.cells],collapse=", ")))
+  }
+  
   npcs         <- min(30,length(binary.genes))
   query.pcs    <- prcomp(logCPM(query.cpm)[binary.genes,], scale = TRUE)$rotation
   
   if(diff(range(ref.umap))>0){
-    ## Project mapped data into existing umap space
     reference.logcpm <- t(AIT.anndata$X[,binary.genes])
+    
+    ## Check for cells with empty data
+    bad.cells    <- which(colSums(reference.logcpm[binary.genes,]>0)<=1)
+    if(length(bad.cells)>0){
+      reference.logcpm[,bad.cells] <- rowMeans(reference.logcpm)
+      warning(paste("WARNING: the following reference cells do not express any marker genes and are almost definitely bad cells:",
+                    paste(colnames(reference.logcpm)[bad.cells],collapse=", ")))
+    }
+    
+    ## Project mapped data into existing umap space
     reference.pcs    <- prcomp(reference.logcpm, scale = TRUE)$rotation
     reference.umap   <- umap(reference.pcs[,1:npcs])
     reference.umap$layout <- ref.umap[rownames(reference.umap$layout),]
