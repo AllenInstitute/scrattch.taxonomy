@@ -2,12 +2,15 @@
 
 In this example we demonstrate how to setup a Patch-seq Shiny taxonomy using scrattch.mapping for viewing on MolGen Shiny and running mapping algorithms against. This tutorial parallels the other tutorial for building a Patch-seq Shiny taxonomy, but using the [Hodge et al taxonomy](https://www.nature.com/articles/s41586-019-1506-7) as reference and query Patch-seq data from [Berg et al 2020](https://www.nature.com/articles/s41586-021-03813-8).  
 
+## Part 1: Building the taxonomy
+
 ### Required inputs:
 
 * Standard Shiny taxonomy setup following the "build_taxonomy" tutorial (repeated below)
 * Query Patch-seq count matrix and metadata (example provided below)
 
 ### Read in the REFERENCE MTG information (Hodge et al 2019)
+
 ```R
 ## Load the library
 library(scrattch.taxonomy)
@@ -26,6 +29,7 @@ colnames(taxonomy.counts) <- rownames(taxonomy.metadata) # To correct "-" to "."
 ```
 
 ### Create the base Shiny Taxonomy for the ENTIRE Hodge et al 2019 data set
+
 ```R
 ## This is where our taxonomy will be created
 taxonomy = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/Taxonomies/AIT15.3/"
@@ -54,7 +58,7 @@ AIT.anndata = buildTaxonomy(counts = taxonomy.counts,
 AIT.anndata = loadTaxonomy(taxonomy, "AI_taxonomy.h5ad")
 ```
 
-### Build the patchseq taxonomy:
+### Build the patchseq taxonomy
 
 Now let's create a version of the taxonomy which is compatible with patchseqQC and can be filtered to remove off target cells from mapping. **You are creating a new version of the base taxonomy which can be reused by specifying the provided `mode.name` in `scrattch.mapping::mappingMode()` as dicusssed next.**
 
@@ -76,15 +80,23 @@ The `buildPatchseqTaxonomy` function return/created the following:
 * Created the required cell to cluster 'membership' variables and save under 'mode.name' in the uns
 * An updated dendrogram and a saved in the 'mode.name' subdirectory
 
-**At this point the reference taxonomy is created and ready for patch-seq mapping.**
+Now let's check to make sure the anndata object is formatted correctly.  This can manually be done using the function "checkTaxonomy" (as below) but also happens automatically above.
 
-
-### Read in and map patch-seq data
-
-The rest of this example demonstrates how to read in patch-seq data and map it to the neuronal cell types from the Hodge et al 2019 taxonomy. 
-
-### Now read in and process QUERY patch-seq data
 ```R
+checkTaxonomy(AIT.anndata,taxonomyDir)
+```
+You can check the log file if directed, but if the value returned is "TRUE", then the taxonomy should work for downstream scrattch.taxonomy and scrattch.mapping functions and **at this point the reference taxonomy is created and ready for Patch-seq mapping.**
+
+
+## Part 2: Mapping to the taxonomy
+
+The rest of this example demonstrates how to read in Patch-seq data (using [Berg et al 2020](https://www.nature.com/articles/s41586-021-03813-8)) and map it to the neuronal cell types from the [Hodge et al 2019 taxonomy](https://www.nature.com/articles/s41586-019-1506-7).  Note that we need to load the scrattch.mapping library for this part. 
+
+### First read in and process QUERY Patch-seq data
+```R
+## Load scrattch.mapping
+library(scrattch.mapping)
+
 ## Download data and metadata from GitHub repo for Berg et al 2022
 download.file("https://github.com/AllenInstitute/patchseq_human_L23/raw/master/data/input_patchseq_data_sets.RData", "patchseq.RData", mode="wb")
 

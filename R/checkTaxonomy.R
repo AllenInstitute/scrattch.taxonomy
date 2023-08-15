@@ -154,7 +154,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
         isWarning = TRUE
         messages = c(messages,"\nWARNING: the dendrogram",dat,"should have a UNIX file structure not a Windows file structure.")
       } else {
-        messages = c(messages,paste(":-) AIT.anndata$uns$dend[[mode]] looks correct:",dat))
+        messages = c(messages,paste0(":-) AIT.anndata$uns$dend[[",mode,"]] looks correct: ",dat))
       }
       
       ## Check the filter AIT.anndata$uns$filter[[mode]]
@@ -180,9 +180,8 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
         required.inputs = c("allMarkers", "classBr", "countsQC", "cpmQC", "markers", "qc_genes", "qc_samples", "subclassF")  
         missing.inputs = setdiff(required.inputs,names(dat))
         if (length(missing.inputs)>0){
-          isWarning = TRUE
           val = paste0(missing.inputs,collapse=", ")
-          messages = c(messages,paste0("\nWARNING: the following AIT.anndata$uns$QC_markers variables are missing: ",val,". These should have been calculated by buildPatchseqTaxonomy(). We recommend running this function again."))
+          messages = c(messages,paste0("\nThe following AIT.anndata$uns$QC_markers variables are missing: ",val,". IF THIS MODE IS INTENDED FOR TREE MAPPING, please run buildPatchseqTaxonomy() function with mode set as ",mode," to calculate these values."))
         } else {
           messages = c(messages,paste0(":-) QC_markers are calculated and look correct for mode ",mode,"."))
         }
