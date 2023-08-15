@@ -38,7 +38,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   }
   
   ## Check the raw data (X)
-  dat <- AIT.anndata$layers$counts
+  dat <- AIT.anndata$layers["counts"]
   if((class(dim(dat))!="integer")|(class(dat)[1]=="data.frame")){
     isWarning = TRUE
     messages = c(messages,"\nWARNING: counts are not provided in AIT.anndata$layers$counts. Counts are **REQUIRED** for the schema, but most downstream scrattch.taxonomy and scrattch.mapping functions should still work.")
