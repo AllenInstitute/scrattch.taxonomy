@@ -7,12 +7,19 @@ In this tutorial we demonstrate how to setup a patchseq Shiny taxonomy using scr
 * Standard Shiny taxonomy setup following the "build_taxonomy" tutorial.
 * Query patchseq count matrix and metadata.
 
-### Load in Tasic 2016:
+### Additional prerequisites:
+
+* Installation of the `tasic2016data` data package [from here](https://github.com/AllenInstitute/tasic2016data/).
+* Installation of `scrattch.mapping` [from here](https://github.com/AllenInstitute/scrattch.mapping) for data mapping. 
+
+### Load in test data from Tasic 2016:
 ```R
+## Load libraries
+library(scrattch.taxonomy)
 library(scrattch.mapping)
 library(tasic2016data)
 
-## Load in the tasic2016 data, ignore this part. Tasic specific data wrangling.
+## Load in the tasic2016 data and wrangle as a query data set.
 query.anno = tasic_2016_anno
 query.counts = tasic_2016_counts 
 query.anno = query.anno[match(colnames(query.counts),query.anno$sample_name),]
@@ -23,18 +30,19 @@ query.logCPM = logCPM(query.counts)
 query.anno = query.anno[keep,]
 ```
 
-### Load and setup the base Shiny Taxonomy:
+### Load and setup the base taxonomy:
 ```R
 ## Standard shiny taxonomy
-taxonomy = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016"
+# NOTE: replace 'taxonomy' location below with output folder from the "build_taxonomy" tutorial
+taxonomy = "tasic_2016"
 
 ## Load in the taxonomy
 AIT.anndata = loadTaxonomy(taxonomy)
 ```
 
-### Define off target cell types.
+### Define off target cell types
 
-Let's start by defining the cell classes which are off target for tasic2016 patchseq mapping and patchseqQC. Typically this is defined at the class level and are the "Non-neuronal" cell classes/types.
+Let's start by defining the cell classes which are off target for tasic2016 patchseq mapping and patchseqQC. For neocortex this is typically defined at the "class" level and are the "Non-neuronal" cell classes/types.
 ```R
 ## Identify the offtarget cell types manually.
 print(unique(AIT.anndata$obs$broad_type_label))
@@ -51,7 +59,7 @@ AIT.anndata$obs$off_target[!is.element(AIT.anndata$obs$off_target, c("GABA-ergic
 
 ### Build the patchseq taxonomy:
 
-Now let's create a version of the taxonomy which is compatible with patchseqQC and can be filtered to remove off target cells from mapping. **You are creating a new version of the base taxonomy which can be reused by specifying the provided `mode.name` in `scrattch.mapping::mappingMode()` as dicusssed next.**
+Now let's create a version of the taxonomy which is compatible with patchseqQC and can be filtered to remove off target cells from mapping. **You are creating a new version of the base taxonomy which can be reused by specifying the provided `mode.name` in `scrattch.taxonomy::mappingMode()` as dicusssed next.**
 
 ```R
 ## Setup the taxonomy for patchseqQC to infer off.target contamination
@@ -79,6 +87,7 @@ AIT.anndata = mappingMode(AIT.anndata, mode="patchseq")
 
 ### Map against the patchseq taxonomy:
 ```R
+# This function is part of the 'scrattch.mapping' library
 query.mapping = taxonomy_mapping(AIT.anndata= AIT.anndata,
                                   query.data = query.logCPM, 
                                   corr.map   = TRUE, # Flags for which mapping algorithms to run
