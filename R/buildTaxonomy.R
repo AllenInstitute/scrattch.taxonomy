@@ -45,6 +45,7 @@ buildTaxonomy = function(counts,
   if(is.null(umap.coords)){stop("Compute UMAP dimensions and supply umap.coords")}
   if(!all(colnames(counts) == rownames(meta.data))){stop("Colnames of `counts` and rownames of `meta.data` do not match.")}
   if(!is.data.frame(meta.data)){stop("meta.data must be a data.frame, convert using as.data.frame(meta.data)")}
+  if("sample" %in% colnames(meta.data)){stop("meta.data column name 'sample' is reserved and cannot be used, please remove or rename.")}
 
   ## Rename celltypeColumn to "cluster" if needed
   celltypeColumn <- gsub("_label","",celltypeColumn)
