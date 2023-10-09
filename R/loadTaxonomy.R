@@ -5,13 +5,12 @@
 #' @param sample_id Field in reference taxonomy that defines the sample_id.
 #' @param hGenes User supplied variable gene vector.  If not provided, then all genes are used.
 #' @param gene_id Field in counts.feather that defines the gene_id.
-#' @param patchseq Should the patchseq variant of this taxonomy be loaded.
 #' @param force Force rebuild the anndata object for the taxonomy.
 #'
 #' @return Organized reference object ready for mapping against.
 #'
 #' @export
-loadTaxonomy = function(taxonomyDir, 
+loadTaxonomy = function(taxonomyDir = getwd(), 
                         anndata_file = "AI_taxonomy.h5ad",
                         sample_id = "sample_id", 
                         hGenes=NULL, 
@@ -24,7 +23,9 @@ loadTaxonomy = function(taxonomyDir,
     ## Load taxonomy directly!
     AIT.anndata = read_h5ad(file.path(taxonomyDir, "AI_taxonomy.h5ad"))
     ## Ensure anndata is in scrattch.mapping format
-    ## ..
+    if(!checkTaxonomy(AIT.anndata,taxonomyDir)){
+      stop(paste("Taxonomy has some breaking issues.  Please check checkTaxonomy_log.txt in",taxonomyDir,"for details"))
+    }
   } else if(all(file.exists(c(file.path(taxonomyDir,"anno.feather"), 
                               file.path(taxonomyDir,"data.feather"), 
                               file.path(taxonomyDir,"counts.feather"), 
@@ -96,27 +97,27 @@ loadTaxonomy = function(taxonomyDir,
       rownames(umap.coords) = umap.coords[,sample_id]
     }
     
-    ## Build reference object
     AIT.anndata = AnnData(
       X = datReference, ## logCPM
       obs = annoReference,
       var = data.frame("gene" = colnames(datReference), 
-                      "highly_variable_genes" = colnames(datReference) %in% varFeatures, 
-                      row.names=colnames(datReference)),
+                       "highly_variable_genes" = colnames(datReference) %in% feature.set, 
+                       row.names=colnames(datReference)),
       layers = list(
-        counts = countsReference # Counts. We may want to keep genes as rows and not transpose this
+        counts = Matrix::t(counts) ## Count matrix
       ),
       obsm = list(
-        umap = umap.coords # A data frame with sample_id, and 2D coordinates for umap (or comparable) representation(s)
+        umap = umap.coords ## A data frame with sample_id, and 2D coordinates for umap (or comparable) representation(s)
       ),
       uns = list(
-        dend        = list("standard" = file.path(taxonomyDir, "dend.RData")),  # FILE NAME with dendrogram
+        dend        = list("standard" = file.path(taxonomyDir, "dend.RData", leading_string="/")), # FILE NAME with dendrogram
         filter      = list("standard" = rep(FALSE, nrow(datReference))),
-        QC_markers  = list("standard"),# = file.path(taxonomyDir, "QC_markers.RData")),  # REPLACED WITH CODE BELOW
+        QC_markers  = list("standard" = NA), ## Standard should always be empty for QC_markers
+        mode = "standard", ## Default mode to standard
         clustersUse = clustersUse,
         clusterInfo = clusterInfo,
-        taxonomyName = "",
-        taxonomyDir = taxonomyDir
+        taxonomyName = taxonomyName,
+        taxonomyDir = file.path(taxonomyDir, leading_string="/")
       )
     )
     AIT.anndata$write_h5ad(file.path(taxonomyDir, "AI_taxonomy.h5ad")) ## Save the anndata taxonomy so the next person doesn't have to build it :).

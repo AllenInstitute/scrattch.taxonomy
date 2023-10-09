@@ -5,7 +5,7 @@
 \title{Read in a reference data set in Allen taxonomy format}
 \usage{
 loadTaxonomy(
-  taxonomyDir,
+  taxonomyDir = getwd(),
   anndata_file = "AI_taxonomy.h5ad",
   sample_id = "sample_id",
   hGenes = NULL,
@@ -25,8 +25,6 @@ loadTaxonomy(
 \item{gene_id}{Field in counts.feather that defines the gene_id.}
 
 \item{force}{Force rebuild the anndata object for the taxonomy.}
-
-\item{patchseq}{Should the patchseq variant of this taxonomy be loaded.}
 }
 \value{
 Organized reference object ready for mapping against.

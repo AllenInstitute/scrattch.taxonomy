@@ -1,8 +1,39 @@
-# Tutorial: Building a patchseq taxonomy - Human MTG
 
-In this example we demonstrate how to setup a patchseq taxonomy using scrattch.taxonomy for running mapping algorithms against and for viewing on (Allen Institute internal) MolGen Shiny tools. This tutorial parallels the other tutorial for building a patchseq Shiny taxonomy, but using the Hodge et al taxonomy as reference and query patch-seq data from Berg et al 2020.  
+# Tutorial: Building a Patch-seq Shiny taxonomy - Human MTG
+
+In this example we demonstrate how to setup a Patch-seq Shiny taxonomy using scrattch.mapping for viewing on MolGen Shiny and running mapping algorithms against. This tutorial parallels the other tutorial for building a Patch-seq Shiny taxonomy, but using the [Hodge et al taxonomy](https://www.nature.com/articles/s41586-019-1506-7) as reference and query Patch-seq data from [Berg et al 2020](https://www.nature.com/articles/s41586-021-03813-8).  
+
+## Part 1: Building the taxonomy
 
 #### Required inputs:
+
+* Standard Shiny taxonomy setup following the "build_taxonomy" tutorial (repeated below)
+* Query Patch-seq count matrix and metadata (example provided below)
+
+### Read in the REFERENCE MTG information (Hodge et al 2019)
+
+```R
+## Load the library
+library(scrattch.taxonomy)
+library(data.table) # for using fread below
+
+## Load the complete dendrogram from this paper (saved in scrattch.taxonomy)
+data(dend_Hodge2019) 
+
+## Download data and metadata from the website (this is slow)
+## NOT AVAILABLE YET. Instead copy Hodge2019_metadata.csv and Hodge2019_counts.csv.gz from "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/Taxonomies/AIT15.3/" to your working directory.
+
+## Read data and metadata into R
+taxonomy.metadata <- read.csv("/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/Taxonomies/AIT15.3/Hodge2019_metadata.csv",row.names=1)
+taxonomy.counts   <- as.matrix(fread("/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/Taxonomies/AIT15.3/Hodge2019_counts.csv.gz"),rownames=1) ## This requires R.utils
+colnames(taxonomy.counts) <- rownames(taxonomy.metadata) # To correct "-" to "." conversion introduced at some point. 
+```
+
+### Create the base Shiny Taxonomy for the ENTIRE Hodge et al 2019 data set
+
+```R
+## This is where our taxonomy will be created
+taxonomy = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/Taxonomies/AIT15.3/"
 
 For creating the standard taxonomy (see "Building a Shiny taxonomy" tutorial):
 * Count matrix (gene x cell), with genes as rownames and sample identifiers as colnames
@@ -53,15 +84,14 @@ AIT.anndata = buildTaxonomy(counts = taxonomy.counts,
               dend        = dend_Hodge2019,  # If this is omitted buildTaxonomy will generate a dendrogram
               feature.set = binary.genes,
               umap.coords = umap.coords,
-              taxonomyName= "MTG_Hodge2019", 
+              taxonomyName= "MTG_Hodge2019",
               taxonomyDir = taxonomy,
-              subsample   = 50) # Normally we'd choose a larger number, but this example file only has 50 cells per cluster
-
+              subsample   = 250
 ## Load the taxonomy (from h5ad file name)
 AIT.anndata = loadTaxonomy(taxonomy, "AI_taxonomy.h5ad")
 ```
 
-#### Build the patchseq taxonomy:
+### Build the patchseq taxonomy
 
 Now let's create a version of the taxonomy which is compatible with patchseqQC and can be filtered to remove off target cells from mapping. **You are creating a new version of the base taxonomy which can be reused by specifying the provided `mode.name` in `scrattch.taxonomy::mappingMode()` as dicusssed next.**
 
@@ -78,20 +108,28 @@ AIT.anndata = buildPatchseqTaxonomy(AIT.anndata,
 ```
 The `buildPatchseqTaxonomy` function return/created the following:
 
-* An updated AIT.anndata object for patchseq mapping and QC steps.
+* An updated AIT.anndata object for Patch-seq mapping and QC steps.
 * Created the required marker and expression variables for 'QC_markers' and save under 'mode.name' in the uns
 * Created the required cell to cluster 'membership' variables and save under 'mode.name' in the uns
 * An updated dendrogram and a saved in the 'mode.name' subdirectory
 
-**At this point the reference taxonomy is created and ready for patch-seq mapping.**
+Now let's check to make sure the anndata object is formatted correctly.  This can manually be done using the function "checkTaxonomy" (as below) but also happens automatically above.
 
-
-#### Read in and map patch-seq data
-
-The rest of this example demonstrates how to read in patch-seq data and map it to the neuronal cell types from the Hodge et al 2019 taxonomy.  We provide example data from Berg et al 2022 below, but you could swap in your own data if desired.  
-
-#### Now read in and process QUERY patch-seq data
 ```R
+checkTaxonomy(AIT.anndata,taxonomyDir)
+```
+You can check the log file if directed, but if the value returned is "TRUE", then the taxonomy should work for downstream scrattch.taxonomy and scrattch.mapping functions and **at this point the reference taxonomy is created and ready for Patch-seq mapping.**
+
+## Part 2: Mapping to the taxonomy
+
+The rest of this example demonstrates how to read in Patch-seq data (using [Berg et al 2020](https://www.nature.com/articles/s41586-021-03813-8)) and map it to the neuronal cell types from the [Hodge et al 2019 taxonomy](https://www.nature.com/articles/s41586-019-1506-7).  Note that we need to load the scrattch.mapping library for this part. 
+
+### First read in and process QUERY Patch-seq data
+
+```R
+## Load scrattch.mapping
+library(scrattch.mapping)
+
 ## Download data and metadata from GitHub repo for Berg et al 2022
 download.file("https://github.com/AllenInstitute/patchseq_human_L23/raw/master/data/input_patchseq_data_sets.RData", "patchseq.RData", mode="wb")
 
@@ -125,13 +163,13 @@ query.mapping = taxonomy_mapping(AIT.anndata= AIT.anndata,
                                  label.cols = c("cluster_label", "subclass_label" ,"class_label")) # Columns to map against from AIT.anndata$obs
 ```
 
-#### Setup the patchseq Shiny taxonomy files for human MTG:
+### Setup the Patch-seq Shiny taxonomy files for human MTG:
 
 This step outputs the files necessary for visualization of Patch-seq data with molgen-shiny tools.  *Note that this code block also generates additional QC metrics including NMS with PatchseqQC.  To perform patch-seq QC without building this directory, use the `applyPatchseqQC` function.*
 
 ```R
 buildMappingDirectory(AIT.anndata    = AIT.anndata, 
-                      mappingFolder  = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/Taxonomies/AIT15.2/TEST",
+                      mappingFolder  = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/Taxonomies/AIT15.3/TEST",
                       query.data     = query.logCPM, ## Counts or CPM are required here, but function can convert from log to linear values
                       query.metadata = query.anno,
                       query.mapping  = query.mapping,

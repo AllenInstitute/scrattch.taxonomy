@@ -112,10 +112,15 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   saveRDS(dend, file.path(taxonomyModeDir,"dend.RData"))
 
   ## Store the pruned dendrogram, in dend list under "patchseq" mode.name
-  AIT.anndata$uns$dend[[mode.name]] = file.path(taxonomyModeDir,"dend.RData")
+  AIT.anndata$uns$dend[[mode.name]] = file.path(taxonomyModeDir,"dend.RData", leading_string="/")
 
   ## Save patch-seq taxonomy anndata
   AIT.anndata$write_h5ad(file.path(taxonomyDir, "AI_taxonomy.h5ad"))
+  
+  ## Update the log file and check the taxonomy for proper quality
+  if(!checkTaxonomy(AIT.anndata,taxonomyDir)){
+    stop(paste("Taxonomy has some breaking issues.  Please check checkTaxonomy_log.txt in",taxonomyDir,"for details"))
+  }
 
   ## Update markers after pruning
   dend = addDendrogramMarkers(AIT.anndata, mode=mode.name)

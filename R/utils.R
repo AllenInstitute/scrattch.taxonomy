@@ -189,20 +189,23 @@ get_os <- function(){
 #' @param ... character vectors. Long vectors are not supported.
 #' @param path_separator the path separator to use (assumed to be ASCII).
 #' @param leading_string what is the leading character(s) (e.g., '/' or '\\\\'). A string can be provided, or by default if the "leading_string" global variable is set it takes that variable, otherwise this is guessed at based on operating system and/or existence of a file at the file path
-#' @param change_chars which characters should be changes to the path_separator value (default NULL = "none"). If you want to change all slashes in the file path to the correct direction set change_chars = c("/","\\"))
+#' @param change_path_chars which characters should be changes to the path_separator value (default NULL = "none"). If you want to change all slashes in the file path to the correct direction set change_chars = c("/","\\"))
+#' @param change_leading_chars which characters should be changes to the leading_string value (default = c("/","\\","\\\\")). This will preserve local file paths. 
 #'
 #' @return A file path with slashes going the correct direction.
 #'
 #' @export
-file.path <- function (...,path_separator = getOption("path_separator"),leading_string=getOption("leading_string"),change_chars=NULL){
+file.path <- function (...,path_separator = getOption("path_separator"),leading_string=getOption("leading_string"),
+                       change_path_chars=NULL,change_leading_chars=c("/","\\","\\\\")){
   if(is.null(path_separator))
     path_separator = .Platform$file.sep
   path <- base::file.path(...,path_separator)
   first_character <- grep('[^[:punct:]]', strsplit(path,"")[[1]])[1]
+  start_path <- substring(path,1,(first_character-1))
   path <- substring(path,first_character,nchar(path))
-  if (!is.null(change_chars)){
+  if (!is.null(change_path_chars)){
     path  <- strsplit(path,"")[[1]]
-    slash <- which(is.element(path,change_chars)) 
+    slash <- which(is.element(path,change_path_chars)) 
     path[slash] <- path_separator
     path <- paste0(path,collapse="")
   }
@@ -214,7 +217,15 @@ file.path <- function (...,path_separator = getOption("path_separator"),leading_
   while((substring(path,nchar(path),nchar(path)))==path_separator){
     path = substring(path,1,nchar(path)-1)
   }
-  paste0(leading_string,path)
+  #add leading_string if desired
+  add_lead = FALSE
+  if(length(change_leading_chars)<1) 
+    change_leading_chars="*"
+  for (ch in change_leading_chars) if (grepl(ch,start_path, fixed=TRUE))
+    add_lead = TRUE
+  if(add_lead)
+    path = paste0(leading_string,path)
+  path
 }
 
 ##################################################################################################################

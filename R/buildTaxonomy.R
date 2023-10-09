@@ -5,7 +5,7 @@
 #' @param feature.set Set of feature used to calculate dendrogram. Typically highly variable and/or marker genes.
 #' @param umap.coords Dimensionality reduction coordiant data.frame with 2 columns. Rownames must be equal to colnames of counts.
 #' @param taxonomyDir The location to save Shiny objects, e.g. "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/NHP_BG_20220104/"
-#' @param taxonomyName The name to assign for the Taxonomy h5ad
+#' @param taxonomyName The name to assign for the Taxonomy h5ad (note: the FILE name is called "AI_taxonomy.h5ad" but the name is stored in a slot in the h5ad file)
 #' @param celltypeColumn Column name corresponding to where the clusters are located (default="cluster")
 #' @param cluster_colors An optional named character vector where the values correspond to colors and the names correspond to celltypes in celltypeColumn.  If this vector is incomplete, a warning is thrown and it is ignored. cluster_colors can also be provided in the metadata (see notes)
 #' @param metadata_names An optional named character vector where the vector NAMES correspond to columns in the metadata matrix and the vector VALUES correspond to how these metadata should be displayed in Shiny. This is used for writing the desc.feather file later.
@@ -22,6 +22,7 @@
 #' @import dplyr
 #' @import Matrix
 #' @import pvclust
+#' @import anndata
 #'
 #' @return AIT anndata object in the specified format (only if return.anndata=TRUE)
 #'
@@ -30,7 +31,7 @@ buildTaxonomy = function(counts,
                          meta.data,
                          feature.set,
                          umap.coords,
-                         taxonomyDir,
+                         taxonomyDir = getwd(),
                          taxonomyName = "AI_taxonomy",
                          celltypeColumn = "cluster",
                          cluster_colors = NULL,
@@ -316,7 +317,7 @@ buildTaxonomy = function(counts,
       clustersUse = clustersUse,
       clusterInfo = clusterInfo,
       taxonomyName = taxonomyName,
-      taxonomyDir = taxonomyDir
+      taxonomyDir = file.path(taxonomyDir, leading_string="/")
     )
   )
   AIT.anndata$write_h5ad(file.path(taxonomyDir, "AI_taxonomy.h5ad"))
