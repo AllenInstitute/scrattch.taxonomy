@@ -1,0 +1,10 @@
+---
+title: "Go to examples"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{2. Map patch-seq data and output directory}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc} 
+---
+  
+Vignettes are located on the main website for scrattch.taxonomy: https://github.com/AllenInstitute/scrattch.taxonomy
