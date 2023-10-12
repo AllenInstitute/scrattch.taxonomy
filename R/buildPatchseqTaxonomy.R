@@ -89,21 +89,21 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   AIT.anndata$uns$filter[[mode.name]] = is.element(metadata$class_label, off.target.types) | is.element(metadata$subclass_label, off.target.types)
   
   ## Save patchseqQC information to uns
-  AIT.anndata$uns$QC_markers[[mode.name]]$allMarkers = allMarkers
-  AIT.anndata$uns$QC_markers[[mode.name]]$markers    = markers
-  AIT.anndata$uns$QC_markers[[mode.name]]$countsQC   = countsQC
-  AIT.anndata$uns$QC_markers[[mode.name]]$cpmQC      = cpmQC
-  AIT.anndata$uns$QC_markers[[mode.name]]$classBr    = classBr
-  AIT.anndata$uns$QC_markers[[mode.name]]$subclassF  = subclassF
-  AIT.anndata$uns$QC_markers[[mode.name]]$qc_samples = colnames(countsQC) # since colnames are lost
-  AIT.anndata$uns$QC_markers[[mode.name]]$qc_genes   = rownames(countsQC) # since rownames are lost
+  AIT.anndata$uns$QC_markers[[mode.name]] = list("allMarkers" = allMarkers,
+                                                  "markers" = markers,
+                                                  "countsQC" = countsQC,
+                                                  "cpmQC" = cpmQC,
+                                                  "classBr" = classBr,
+                                                  "subclassF" = subclassF,
+                                                  "qc_samples" = colnames(countsQC),
+                                                  "qc_genes" = rownames(countsQC))
   
   ##################
   ## ------- Modify the dendrogram and save
   ##
 
-  ## Load the complete dendrogram
-  dend = readRDS(file.path(AIT.anndata$uns$dend[["standard"]]))
+  ## Load the complete dendrogram, always from standard mode
+  dend = readRDS(file.path(AIT.anndata$uns$taxonomyDir, "dend.RData"))
 
   ## Prune dendrogram to remove off.target types
   dend = prune(dend, setdiff(labels(dend), unique(AIT.anndata$obs$cluster_label[!AIT.anndata$uns$filter[[mode.name]]])))
@@ -112,10 +112,10 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   saveRDS(dend, file.path(taxonomyModeDir,"dend.RData"))
 
   ## Store the pruned dendrogram, in dend list under "patchseq" mode.name
-  AIT.anndata$uns$dend[[mode.name]] = file.path(taxonomyModeDir,"dend.RData", leading_string="/")
+  AIT.anndata$uns$dend[[mode.name]] = toJSON(dend_to_json(reference$dend)) # file.path(taxonomyModeDir,"dend.RData", leading_string="/")
 
-  ## Save patch-seq taxonomy anndata
-  AIT.anndata$write_h5ad(file.path(taxonomyDir, "AI_taxonomy.h5ad"))
+  ## Save patch-seq mode into taxonomy anndata
+  AIT.anndata$write_h5ad(file.path(taxonomyDir, paste0(AIT.anndata$uns$taxonomyName, ".h5ad")))
   
   ## Update the log file and check the taxonomy for proper quality
   if(!checkTaxonomy(AIT.anndata,taxonomyDir)){
@@ -123,7 +123,7 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   }
 
   ## Update markers after pruning
-  dend = addDendrogramMarkers(AIT.anndata, mode=mode.name)
+  AIT.anndata = addDendrogramMarkers(AIT.anndata, mode=mode.name)
 
   ##
   return(AIT.anndata)

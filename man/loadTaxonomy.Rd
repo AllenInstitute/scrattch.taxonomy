@@ -5,7 +5,7 @@
 \title{Read in a reference data set in Allen taxonomy format}
 \usage{
 loadTaxonomy(
-  taxonomyDir = getwd(),
+  taxonomyDir,
   anndata_file = "AI_taxonomy.h5ad",
   sample_id = "sample_id",
   hGenes = NULL,
@@ -16,7 +16,7 @@ loadTaxonomy(
 \arguments{
 \item{taxonomyDir}{Directory containing the Shiny taxonomy -OR- a direct h5ad file name.}
 
-\item{anndata_file}{File name of the anndata object to be loaded.}
+\item{anndata_file}{File name of the anndata object (.h5ad) to be loaded.}
 
 \item{sample_id}{Field in reference taxonomy that defines the sample_id.}
 

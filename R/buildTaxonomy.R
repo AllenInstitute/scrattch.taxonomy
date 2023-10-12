@@ -5,7 +5,7 @@
 #' @param feature.set Set of feature used to calculate dendrogram. Typically highly variable and/or marker genes.
 #' @param umap.coords Dimensionality reduction coordiant data.frame with 2 columns. Rownames must be equal to colnames of counts.
 #' @param taxonomyDir The location to save Shiny objects, e.g. "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/NHP_BG_20220104/"
-#' @param taxonomyName The name to assign for the Taxonomy h5ad (note: the FILE name is called "AI_taxonomy.h5ad" but the name is stored in a slot in the h5ad file)
+#' @param taxonomyName The name to assign for the Taxonomy h5ad.
 #' @param celltypeColumn Column name corresponding to where the clusters are located (default="cluster")
 #' @param cluster_colors An optional named character vector where the values correspond to colors and the names correspond to celltypes in celltypeColumn.  If this vector is incomplete, a warning is thrown and it is ignored. cluster_colors can also be provided in the metadata (see notes)
 #' @param metadata_names An optional named character vector where the vector NAMES correspond to columns in the metadata matrix and the vector VALUES correspond to how these metadata should be displayed in Shiny. This is used for writing the desc.feather file later.
@@ -310,7 +310,7 @@ buildTaxonomy = function(counts,
       umap = umap.coords ## A data frame with sample_id, and 2D coordinates for umap (or comparable) representation(s)
     ),
     uns = list(
-      dend        = list("standard" = file.path(taxonomyDir, "dend.RData", leading_string="/")), # FILE NAME with dendrogram
+      dend        = list("standard" = toJSON(dend_to_json(dend))), # FILE NAME with dendrogram
       filter      = list("standard" = rep(FALSE, nrow(datReference))),
       QC_markers  = list("standard" = NA), ## Standard should always be empty for QC_markers
       mode = "standard", ## Default mode to standard
@@ -320,7 +320,7 @@ buildTaxonomy = function(counts,
       taxonomyDir = file.path(taxonomyDir, leading_string="/")
     )
   )
-  AIT.anndata$write_h5ad(file.path(taxonomyDir, "AI_taxonomy.h5ad"))
+  AIT.anndata$write_h5ad(file.path(taxonomyDir, paste0(taxonomyName, ".h5ad")))
   
   ## Return the anndata object
   return(AIT.anndata)
@@ -378,7 +378,7 @@ addDendrogramMarkers = function(AIT.anndata,
                                 p=0.8, 
                                 low.th=0.1,
                                 overwriteMarkers = TRUE){
-  print("Define some relevant variables")
+
   ## We should already know this? Clean up in future.
   if(!is.element(celltypeColumn, colnames(AIT.anndata$obs))){ stop(paste(celltypeColumn, "is not a column in the metadata data frame.")) }
 
@@ -386,16 +386,14 @@ addDendrogramMarkers = function(AIT.anndata,
   if(mode == "standard"){ taxonomyModeDir = file.path(AIT.anndata$uns$taxonomyDir) } else { taxonomyModeDir = file.path(file.path(AIT.anndata$uns$taxonomyDir), mode) }
   if(!dir.exists(taxonomyModeDir)){ stop("Taxonomy version doesn't exist, please run `buildPatchseqTaxonomy()` then retry.") }
 
-  print("Define some relevant variables")
   ## Filter
   AIT.anndata = AIT.anndata[!AIT.anndata$uns$filter[[mode]]]
 
   ## Subsample
   keep.samples = subsampleCells(AIT.anndata$obs[[celltypeColumn]], subsample) ##  & is.element(cluster.vector, labels(dend))
 
-  print("Define some relevant variables")
   ## Checks and data formatting
-  dend = readRDS(file.path(AIT.anndata$uns$dend[[mode]]))
+  dend = json_to_dend(fromJSON(AIT.anndata$uns$dend[[mode]])) #readRDS(file.path(AIT.anndata$uns$dend[[mode]]))
 
   ## norm.data
   norm.data = Matrix::t(AIT.anndata$X[keep.samples,])
@@ -480,6 +478,7 @@ addDendrogramMarkers = function(AIT.anndata,
   ## Note, this overwrites the initial dendrogram but has slightly different formatting from the read, which could cause issues
   ## dend = readRDS(AIT.anndata$uns$dend[[mode]])
     
+  ##
   if(save.shiny.output){
     ## NOTE: These are used for a version of mapping not yet implemented (KL mapping)
     print("Build membership table of reference vs. reference for use with patch-seq mapping")
@@ -500,5 +499,12 @@ addDendrogramMarkers = function(AIT.anndata,
     map.df.ref = map.df.ref[metadata$sample_id,]
     save(memb.ref, map.df.ref, file=file.path(taxonomyModeDir, "membership_information_reference.rda"))
   }
-  return(dend)
+
+  ##
+  print("Save the dendrogram into .h5ad")
+  AIT.anndata$uns$dend[[mode]] = toJSON(dend_to_json(reference$dend))
+  AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$taxonomyName, ".h5ad")))
+  
+  ##
+  return(AIT.anndata)
 }

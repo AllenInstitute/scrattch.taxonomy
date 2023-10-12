@@ -1,7 +1,7 @@
 #' Read in a reference data set in Allen taxonomy format
 #'
 #' @param taxonomyDir Directory containing the Shiny taxonomy -OR- a direct h5ad file name.
-#' @param anndata_file File name of the anndata object to be loaded.
+#' @param anndata_file File name of the anndata object (.h5ad) to be loaded.
 #' @param sample_id Field in reference taxonomy that defines the sample_id.
 #' @param hGenes User supplied variable gene vector.  If not provided, then all genes are used.
 #' @param gene_id Field in counts.feather that defines the gene_id.
@@ -10,7 +10,7 @@
 #' @return Organized reference object ready for mapping against.
 #'
 #' @export
-loadTaxonomy = function(taxonomyDir = getwd(), 
+loadTaxonomy = function(taxonomyDir, 
                         anndata_file = "AI_taxonomy.h5ad",
                         sample_id = "sample_id", 
                         hGenes=NULL, 
@@ -21,11 +21,11 @@ loadTaxonomy = function(taxonomyDir = getwd(),
   if(file.exists(file.path(taxonomyDir, anndata_file)) & force == FALSE){
     print("Loading reference taxonomy into memory from .h5ad")
     ## Load taxonomy directly!
-    AIT.anndata = read_h5ad(file.path(taxonomyDir, "AI_taxonomy.h5ad"))
+    AIT.anndata = read_h5ad(file.path(taxonomyDir, anndata_file))
     ## Ensure anndata is in scrattch.mapping format
-    if(!checkTaxonomy(AIT.anndata,taxonomyDir)){
-      stop(paste("Taxonomy has some breaking issues.  Please check checkTaxonomy_log.txt in",taxonomyDir,"for details"))
-    }
+    #if(!checkTaxonomy(AIT.anndata,taxonomyDir)){
+    #  stop(paste("Taxonomy has some breaking issues.  Please check checkTaxonomy_log.txt in",taxonomyDir,"for details"))
+    #}
   } else if(all(file.exists(c(file.path(taxonomyDir,"anno.feather"), 
                               file.path(taxonomyDir,"data.feather"), 
                               file.path(taxonomyDir,"counts.feather"), 
@@ -96,7 +96,11 @@ loadTaxonomy = function(taxonomyDir = getwd(),
       umap.coords = as.data.frame(umap.coords)
       rownames(umap.coords) = umap.coords[,sample_id]
     }
-    
+
+    ##
+    dend = readRDS(file.path(taxonomyDir, "dend.RData", leading_string="/"))
+
+    ##
     AIT.anndata = AnnData(
       X = datReference, ## logCPM
       obs = annoReference,
@@ -110,7 +114,7 @@ loadTaxonomy = function(taxonomyDir = getwd(),
         umap = umap.coords ## A data frame with sample_id, and 2D coordinates for umap (or comparable) representation(s)
       ),
       uns = list(
-        dend        = list("standard" = file.path(taxonomyDir, "dend.RData", leading_string="/")), # FILE NAME with dendrogram
+        dend        = list("standard" = dend_to_json(dend)), # FILE NAME with dendrogram
         filter      = list("standard" = rep(FALSE, nrow(datReference))),
         QC_markers  = list("standard" = NA), ## Standard should always be empty for QC_markers
         mode = "standard", ## Default mode to standard

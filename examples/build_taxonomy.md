@@ -55,5 +55,5 @@ AIT.anndata = buildTaxonomy(counts = taxonomy.counts,
                 subsample=2000)
 
 ## Add markers to dendrogram
-addDendrogramMarkers(AIT.anndata = AIT.anndata)
+AIT.anndata = addDendrogramMarkers(AIT.anndata = AIT.anndata)
 ```

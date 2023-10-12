@@ -1,6 +1,6 @@
 Package: scrattch.taxonomy
 Title: Generalized Allen Institute taxonomy building.
-Version: 0.1
+Version: 0.2
 Authors@R: 
     person(given = "Nelson",
            family = "Johansen",
@@ -39,7 +39,8 @@ Depends: feather,
     umap, 
     arrow,
     BiocNeighbors,
-    RANN
+    RANN,
+    jsonlite
 Suggests: knitr,
     rmarkdown, 
     testthat,

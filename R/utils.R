@@ -1,38 +1,3 @@
-#' Function to set mapping mode
-#'
-#' @param AIT.anndata A vector of cluster names in the reference taxonomy.
-#' @param mode Number of cells to keep per cluster.
-#'
-#' @return AIT anndata with mode set for mapping
-#' 
-#' @export
-mappingMode <- function(AIT.anndata, mode){
-  if(!mode %in% names(AIT.anndata$uns$filter)){ stop(paste0(mode, " is invalid. Choose from: ", names(AIT.anndata$uns$filter))) }
-  AIT.anndata$uns$mode = mode
-  ## Backwards compatibility for new QC markers storage
-  if(is.null(AIT.anndata$uns$QC_markers[[mode]]$allMarkers)){
-    QC_marker_file = file.path(AIT.anndata$uns$taxonomyDir, mode, "QC_markers.rda")
-    if(file.exists(QC_marker_file)){
-      ## 
-      print("Converting taxonomy .h5ad to new format and saving. This should only happen once per taxonomy.")
-      ##
-      load(QC_marker_file)
-      AIT.anndata$uns$QC_markers[[mode]]$allMarkers = allMarkers
-      AIT.anndata$uns$QC_markers[[mode]]$markers    = markers
-      AIT.anndata$uns$QC_markers[[mode]]$countsQC   = countsQC
-      AIT.anndata$uns$QC_markers[[mode]]$cpmQC      = cpmQC
-      AIT.anndata$uns$QC_markers[[mode]]$classBr    = classBr
-      AIT.anndata$uns$QC_markers[[mode]]$subclassF  = subclassF
-      AIT.anndata$uns$QC_markers[[mode]]$qc_samples = colnames(countsQC) # since colnames are lost
-      AIT.anndata$uns$QC_markers[[mode]]$qc_genes   = rownames(countsQC) # since rownames are lost
-      AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, "AI_taxonomy.h5ad"))
-    }else{
-      stop("Could not find QC marker files required for taxonomy mode. Please run buildPatchseqTaxonomy and try again.")
-    }
-  }
-  return(AIT.anndata)
-}
-
 #' Function to subsample cells
 #'
 #' @param cluster.names A vector of cluster names in the reference taxonomy.
@@ -41,7 +6,7 @@ mappingMode <- function(AIT.anndata, mode){
 #'
 #' @return Boolean vector of cells to keep (TRUE) and cells to remove (FALSE)
 #' 
-#' @keywords external
+#' @export
 subsampleCells <- function(cluster.names, subSamp=25, seed=5){
   # Returns a vector of TRUE false for choosing a maximum of subsamp cells in each cluster
   # cluster.names = vector of cluster labels in factor format
@@ -53,6 +18,74 @@ subsampleCells <- function(cluster.names, subSamp=25, seed=5){
     kpSamp[kp[sample(1:length(kp),min(length(kp),subSamp))]] = TRUE
   }
   return(kpSamp)
+}
+
+#' Convert R dendrogram to json
+#'
+#' @param dend R dendrogram object
+#'
+#' @return json file
+#' 
+#' @export
+dend_to_json = function(dend){
+    # Convert dendrogram to hclust
+    hclust_obj <- as.hclust(dend)
+    ## Record information in list
+    dendrogram_json <- list(
+      node_heights = hclust_obj$height,
+      cluster_tree = hclust_obj$merge,
+      order = hclust_obj$order,
+      labels = hclust_obj$labels)
+    if(!all(is.na(get_nodes_attr(dend, "markers")))){
+      dendrogram_json[["markers_names"]] = lapply(get_nodes_attr(dend, "markers"), names)
+      dendrogram_json[["markers_values"]] = get_nodes_attr(dend, "markers")
+      ## markers.byCl_names = lapply(get_nodes_attr(dend, "markesr.byCl"), names),
+      ## markers.byCl_values = get_nodes_attr(dend, "markesr.byCl")
+    }
+    ## Return json
+    return(dendrogram_json)
+}
+
+#' Convert json to R dendrogram
+#'
+#' @param json json from R dendrogram
+#'
+#' @return R dendrogram object
+#' 
+#' @export
+json_to_dend = function(json){
+    ## 
+    hclust.tmp <- list()  # initialize empty object
+    # define merging pattern: 
+    #    negative numbers are leaves, 
+    #    positive are merged clusters (defined by row number in $merge)
+    hclust.tmp$merge <- json$cluster_tree    # leaf merges
+    hclust.tmp$height <- json$node_heights   # define merge heights
+    hclust.tmp$order <- json$order           # order of leaves(trivial if hand-entered)
+    hclust.tmp$labels <- json$labels         # labels of leaves
+    class(hclust.tmp) <- "hclust"                           # make it an hclust object
+    dend = as.dendrogram(hclust.tmp)              # Make it an dendrogram object
+    ##
+    if("markers_names" %in% names(json)){
+      ## Extract marker information per node from json data.frame
+      markers = list()
+      for(elem in 1:length(json$markers_values)){
+          markers[[elem]] = setNames(json$markers_values[[elem]], json$markers_names[[elem]])
+      }
+      ## Add in marker information to dendrogram object
+      i_node = 0
+      get_attr_from_node <- function(dend_node, markers) {
+          i_node <<- i_node + 1
+          attr(dend_node, "markers") = markers[[i_node]]
+          dend_node
+      }
+      ## Apply markers per node in a specific order based on dendextend
+      dend = dendrapply(dend, get_attr_from_node, markers)
+    }
+    ##
+    dend = label_dend(dend)[[1]]
+    ## Return dendrogram
+    return(dend)
 }
 
 #' Get top genes by beta (binary) score
@@ -72,59 +105,6 @@ top_binary_genes <- function(data, cluster.names, gene.count=2000){
   top.genes <- names(betaScore)[1:gene.count]
   return(top.genes)
 }
-
-
-#' Tree-based mapping
-#'
-#' Returns the mapping membership of each cell to each node and leaf using a
-#'   tree-based method.  This is a wrapper function for map_dend.  Includes
-#'   Minor adjustments from the function of the same name in `mfishtools`.
-#'
-#' @param dend dendrogram for mapping
-#' @param refDat normalized data of the REFERENCE data set
-#' @param clustersF factor indicating which cluster each cell type is actually assigned to
-#'   in the reference data set
-#' @param mapDat normalized data of the MAPPING data set.  Default is to map the data onto itself.
-#' @param p proportion of marker genes to include in each iteration of the mapping algorithm.
-#' @param low.th the minimum difference in Pearson correlation required to decide on which branch
-#'   to map to. otherwise, a random branch is chosen.
-#' @param bootstrap Number of bootstrapping runs to calculate the membership from (default = 100)
-#' @param seed added for reproducibility
-#'
-#' @return a matrix of confidence scores (from 0 to 100) with rows as cells and columns
-#'   as tree node/leafs.  Values indicate the fraction of permutations in which the cell
-#'   mapped to that node/leaf using the subset of cells/genes in map_dend
-#'
-#' @keywords internal
-rfTreeMapping <- function (dend, refDat, clustersF, mapDat = refDat, p = 0.8, 
-                           low.th = 0.1, bootstrap = 100, seed = 1) 
-{
-  genes <- intersect(rownames(refDat), rownames(mapDat))
-  refDat <- as.matrix(refDat)[genes, ]
-  mapDat <- as.matrix(mapDat)[genes, ]
-  pseq.cells <- colnames(mapDat)
-  pseq.mem <- sapply(1:bootstrap, function(i) {
-    j <- i
-    go <- TRUE
-    while (go) {
-      j <- j + 1000
-      set.seed(j + seed)
-      tmp <- try(mfishtools::map_dend(dend, clustersF, refDat, mapDat, pseq.cells, 
-                                      p = p, low.th = low.th), silent=TRUE)
-      if (length(tmp) > 1) 
-        go <- FALSE
-    }
-    tmp
-  }, simplify = F)
-  memb <- unlist(pseq.mem)
-  memb <- data.frame(cell = names(memb), cl = memb)
-  memb$cl <- factor(memb$cl, levels = get_nodes_attr(dend, 
-                                                     "label"))
-  memb <- table(memb$cell, memb$cl)
-  memb <- memb/bootstrap
-  return(memb)
-}
-
 
 ####################################################################
 ## Functions for reversing '\' and '/'
@@ -165,7 +145,6 @@ setPathSeparator <- function(path_separator=NULL){
 #' This function was taken directly from https://conjugateprior.org/2015/06/identifying-the-os-from-r/ and all credit goes to Will Lowe from "conjugateprior".
 #' 
 #' @keywords internal
-
 get_os <- function(){
   sysinf <- Sys.info()
   if (!is.null(sysinf)){
@@ -230,12 +209,7 @@ file.path <- function (...,path_separator = getOption("path_separator"),leading_
 
 ##################################################################################################################
 ## The functions below are mapping function from scrattch.hicat dev_zy branch that are required for tree mapping
-# Libraries required for these functions
-#library(scrattch.hicat)
-#library(MatrixGenerics)
-#library(randomForest)
-#library(doMC)     # for parallelization in Unix environments
-#library(foreach)  # for parallelization in Unix environments
+##################################################################################################################
 
 #' Function for building the standard reference format, including adding marker genes to the clustering tree
 #'
