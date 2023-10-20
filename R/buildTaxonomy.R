@@ -386,11 +386,8 @@ addDendrogramMarkers = function(AIT.anndata,
   if(mode == "standard"){ taxonomyModeDir = file.path(AIT.anndata$uns$taxonomyDir) } else { taxonomyModeDir = file.path(file.path(AIT.anndata$uns$taxonomyDir), mode) }
   if(!dir.exists(taxonomyModeDir)){ stop("Taxonomy version doesn't exist, please run `buildPatchseqTaxonomy()` then retry.") }
 
-  ## Filter
-  AIT.anndata = AIT.anndata[!AIT.anndata$uns$filter[[mode]]]
-
-  ## Subsample
-  keep.samples = subsampleCells(AIT.anndata$obs[[celltypeColumn]], subsample) ##  & is.element(cluster.vector, labels(dend))
+  ## Filter and Subsample
+  keep.samples = ((!AIT.anndata$uns$filter[[mode]]) & subsampleCells(AIT.anndata$obs[[celltypeColumn]], subsample)) ##  & is.element(cluster.vector, labels(dend))
 
   ## Checks and data formatting
   dend = json_to_dend(fromJSON(AIT.anndata$uns$dend[[mode]])) #readRDS(file.path(AIT.anndata$uns$dend[[mode]]))
