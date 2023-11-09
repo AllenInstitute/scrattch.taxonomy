@@ -6,7 +6,7 @@ Data can be download using the following aws s3 command line call: `aws s3 cp "S
 
 ## BICCN M1 Zemke et al. 2023
 
-From Zemke et al. 2023 we are providing a taxonomy of motor cortex for each species.
+From Zemke et al. 2023 we are providing a taxonomy of motor cortex per species.
 
 | Taxonomy | S3-URI |
 | -------- | ------ |
