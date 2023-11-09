@@ -2,16 +2,18 @@
 
 Here we provide an initial portal for accessing single-cell RNAseq taxonomies from the Allen Institute and other publications. 
 
+Data can be download using the following aws s3 command line call: `aws s3 cp TAXONOMY.h5ad .`
+
 ## BICCN M1 Zemke et al. 2023
 
 From Zemke et al. 2023 we are providing a taxonomy of motor cortex for each species.
 
-| Taxonomy |
-| -------- |
-| [BICCN_M1_Human](https://released-taxonomies-802451596237-us-west-2.s3.us-west-2.amazonaws.com/BICCN_Zemke_et_al_2023/BICCN_M1_Human.h5ad) |
-| [BICCN_M1_Mouse](https://released-taxonomies-802451596237-us-west-2.s3.us-west-2.amazonaws.com/BICCN_Zemke_et_al_2023/BICCN_M1_Mouse.h5ad) |
-| [BICCN_M1_Macaque](https://released-taxonomies-802451596237-us-west-2.s3.us-west-2.amazonaws.com/BICCN_Zemke_et_al_2023/BICCN_M1_Macaque.h5ad) |
-| [BICCN_M1_Marmoset](https://released-taxonomies-802451596237-us-west-2.s3.us-west-2.amazonaws.com/BICCN_Zemke_et_al_2023/BICCN_M1_Marmoset.h5ad) |
+| Taxonomy | s3 uri |
+| -------- | ------ |
+| BICCN_M1_Human | s3://released-taxonomies-802451596237-us-west-2/BICCN_Zemke_et_al_2023/BICCN_M1_Human.h5ad |
+| BICCN_M1_Mouse | s3://released-taxonomies-802451596237-us-west-2/BICCN_Zemke_et_al_2023/BICCN_M1_Mouse.h5ad |
+| BICCN_M1_Macaque | s3://released-taxonomies-802451596237-us-west-2/BICCN_Zemke_et_al_2023/BICCN_M1_Macaque.h5ad |
+| BICCN_M1_Marmoset | s3://released-taxonomies-802451596237-us-west-2/BICCN_Zemke_et_al_2023/BICCN_M1_Marmoset.h5ad |
 
 ## Cross Areal Jorstad et al. 2023
 
