@@ -10,6 +10,7 @@ In this tutorial we demonstrate how to setup a patchseq Shiny taxonomy using scr
 ### Additional prerequisites:
 
 * Installation of the `tasic2016data` data package [from here](https://github.com/AllenInstitute/tasic2016data/).
+* Installation of the `hodge2019data` data package [from here](https://github.com/AllenInstitute/hodge2019data/).
 * Installation of `scrattch.mapping` [from here](https://github.com/AllenInstitute/scrattch.mapping) for data mapping. 
 
 ### Load in test data from Tasic 2016:
@@ -18,8 +19,10 @@ In this tutorial we demonstrate how to setup a patchseq Shiny taxonomy using scr
 library(scrattch.taxonomy)
 library(scrattch.mapping)
 library(tasic2016data)
+library(hodge2019data)
 
 ## Load in the tasic2016 data and wrangle as a query data set.
+## Optionally load hodge2019 data instead using hodge_2019_anno and hodge_2019_counts
 query.anno = tasic_2016_anno
 query.counts = tasic_2016_counts 
 query.anno = query.anno[match(colnames(query.counts),query.anno$sample_name),]
