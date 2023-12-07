@@ -13,7 +13,7 @@ In this tutorial we demonstrate how to setup a Shiny taxonomy using scrattch.tax
 
 * Installation of the `tasic2016data` data package [from here](https://github.com/AllenInstitute/tasic2016data/), or replace with your own data set.
 * Installation of the `hodge2019data` data package [from here](https://github.com/AllenInstitute/hodge2019data/).
-* 
+
 #### Build taxonomy:
 
 ```R
