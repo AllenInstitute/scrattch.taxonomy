@@ -12,14 +12,17 @@ In this tutorial we demonstrate how to setup a Shiny taxonomy using scrattch.tax
 #### Additional prerequisites:
 
 * Installation of the `tasic2016data` data package [from here](https://github.com/AllenInstitute/tasic2016data/), or replace with your own data set.
-
+* Installation of the `hodge2019data` data package [from here](https://github.com/AllenInstitute/hodge2019data/).
+* 
 #### Build taxonomy:
 
 ```R
 ## Load scrattch.taxonomy
 library(scrattch.taxonomy)
+library(hodge2019data)
 
 ## Load in example count data and annotations (or replace with your own)
+## Optionally load hodge2019 data instead using hodge_2019_anno and hodge_2019_counts
 library(tasic2016data)
 taxonomy.counts = tasic_2016_counts
 taxonomy.anno = tasic_2016_anno
