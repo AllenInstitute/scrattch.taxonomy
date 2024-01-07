@@ -22,9 +22,9 @@ library(tasic2016data)
 library(hodge2019data)
 
 ## Load in the tasic2016 data and wrangle as a query data set.
-## Optionally load hodge2019 data instead using hodge_2019_data
-query.anno = tasic_2016_anno
-query.counts = tasic_2016_counts 
+## Optionally load hodge2019 data instead 
+query.anno = tasic_2016_anno             # query.anno = metadata_Hodge2019
+query.counts = tasic_2016_counts         # query.counts = data_Hodge2019
 query.anno = query.anno[match(colnames(query.counts),query.anno$sample_name),]
 rownames(query.anno) = query.anno$sample_name  
 keep = query.anno$broad_type!="Unclassified"
