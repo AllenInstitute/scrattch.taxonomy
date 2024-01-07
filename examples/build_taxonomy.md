@@ -23,9 +23,9 @@ library(tasic2016data)
 library(hodge2019data)
 
 ## Load in example count data and annotations (or replace with your own)
-## Optionally load hodge2019 data instead using hodge_2019_data
-taxonomy.counts = tasic_2016_counts
-taxonomy.anno = tasic_2016_anno
+## Optionally load hodge2019 data instead
+taxonomy.counts = tasic_2016_counts      # taxonomy.counts = data_Hodge2019
+taxonomy.anno = tasic_2016_anno          # taxonomy.anno = metadata_Hodge2019
 
 ## Ensure count matrix and annotations are in the same order.
 taxonomy.anno = taxonomy.anno[match(colnames(taxonomy.counts), taxonomy.anno$sample_name),]
