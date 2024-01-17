@@ -17,10 +17,10 @@ We have setup a docker environemnt for scrattch.taxonomy and scrattch.mapping th
 #### HPC usage:
 
 ##### Non-interactive
-`singularity exec --cleanenv docker://bicore/scrattch_mapping:latest Rscript YOUR_CODE.R`
+`singularity exec --cleanenv docker://njjai/scrattch_mapping:0.52.1 Rscript YOUR_CODE.R`
 
 ##### Interactive
-`singularity shell --cleanenv docker://bicore/scrattch_mapping:latest`
+`singularity shell --cleanenv docker://njjai/scrattch_mapping:0.52.1`
 
 
 ## Installation
