@@ -101,7 +101,7 @@ query.mapping = taxonomy_mapping(AIT.anndata= AIT.anndata,
 
 ### Determine patchseq contamination with PatchseqQC:
 ```R
-query.mapping = applyPatchseqQC(AIT.anndata, ## A patchseq taxonomy object.
+patchseq.qc = applyPatchseqQC(AIT.anndata, ## A patchseq taxonomy object.
                                 query.counts, ## Counts are required here.
                                 query.mapping, ## Results of the previous mapping or AIT.anndata$obs, no mapping is required.
                                 verbose=FALSE)
