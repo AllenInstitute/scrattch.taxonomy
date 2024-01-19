@@ -37,7 +37,7 @@ query.anno = query.anno[keep,]
 ```R
 ## Standard shiny taxonomy
 # NOTE: replace 'taxonomy' location below with output folder from the "build_taxonomy" tutorial
-taxonomy = "tasic_2016"
+taxonomy = "Tasic2016"
 
 ## Load in the taxonomy
 AIT.anndata = loadTaxonomy(taxonomy)
