@@ -40,7 +40,7 @@ query.anno = query.anno[keep,]
 taxonomy = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016"
 
 ## Load in the taxonomy
-AIT.anndata = loadTaxonomy(taxonomy)
+AIT.anndata = loadTaxonomy(taxonomy, "Tasic2016.h5ad")
 ```
 
 ### Define off target cell types
