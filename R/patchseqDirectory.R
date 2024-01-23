@@ -24,13 +24,6 @@ buildMappingDirectory = function(AIT.anndata,
                                  mappingFolder,
                                  query.data,
                                  query.metadata,
-<<<<<<< Updated upstream
-                                 mapping.results, ## NEW
-                                 mapping.membership, ## NEW
-                                 doPatchseqQC = TRUE,
-                                 metadata_names = NULL
-){
-=======
                                  query.mapping,
                                  doPatchseqQC = TRUE,
                                  metadata_names = NULL,
@@ -40,7 +33,6 @@ buildMappingDirectory = function(AIT.anndata,
 
   ## Gather mapping results from S4 class
   mapping.results = getMappingResults(query.mapping)
->>>>>>> Stashed changes
   
   ## Checks
   if(!all(colnames(query.data) == rownames(query.metadata))){stop("Colnames of `query.data` and rownames of `query.metadata` do not match.")}
@@ -50,23 +42,13 @@ buildMappingDirectory = function(AIT.anndata,
   AIT.anndata = AIT.anndata[AIT.anndata$uns$filter[[AIT.anndata$uns$mode]]]
 
   ## Merge mapping metadata inputs
-<<<<<<< Updated upstream
-  if(length(setdiff(colnames(query.mapping),colnames(query.metadata)))>0){
-    query.metadata <- cbind(query.metadata, query.mapping[,setdiff(colnames(query.mapping), colnames(query.metadata))])
-    query.metadata[,colnames(query.mapping)] <- query.mapping # Overwrite any columns in query.metadata with same name in query.mapping
-=======
   if(length(setdiff(colnames(mapping.results),colnames(query.metadata)))>0){
     query.metadata <- cbind(query.metadata, mapping.results[,setdiff(colnames(mapping.results), colnames(query.metadata))])
     query.metadata[,colnames(mapping.results)] <- mapping.results # Overwrite any columns in query.metadata with same name in mapping.results
->>>>>>> Stashed changes
   }
   
   ## Ensure directory exists, if not create it
   mappingFolder <- file.path(mappingFolder) ## Allow for unix or windows
-<<<<<<< Updated upstream
-  dir.create(mappingFolder, showWarnings = FALSE)
-
-=======
   dir.create(mappingFolder, recursive=T, showWarnings = FALSE)
 
   ##
@@ -74,7 +56,6 @@ buildMappingDirectory = function(AIT.anndata,
 
   if(verbose == TRUE) print("Gathering cluster medians from taxonomy folder.")
 
->>>>>>> Stashed changes
   ## Read in cluster medians
   cl.summary = read_feather(file.path(AIT.anndata$uns$taxonomyDir, "medians.feather")) %>% as.data.frame()
   cl.dat = as.matrix(cl.summary[,-1]); rownames(cl.dat) = cl.summary[,1]
@@ -103,16 +84,11 @@ buildMappingDirectory = function(AIT.anndata,
     warning(paste("WARNING: the following query cells do not express any marker genes and are almost definitely bad cells:",
                   paste(colnames(query.cpm)[bad.cells],collapse=", ")))
   }
-<<<<<<< Updated upstream
-  
-  ## Create and output the memb.feather information
-=======
 
   if(verbose == TRUE) print("Saving tree mapping membership table to mapping folder.")
   
   ## Create and output the memb.feather information
   memb.ref <- query.mapping@detailed_results[["tree"]]
->>>>>>> Stashed changes
   memb.ref <- memb.ref[sample_id,]
   memb     <- data.frame(sample_id,as.data.frame.matrix(memb.ref)) 
   colnames(memb) <- c("sample_id",colnames(memb.ref))
@@ -220,10 +196,7 @@ buildMappingDirectory = function(AIT.anndata,
   ref.umap[is.na(ref.umap)] <- 0
   
   ##
-<<<<<<< Updated upstream
-=======
   if(verbose == TRUE) print("Building UMAP for query data.")
->>>>>>> Stashed changes
   npcs         <- min(30,length(binary.genes))
   query.pcs    <- prcomp(logCPM(query.cpm)[binary.genes,], scale = TRUE)$rotation
   
