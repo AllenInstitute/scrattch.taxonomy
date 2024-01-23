@@ -12,15 +12,15 @@ Update notes are here: ![Versions](https://github.com/AllenInstitute/scrattch.ta
 
 ## Docker
 
-We have setup a docker environemnt for scrattch.taxonomy and scrattch.mapping that contains all the required dependencies and the current version of both scrattch.taxonomy and scrattch.mapping. This docker is accessible through docker hub via: `njjai/scrattch_mapping:0.52.1`.
+We have setup a docker environemnt for scrattch.taxonomy and scrattch.mapping that contains all the required dependencies and the current version of both scrattch.taxonomy and scrattch.mapping. This docker is accessible through docker hub via: `njjai/scrattch_mapping:0.52.2`.
 
 #### HPC usage:
 
 ##### Non-interactive
-`singularity exec --cleanenv docker://njjai/scrattch_mapping:0.52.1 Rscript YOUR_CODE.R`
+`singularity exec --cleanenv docker://njjai/scrattch_mapping:0.52.2 Rscript YOUR_CODE.R`
 
 ##### Interactive
-`singularity shell --cleanenv docker://njjai/scrattch_mapping:0.52.1`
+`singularity shell --cleanenv docker://njjai/scrattch_mapping:0.52.2`
 
 
 ## Installation
