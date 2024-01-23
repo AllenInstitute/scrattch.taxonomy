@@ -34,7 +34,7 @@ addDendrogramMarkers(
 
 \item{de.param}{Differential expression (DE) parameters for genes and clusters used to define marker genes.  By default the values are set to the 10x nuclei defaults from scrattch.hicat, except with min.cells=2 (see notes below).}
 
-\item{calculate.de.genes}{Default=TRUE. If set to false, the function will search for a file called "de.genes.rda" to load precalculated de genes.}
+\item{calculate.de.genes}{Default=TRUE. If set to false, the function will search for "de_genes" in the anndata object for the specified mode and use those instead of calculating new ones.}
 
 \item{save.shiny.output}{Should standard output files be generated and saved to the directory (default=TRUE).  These are not required for tree mapping, but are required for building a patch-seq shiny instance.  This is only tested in a UNIX environment.  See notes.}
 

@@ -10,7 +10,6 @@ In this tutorial we demonstrate how to setup a patchseq Shiny taxonomy using scr
 ### Additional prerequisites:
 
 * Installation of the `tasic2016data` data package [from here](https://github.com/AllenInstitute/tasic2016data/).
-* Installation of the `hodge2019data` data package [from here](https://github.com/AllenInstitute/hodge2019data/).
 * Installation of `scrattch.mapping` [from here](https://github.com/AllenInstitute/scrattch.mapping) for data mapping. 
 
 ### Load in test data from Tasic 2016:
@@ -19,12 +18,10 @@ In this tutorial we demonstrate how to setup a patchseq Shiny taxonomy using scr
 library(scrattch.taxonomy)
 library(scrattch.mapping)
 library(tasic2016data)
-library(hodge2019data)
 
 ## Load in the tasic2016 data and wrangle as a query data set.
-## Optionally load hodge2019 data instead 
-query.anno = tasic_2016_anno             # query.anno = metadata_Hodge2019
-query.counts = tasic_2016_counts         # query.counts = data_Hodge2019
+query.anno = tasic_2016_anno
+query.counts = tasic_2016_counts 
 query.anno = query.anno[match(colnames(query.counts),query.anno$sample_name),]
 rownames(query.anno) = query.anno$sample_name  
 keep = query.anno$broad_type!="Unclassified"
@@ -37,10 +34,10 @@ query.anno = query.anno[keep,]
 ```R
 ## Standard shiny taxonomy
 # NOTE: replace 'taxonomy' location below with output folder from the "build_taxonomy" tutorial
-taxonomy = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016"
+taxonomy = "tasic_2016"
 
 ## Load in the taxonomy
-AIT.anndata = loadTaxonomy(taxonomy, "Tasic2016.h5ad")
+AIT.anndata = loadTaxonomy(taxonomy)
 ```
 
 ### Define off target cell types
@@ -101,7 +98,7 @@ query.mapping = taxonomy_mapping(AIT.anndata= AIT.anndata,
 
 ### Determine patchseq contamination with PatchseqQC:
 ```R
-patchseq.qc = applyPatchseqQC(AIT.anndata, ## A patchseq taxonomy object.
+query.mapping = applyPatchseqQC(AIT.anndata, ## A patchseq taxonomy object.
                                 query.counts, ## Counts are required here.
                                 query.mapping, ## Results of the previous mapping or AIT.anndata$obs, no mapping is required.
                                 verbose=FALSE)

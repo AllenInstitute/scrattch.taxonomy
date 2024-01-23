@@ -12,20 +12,17 @@ In this tutorial we demonstrate how to setup a Shiny taxonomy using scrattch.tax
 #### Additional prerequisites:
 
 * Installation of the `tasic2016data` data package [from here](https://github.com/AllenInstitute/tasic2016data/), or replace with your own data set.
-* Installation of the `hodge2019data` data package [from here](https://github.com/AllenInstitute/hodge2019data/).
 
 #### Build taxonomy:
 
 ```R
 ## Load scrattch.taxonomy
 library(scrattch.taxonomy)
-library(tasic2016data)
-library(hodge2019data)
 
 ## Load in example count data and annotations (or replace with your own)
-## Optionally load hodge2019 data instead
-taxonomy.counts = tasic_2016_counts      # taxonomy.counts = data_Hodge2019
-taxonomy.anno = tasic_2016_anno          # taxonomy.anno = metadata_Hodge2019
+library(tasic2016data)
+taxonomy.counts = tasic_2016_counts
+taxonomy.anno = tasic_2016_anno
 
 ## Ensure count matrix and annotations are in the same order.
 taxonomy.anno = taxonomy.anno[match(colnames(taxonomy.counts), taxonomy.anno$sample_name),]
@@ -46,7 +43,7 @@ rownames(umap.coords) = colnames(taxonomy.counts)
 
 ## This is where our taxonomy will be created
 # NOTE: replace 'taxonomyDir' location below with desired output folder location
-taxonomyDir = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016"
+taxonomyDir = "tasic_2016"
 
 ## Build Shiny taxonomy 
 AIT.anndata = buildTaxonomy(counts = taxonomy.counts,
