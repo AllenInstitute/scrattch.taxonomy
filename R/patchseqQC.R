@@ -32,7 +32,6 @@ applyPatchseqQC = function(AIT.anndata,
   
   ## Load the reference files
   # ---- This includes markers, countsQC, cpmQC, classBr, subclassF, and allMarkers
-  #load(AIT.anndata$uns$QC_markers[[AIT.anndata$uns$mode]])
   allMarkers = AIT.anndata$uns$QC_markers[[AIT.anndata$uns$mode]]$allMarkers 
   markers    = AIT.anndata$uns$QC_markers[[AIT.anndata$uns$mode]]$markers
   countsQC   = AIT.anndata$uns$QC_markers[[AIT.anndata$uns$mode]]$countsQC
@@ -82,7 +81,7 @@ applyPatchseqQC = function(AIT.anndata,
   if(verbose) print("Set NMS>0.4 flag and determine most contaminated type")
   qcMetrics$Norm_Marker_Sum.0.4 <- c(TRUE,FALSE)[(qcMetrics$marker_sum_norm<0.40)+1]
   cls               <- make.names(sort(intersect(classBr,subclassF)))
-  contaminationType <- cls[apply(qcMetrics[,cls],1,which.max)]
+  contaminationType <- cls[apply(qcMetrics[,cls,drop=F],1,which.max)]
   qcMetrics$contaminationType   <- contaminationType
   
   ##
@@ -91,7 +90,7 @@ applyPatchseqQC = function(AIT.anndata,
   annoNew <- query.metadata
   for (i in 1:length(cn))      # Remove duplicate column names, if any
     annoNew <- annoNew[,!grepl(cn[i],colnames(annoNew))]
-  annoNew <- cbind(annoNew,qcMetrics[,cn])
+  annoNew <- cbind(annoNew, qcMetrics[,cn])
   annoNew$quality_score = pmax(annoNew$quality_score,0)
   annoNew$marker_sum_norm = pmax(annoNew$marker_sum_norm,0)
   annoNew$contam_sum      = pmax(annoNew$contam_sum,0)

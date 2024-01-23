@@ -88,9 +88,9 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   
   ## Check for a 2D UMAP / latent space (obsm)  
   dat <- AIT.anndata$obsm$umap
-  if((class(dim(dat))!="integer")|(class(dat)[1]=="data.frame")|(!is.element(class(dat[1,1]),c("integer","numeric")))){
-    isValid = FALSE
-    messages = c(messages,"\nERROR: A UMAP is not provided in AIT.anndata$obsm$umap.")
+  if((class(dim(dat))!="integer")|(class(dat)[1]=="data.frame")|(!is.element(class(dat[1,1]),c("integer","numeric","character")))){
+    isWarning = TRUE
+    messages = c(messages,"\nWARNING: A UMAP is invalid or not provided in AIT.anndata$obsm$umap.")
   }
   
   #########################################
@@ -105,7 +105,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
     messages = c(messages,paste0("\nWARNING: the following AIT.anndata$uns variables are **REQUIRED** for the schema, but downstream scrattch.taxonomy and scrattch.mapping functions should still work: ",val,"."))
   }
   
-  # NOTE: we may want to remove this warning section
+  ## NOTE: we may want to remove this warning section
   required.schema.columns = c("clusterInfo","clustersUse") 
   missing.schema.columns = setdiff(required.schema.columns,names(AIT.anndata$uns))
   if (length(missing.schema.columns)>0){
@@ -135,27 +135,24 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
     isValid = FALSE
     messages = c(messages,"\nERROR: taxonomy modes with filters are not found. Scrattch.taxonomy requires at least a standard mode with all cells included.  Likely this h5ad is an earlier version of scrattch.taxonomy format and should be remade. No additional parts of AIT.anndata$uns will be tested for validation.")
   } else {
-    if(!is.element(AIT.anndata$uns$mode,modes)){
+    if(!is.element(AIT.anndata$uns$mode, modes)){
         isWarning = TRUE
         messages = c(messages,"\nWARNING: The current taxonomy mode is not one of the modes with available filters. Run mappingMode to change.")
     }
     for (mode in modes){
       messages = c(messages,paste("\n====== Reviewing AIT.anndata$uns for mode",mode,"=====."))
       
-      ## Check the dendrogram file location  
-      dat <- AIT.anndata$uns$dend[[mode]]
-      if(class(dat)!="character"){
-        isWarning = TRUE
-        messages = c(messages,"\nWARNING: A dendrogram location must exist as a character file path in AIT.anndata$uns$dend[[mode]] for any of the tree mapping or patch-seq functions to work properly. Other mapping functions (e.g., Seurat and correltion) should work without a dendrogram.")
-      } else if(!file.exists(file.path(dat))) {
-        isValid = FALSE
-        messages = c(messages,"\nERROR: the dendrogram",dat,"is not found. If provided, it must exist.")
-      } else if (substr(dat,1,1)=="\\"){
-        isWarning = TRUE
-        messages = c(messages,"\nWARNING: the dendrogram",dat,"should have a UNIX file structure not a Windows file structure.")
-      } else {
-        messages = c(messages,paste0(":-) AIT.anndata$uns$dend[[",mode,"]] looks correct: ",dat))
-      }
+      ## Check the dendrogram is correct and can be loaded in from json format
+      tryCatch({
+          dat = json_to_dend(fromJSON(AIT.anndata$uns$dend[[AIT.anndata$uns$mode]]))
+        },
+        error=function(cond) {
+          isValid = FALSE
+          messages = c(messages,"\nERROR: the dendrogram", dat, "is not correct please rebuild taxonomy or check with creator.")
+        },
+        finally={
+          messages = c(messages,paste0(":-) AIT.anndata$uns$filter looks correct for mode ",mode,"."))
+      })    
       
       ## Check the filter AIT.anndata$uns$filter[[mode]]
       dat <- AIT.anndata$uns$filter[[mode]]

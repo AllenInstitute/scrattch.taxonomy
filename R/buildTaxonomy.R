@@ -292,7 +292,7 @@ buildTaxonomy = function(counts,
   annoReference = meta.data; rownames(annoReference) = meta.data$sample_id
 
   ##
-  clustersUse = labels(dend)
+  clustersUse = labels(dend) ## Needs to not be leveraging dend, pull from metadata. Unneccesary dependency.
   ## Define clusterInfo, which is used to convert cell types to subclass / neighborhood / class
   clusterInfo = as.data.frame(annoReference[match(clustersUse, annoReference$cluster_label),])
 
@@ -312,12 +312,12 @@ buildTaxonomy = function(counts,
     uns = list(
       dend        = list("standard" = toJSON(dend_to_json(dend))), # FILE NAME with dendrogram
       filter      = list("standard" = rep(FALSE, nrow(datReference))),
-      QC_markers  = list("standard" = NA), ## Standard should always be empty for QC_markers
+      QC_markers  = list("standard" = list()), ## Standard will hold de.genes for dendrogram, we should rename this uns field.
       mode = "standard", ## Default mode to standard
       clustersUse = clustersUse,
       clusterInfo = clusterInfo,
       taxonomyName = taxonomyName,
-      taxonomyDir = file.path(taxonomyDir, leading_string="/")
+      taxonomyDir = file.path(normalizePath(taxonomyDir), leading_string="/") ## Normalize path in case where user doesn't provide absolute path.
     )
   )
   AIT.anndata$write_h5ad(file.path(taxonomyDir, paste0(taxonomyName, ".h5ad")))
@@ -334,7 +334,7 @@ buildTaxonomy = function(counts,
 #' @param subsample The number of cells to retain per cluster (default = 100)
 #' @param num.markers The maximum number of markers to calculate per pairwise differential calculation per direction (default = 20)
 #' @param de.param Differential expression (DE) parameters for genes and clusters used to define marker genes.  By default the values are set to the 10x nuclei defaults from scrattch.hicat, except with min.cells=2 (see notes below).
-#' @param calculate.de.genes Default=TRUE. If set to false, the function will search for a file called "de.genes.rda" to load precalculated de genes.  
+#' @param calculate.de.genes Default=TRUE. If set to false, the function will search for "de_genes" in the anndata object for the specified mode and use those instead of calculating new ones.
 #' @param save.shiny.output Should standard output files be generated and saved to the directory (default=TRUE).  These are not required for tree mapping, but are required for building a patch-seq shiny instance.  This is only tested in a UNIX environment.  See notes.
 #' @param mc.cores Number of cores to use for running this function to speed things up.  Default = 1.  Values>1 are only supported in an UNIX environment and require `foreach` and `doParallel` R libraries.
 #' @param bs.num Number of bootstrap runs for creating the dendrogram (default of 100)
@@ -417,7 +417,7 @@ addDendrogramMarkers = function(AIT.anndata,
   ## Compute markers
   print("Define marker genes and gene scores for the tree")
   if((sum(!is.na(get_nodes_attr(dend, "markers"))) == 0) | (overwriteMarkers == TRUE)){
-    if((!file.exists(file.path(taxonomyModeDir, "de.genes.rda"))) | calculate.de.genes){
+    if(!is.element("de_genes", names(AIT.anndata$uns$QC_markers[[mode]])) | calculate.de.genes){
       print("=== NOTE: This step can be very slow (several minute to many hours).")
       print("      To speed up the calculation (or if it crashes) try decreasing the value of subsample.")
       de.genes = scrattch.hicat::select_markers(norm.dat=norm.data, 
@@ -425,9 +425,10 @@ addDendrogramMarkers = function(AIT.anndata,
                                 n.markers= num.markers, 
                                 de.param = de.param, 
                                 de.genes = NULL)$de.genes
-      save(de.genes, file=file.path(taxonomyModeDir, "de.genes.rda"))
+
+      AIT.anndata$uns$QC_markers[[mode]][["de_genes"]] = de.genes
     } else {
-      load(file.path(taxonomyModeDir, "de.genes.rda"))
+      de.genes = AIT.anndata$uns$QC_markers[[mode]][["de_genes"]]
     }
 
     ## Check number of markers for each leaf

@@ -25,66 +25,57 @@ buildMappingDirectory = function(AIT.anndata,
                                  mappingFolder,
                                  query.data,
                                  query.metadata,
-                                 query.mapping = NULL,
+                                 mapping.results, ## NEW
+                                 mapping.membership, ## NEW
                                  doPatchseqQC = TRUE,
-                                 metadata_names = NULL,
-                                 mc.cores=1,
-                                 bs.num=100, p=0.7, low.th=0.15,
-                                 min.confidence = 0.5
-                                 ){
+                                 metadata_names = NULL
+){
   
   ## Checks
   if(!all(colnames(query.data) == rownames(query.metadata))){stop("Colnames of `query.data` and rownames of `query.metadata` do not match.")}
+  if(!all(colnames(query.data) == rownames(mapping.results))){stop("Colnames of `query.data` and rownames of `mapping.results` do not match.")}
 
-  # Merge mapping metadata inputs
+  ## Filter taxonomy to mode cells
+  AIT.anndata = AIT.anndata[AIT.anndata$uns$filter[[AIT.anndata$uns$mode]]]
+
+  ## Merge mapping metadata inputs
   if(length(setdiff(colnames(query.mapping),colnames(query.metadata)))>0){
-    query.metadata <- cbind(query.metadata,query.mapping[,setdiff(colnames(query.mapping),colnames(query.metadata))])
+    query.metadata <- cbind(query.metadata, query.mapping[,setdiff(colnames(query.mapping), colnames(query.metadata))])
     query.metadata[,colnames(query.mapping)] <- query.mapping # Overwrite any columns in query.metadata with same name in query.mapping
   }
   
   ## Ensure directory exists, if not create it
-  mappingFolder <- file.path(mappingFolder) # Allow for unix or windows
+  mappingFolder <- file.path(mappingFolder) ## Allow for unix or windows
   dir.create(mappingFolder, showWarnings = FALSE)
-
-  ##
-  AIT.anndata = AIT.anndata[AIT.anndata$uns$filter[[AIT.anndata$uns$mode]]]
 
   ## Read in cluster medians
   cl.summary = read_feather(file.path(AIT.anndata$uns$taxonomyDir, "medians.feather")) %>% as.data.frame()
   cl.dat = as.matrix(cl.summary[,-1]); rownames(cl.dat) = cl.summary[,1]
 
   ## Read in the reference tree and copy to new directory
-  dend = readRDS(AIT.anndata$uns$dend[[AIT.anndata$uns$mode]])
+  dend = readRDS(file.path(AIT.anndata$uns$taxonomyDir, AIT.anndata$uns$mode, "dend.RData"))
 
   ## Output dend to mapping folder
-  saveRDS(dend, file.path(mappingFolder,"dend.RData"))
+  saveRDS(dend, file.path(mappingFolder, "dend.RData"))
   
   ## Convert query.data to CPM
   if(is.element("data.frame",class(query.data))){stop("`query.data` should be a matrix or a sparse matrix, not a data.frame.")}
-  if(max(query.data)<20){
-    warning("`query.data` should not be log2-normalized. Converting back to linear space.")
-    if (is.matrix(query.data)) {
-      query.data <- 2^query.data - 1
-    }
-    else {
-      query.data@x <- 2^query.data@x - 1
-    }
-  }
   query.cpm <- cpm(query.data)
   sample_id <- colnames(query.cpm); query.metadata$sample_id = sample_id
   gene      <- rownames(query.cpm)
+
+  ##
+  binary.genes <- intersect(AIT.anndata$var_names[AIT.anndata$var$highly_variable_genes], rownames(query.cpm))
+
+  ## Check for cells with empty data
+  bad.cells    <- which(colSums(query.cpm[binary.genes,]>0)<=1)
+  if(length(bad.cells)>0){
+    query.cpm[,bad.cells] <- rowMeans(query.cpm)
+    warning(paste("WARNING: the following query cells do not express any marker genes and are almost definitely bad cells:",
+                  paste(colnames(query.cpm)[bad.cells],collapse=", ")))
+  }
   
   ## Create and output the memb.feather information
-  invisible(capture.output({  # Avoid printing lots of numbers to the screen
-    memb.ref <- map_dend_membership(dend, 
-                                    cl.dat, 
-                                    map.dat=query.cpm, 
-                                    map.cells=sample_id,
-                                    mc.cores=mc.cores, 
-                                    bs.num=bs.num, 
-                                    p=p, 
-                                    low.th=low.th)
-  }))
   memb.ref <- memb.ref[sample_id,]
   memb     <- data.frame(sample_id,as.data.frame.matrix(memb.ref)) 
   colnames(memb) <- c("sample_id",colnames(memb.ref))
@@ -96,13 +87,13 @@ buildMappingDirectory = function(AIT.anndata,
     c(colnames(memb)[i],x[i])
   })
   confident_match <- as.data.frame(t(confident_match))
-  #getTopMatch(memb.ref[,intersect(labels(dend),colnames(memb.ref))]) # If we want to require leaf node, this line replaces above
-  colnames(confident_match) <- c("cluster","cluster_score")
+  ## getTopMatch(memb.ref[,intersect(labels(dend),colnames(memb.ref))]) # If we want to require leaf node, this line replaces above
+  colnames(confident_match) <- c("cluster", "cluster_score")
   query.metadata <- cbind(query.metadata[,setdiff(colnames(query.metadata),c("cluster","cluster_score"))],confident_match[sample_id,])
   
   ## Define resolution index and cluster order, and update metadata
   invisible(capture.output({  # Avoid printing lots of numbers to the screen
-    # Get shiny's cluster_ids for each node
+    ## Get shiny's cluster_ids for each node
     cl.order = dend %>% get_nodes_attr("label")
     cluster_anno_ordered = data.frame(cluster_label=cl.order,
                                       cluster_id=1:length(cl.order))
@@ -110,11 +101,11 @@ buildMappingDirectory = function(AIT.anndata,
     nodes.ids.df = data.frame(cluster_height = get_nodes_attr(dend,"height"),
                               cluster_label = get_nodes_attr(dend,"label"))
     nodes.ids.df$res.index = 1 - (nodes.ids.df$cluster_height / attr(dend,"height"))
-    # Join the memb with the cluster names and cluster res index
+    ## Join the memb with the cluster names and cluster res index
     cluster_node_anno <- cluster_anno_ordered %>%
       left_join(nodes.ids.df) %>%
       select(cluster_label, cluster_id, res.index)
-    # Ordered by dend and higher res first
+    ## Ordered by dend and higher res first
     idx1 = which(cluster_node_anno$res.index>=0.8)
     idx2 = which(cluster_node_anno$res.index<0.8)
     idx3 = which(is.na(cluster_node_anno$res.index))
@@ -122,9 +113,9 @@ buildMappingDirectory = function(AIT.anndata,
     cluster_node_anno$cluster_id = 1:length(cluster_node_anno$cluster_label)
   }))
 
-  # Add this stuff to the meta.data file
+  ## Add this stuff to the meta.data file
   query.metadata$res.index <- cluster_node_anno$res.index[match(query.metadata$cluster,cluster_node_anno$cluster_label)]
-  query.metadata$cluster   <- droplevels(factor(query.metadata$cluster,levels=cluster_node_anno$cluster_label))
+  query.metadata$cluster   <- droplevels(factor(query.metadata$cluster, levels=cluster_node_anno$cluster_label))
   
   ## Output query data feather
   norm.data.t = Matrix::t(as.matrix(query.cpm))
@@ -184,19 +175,11 @@ buildMappingDirectory = function(AIT.anndata,
   write_feather(meta.data, file.path(mappingFolder,"anno.feather"))
   
   ## Project mapped data into existing umap (if it exists) or generate new umap otherwise
-  binary.genes <- intersect(AIT.anndata$var_names[AIT.anndata$var$highly_variable_genes],rownames(query.cpm))
   ref.umap     <- as.matrix(AIT.anndata$obsm[["umap"]][,colnames(AIT.anndata$obsm[["umap"]])!="sample_id"])
   rownames(ref.umap) <- rownames(AIT.anndata$obsm[["umap"]])
   ref.umap[is.na(ref.umap)] <- 0
   
-  ## Check for cells with empty data
-  bad.cells    <- which(colSums(query.cpm[binary.genes,]>0)<=1)
-  if(length(bad.cells)>0){
-    query.cpm[,bad.cells] <- rowMeans(query.cpm)
-    warning(paste("WARNING: the following query cells do not express any marker genes and are almost definitely bad cells:",
-                  paste(colnames(query.cpm)[bad.cells],collapse=", ")))
-  }
-  
+  ##
   npcs         <- min(30,length(binary.genes))
   query.pcs    <- prcomp(logCPM(query.cpm)[binary.genes,], scale = TRUE)$rotation
   

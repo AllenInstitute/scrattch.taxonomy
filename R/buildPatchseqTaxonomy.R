@@ -49,7 +49,7 @@ buildPatchseqTaxonomy = function(AIT.anndata,
 
   ## Determine taxonomy mode directory (Move to utilty function)
   if(mode.name == "standard"){ taxonomyModeDir = file.path(taxonomyDir) } else { taxonomyModeDir = file.path(file.path(taxonomyDir), mode.name) }
-  if(!dir.exists(taxonomyModeDir)){  dir.create(taxonomyModeDir, showWarnings = FALSE) }
+  if(!dir.exists(taxonomyModeDir)){ dir.create(taxonomyModeDir, showWarnings = TRUE) }
 
   ## Copy metadata
   metadata = AIT.anndata$obs
@@ -109,10 +109,10 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   dend = prune(dend, setdiff(labels(dend), unique(AIT.anndata$obs$cluster_label[!AIT.anndata$uns$filter[[mode.name]]])))
 
   ## Save dendrogram
-  saveRDS(dend, file.path(taxonomyModeDir,"dend.RData"))
+  saveRDS(dend, file.path(taxonomyModeDir, "dend.RData"))
 
   ## Store the pruned dendrogram, in dend list under "patchseq" mode.name
-  AIT.anndata$uns$dend[[mode.name]] = toJSON(dend_to_json(reference$dend)) # file.path(taxonomyModeDir,"dend.RData", leading_string="/")
+  AIT.anndata$uns$dend[[mode.name]] = toJSON(dend_to_json(dend))
 
   ## Save patch-seq mode into taxonomy anndata
   AIT.anndata$write_h5ad(file.path(taxonomyDir, paste0(AIT.anndata$uns$taxonomyName, ".h5ad")))

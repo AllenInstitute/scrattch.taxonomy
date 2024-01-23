@@ -22,10 +22,22 @@ loadTaxonomy = function(taxonomyDir,
     print("Loading reference taxonomy into memory from .h5ad")
     ## Load taxonomy directly!
     AIT.anndata = read_h5ad(file.path(taxonomyDir, anndata_file))
+    ## Default mode is always standard
+    AIT.anndata$uns$mode = "standard"
+    ##
+    for(mode in names(AIT.anndata$uns$dend)){
+      print("Loading an older AIT .h5ad version. Converting dendrogram to JSON format for mapping.")
+      invisible(capture.output({
+        if(basename(AIT.anndata$uns$dend[[mode]]) == "dend.RData"){
+          dend = readRDS(AIT.anndata$uns$dend[[mode]])
+          AIT.anndata$uns$dend[[mode]] = toJSON(dend_to_json(dend))
+        }
+      }))
+    }
     ## Ensure anndata is in scrattch.mapping format
-    #if(!checkTaxonomy(AIT.anndata,taxonomyDir)){
-    #  stop(paste("Taxonomy has some breaking issues.  Please check checkTaxonomy_log.txt in",taxonomyDir,"for details"))
-    #}
+    if(!checkTaxonomy(AIT.anndata,taxonomyDir)){
+     stop(paste("Taxonomy has some breaking issues.  Please check checkTaxonomy_log.txt in", taxonomyDir, "for details"))
+    }
   } else if(all(file.exists(c(file.path(taxonomyDir,"anno.feather"), 
                               file.path(taxonomyDir,"data.feather"), 
                               file.path(taxonomyDir,"counts.feather"), 
@@ -47,7 +59,7 @@ loadTaxonomy = function(taxonomyDir,
       ## Convert count data into a matrix
       countsReference = as.matrix(countsReference[,names(countsReference)!=gene_id])
       rownames(countsReference) = colnames(datReference)
-      countsReference = Matrix::t(countsReference)
+      countsReference = Matrix::t(countsReference) ## Put into cell x gene format
     }else{
       countsReference = NULL
     }
@@ -58,9 +70,9 @@ loadTaxonomy = function(taxonomyDir,
     
     ## Consider only genes present in both data sets
     if(!is.null(hGenes)){ 
-      varFeatures = intersect(hGenes, colnames(datReference)) 
+      feature.set = intersect(hGenes, colnames(datReference)) 
     } else { 
-      varFeatures = colnames(datReference) 
+      feature.set = colnames(datReference) 
     }
     
     ## Read in cluster info
@@ -108,23 +120,23 @@ loadTaxonomy = function(taxonomyDir,
                        "highly_variable_genes" = colnames(datReference) %in% feature.set, 
                        row.names=colnames(datReference)),
       layers = list(
-        counts = Matrix::t(counts) ## Count matrix
+        counts = countsReference ## Count matrix
       ),
       obsm = list(
         umap = umap.coords ## A data frame with sample_id, and 2D coordinates for umap (or comparable) representation(s)
       ),
       uns = list(
-        dend        = list("standard" = dend_to_json(dend)), # FILE NAME with dendrogram
+        dend        = list("standard" = toJSON(dend_to_json(dend))), # FILE NAME with dendrogram
         filter      = list("standard" = rep(FALSE, nrow(datReference))),
         QC_markers  = list("standard" = NA), ## Standard should always be empty for QC_markers
         mode = "standard", ## Default mode to standard
         clustersUse = clustersUse,
         clusterInfo = clusterInfo,
-        taxonomyName = taxonomyName,
+        taxonomyName = gsub(".h5ad","", "anndata_file"),
         taxonomyDir = file.path(taxonomyDir, leading_string="/")
       )
     )
-    AIT.anndata$write_h5ad(file.path(taxonomyDir, "AI_taxonomy.h5ad")) ## Save the anndata taxonomy so the next person doesn't have to build it :).
+    AIT.anndata$write_h5ad(file.path(taxonomyDir, anndata_file)) ## Save the anndata taxonomy so the next person doesn't have to build it :).
   }else{
     stop("Required files to load Allen Institute taxonomy are missing.")
   }
