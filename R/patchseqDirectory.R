@@ -4,12 +4,11 @@
 #' @param mappingFolder The location to save output files for patch-seq (or other query data) results, e.g. "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/star/human/human_patchseq_MTG_JAM_TEST/current/"
 #' @param query.data A CPM normalized matrix to be annotated.
 #' @param query.metadata A data frame of metadata for the query data.  
-#' @param query.mapping Mapping results from `taxonomy_mapping()` or other mapping functions (optional).  If provided row names must match column names in query.data.
+#' @param query.mapping Mapping results from `taxonomy_mapping()`, must be an mappingClass S4 object. If provided row names must match column names in query.data.
 #' @param doPatchseqQC Boolean indicating whether patch-seq QC metrics should be calculated (default) or not.
 #' @param metadata_names An optional named character vector where the vector NAMES correspond to columns in the metadata matrix and the vector VALUES correspond to how these metadata should be displayed in Shiny. This is used for writing the desc.feather file later.
-#' @param mc.cores Number of cores to use for running this function to speed things up.  Default = 1.  Values>1 are only supported in an UNIX environment and require `foreach` and `doParallel` R libraries.
-#' @param bs.num,p,low.th Extra variables for the `map_dend_membership` function in scrattch.hicat.  Defaults are set reasonably.
 #' @param min.confidence Probability below which a cell cannot be assigned to a cell type (default 0.7).  In other words, if no cell types have probabilities greater than resolution.index, then the assigned cluster will be an internal node of the dendrogram. 
+#' @param verbose Should detail logging be printed to the screen?
 #' 
 #' This function writes files to the mappingFolder directory for visualization with molgen-shiny tools
 #' --- anno.feather - query metadata
@@ -25,11 +24,23 @@ buildMappingDirectory = function(AIT.anndata,
                                  mappingFolder,
                                  query.data,
                                  query.metadata,
+<<<<<<< Updated upstream
                                  mapping.results, ## NEW
                                  mapping.membership, ## NEW
                                  doPatchseqQC = TRUE,
                                  metadata_names = NULL
 ){
+=======
+                                 query.mapping,
+                                 doPatchseqQC = TRUE,
+                                 metadata_names = NULL,
+                                 min.confidence = 0.7,
+                                 verbose=TRUE
+){
+
+  ## Gather mapping results from S4 class
+  mapping.results = getMappingResults(query.mapping)
+>>>>>>> Stashed changes
   
   ## Checks
   if(!all(colnames(query.data) == rownames(query.metadata))){stop("Colnames of `query.data` and rownames of `query.metadata` do not match.")}
@@ -39,18 +50,36 @@ buildMappingDirectory = function(AIT.anndata,
   AIT.anndata = AIT.anndata[AIT.anndata$uns$filter[[AIT.anndata$uns$mode]]]
 
   ## Merge mapping metadata inputs
+<<<<<<< Updated upstream
   if(length(setdiff(colnames(query.mapping),colnames(query.metadata)))>0){
     query.metadata <- cbind(query.metadata, query.mapping[,setdiff(colnames(query.mapping), colnames(query.metadata))])
     query.metadata[,colnames(query.mapping)] <- query.mapping # Overwrite any columns in query.metadata with same name in query.mapping
+=======
+  if(length(setdiff(colnames(mapping.results),colnames(query.metadata)))>0){
+    query.metadata <- cbind(query.metadata, mapping.results[,setdiff(colnames(mapping.results), colnames(query.metadata))])
+    query.metadata[,colnames(mapping.results)] <- mapping.results # Overwrite any columns in query.metadata with same name in mapping.results
+>>>>>>> Stashed changes
   }
   
   ## Ensure directory exists, if not create it
   mappingFolder <- file.path(mappingFolder) ## Allow for unix or windows
+<<<<<<< Updated upstream
   dir.create(mappingFolder, showWarnings = FALSE)
 
+=======
+  dir.create(mappingFolder, recursive=T, showWarnings = FALSE)
+
+  ##
+  if(!file.exists(mappingFolder)) {stop(paste("Directory ",mappingFolder," could not be created. Please do so manually or try again."))}
+
+  if(verbose == TRUE) print("Gathering cluster medians from taxonomy folder.")
+
+>>>>>>> Stashed changes
   ## Read in cluster medians
   cl.summary = read_feather(file.path(AIT.anndata$uns$taxonomyDir, "medians.feather")) %>% as.data.frame()
   cl.dat = as.matrix(cl.summary[,-1]); rownames(cl.dat) = cl.summary[,1]
+
+  if(verbose == TRUE) print("Saving dendrogram to mapping folder.")
 
   ## Read in the reference tree and copy to new directory
   dend = readRDS(file.path(AIT.anndata$uns$taxonomyDir, AIT.anndata$uns$mode, "dend.RData"))
@@ -74,8 +103,16 @@ buildMappingDirectory = function(AIT.anndata,
     warning(paste("WARNING: the following query cells do not express any marker genes and are almost definitely bad cells:",
                   paste(colnames(query.cpm)[bad.cells],collapse=", ")))
   }
+<<<<<<< Updated upstream
   
   ## Create and output the memb.feather information
+=======
+
+  if(verbose == TRUE) print("Saving tree mapping membership table to mapping folder.")
+  
+  ## Create and output the memb.feather information
+  memb.ref <- query.mapping@detailed_results[["tree"]]
+>>>>>>> Stashed changes
   memb.ref <- memb.ref[sample_id,]
   memb     <- data.frame(sample_id,as.data.frame.matrix(memb.ref)) 
   colnames(memb) <- c("sample_id",colnames(memb.ref))
@@ -118,6 +155,7 @@ buildMappingDirectory = function(AIT.anndata,
   query.metadata$cluster   <- droplevels(factor(query.metadata$cluster, levels=cluster_node_anno$cluster_label))
   
   ## Output query data feather
+  if(verbose == TRUE) print("Writing query data feather to mapping folder.")
   norm.data.t = Matrix::t(as.matrix(query.cpm))
   norm.data.t = as_tibble(norm.data.t)
   norm.data.t = cbind(sample_id, norm.data.t)
@@ -126,6 +164,7 @@ buildMappingDirectory = function(AIT.anndata,
   
   ## Apply PatchseqQC if desired
   if(doPatchseqQC == TRUE){
+    if(verbose == TRUE) print("Performing patchseqQC and updating metadata.")
     query.metadata <- applyPatchseqQC(AIT.anndata, query.data, query.metadata)
   }
   
@@ -169,6 +208,7 @@ buildMappingDirectory = function(AIT.anndata,
   write_feather(as_tibble(anno_desc), file.path(mappingFolder, "desc.feather"))
   
   ## Minor reformatting of metadata file, then write metadata file
+  if(verbose == TRUE) print("Writing annotation to mapping folder.")
   meta.data$cluster = meta.data$cluster_label; # Not sure why this is needed
   colnames(meta.data)[colnames(meta.data)=="sample_name"] <- "sample_name_old" # Rename "sample_name" to avoid shiny crashing
   if(!is.element("sample_id", colnames(meta.data))){ meta.data$sample_id = meta.data$sample_name_old } ## Sanity check for sample_id
@@ -180,6 +220,10 @@ buildMappingDirectory = function(AIT.anndata,
   ref.umap[is.na(ref.umap)] <- 0
   
   ##
+<<<<<<< Updated upstream
+=======
+  if(verbose == TRUE) print("Building UMAP for query data.")
+>>>>>>> Stashed changes
   npcs         <- min(30,length(binary.genes))
   query.pcs    <- prcomp(logCPM(query.cpm)[binary.genes,], scale = TRUE)$rotation
   

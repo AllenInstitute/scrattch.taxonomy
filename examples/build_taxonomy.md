@@ -43,7 +43,7 @@ rownames(umap.coords) = colnames(taxonomy.counts)
 
 ## This is where our taxonomy will be created
 # NOTE: replace 'taxonomyDir' location below with desired output folder location
-taxonomyDir = "tasic_2016"
+taxonomyDir = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016/"
 
 ## Build Shiny taxonomy 
 AIT.anndata = buildTaxonomy(counts = taxonomy.counts,

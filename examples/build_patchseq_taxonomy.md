@@ -34,7 +34,7 @@ query.anno = query.anno[keep,]
 ```R
 ## Standard shiny taxonomy
 # NOTE: replace 'taxonomy' location below with output folder from the "build_taxonomy" tutorial
-taxonomy = "tasic_2016"
+taxonomy = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016"
 
 ## Load in the taxonomy
 AIT.anndata = loadTaxonomy(taxonomy)
@@ -94,13 +94,15 @@ query.mapping = taxonomy_mapping(AIT.anndata= AIT.anndata,
                                   tree.map   = TRUE, 
                                   seurat.map = FALSE, 
                                   label.cols = c("cluster_label", "broad_type_label")) # Columns to map against from AIT.anndata$obs
+## If you want the mapping data.frame from the S4 mappingClass
+mapping.results = getMappingResults(query.mapping)
 ```
 
 ### Determine patchseq contamination with PatchseqQC:
 ```R
-query.mapping = applyPatchseqQC(AIT.anndata, ## A patchseq taxonomy object.
+patchseq.qc = applyPatchseqQC(AIT.anndata, ## A patchseq taxonomy object.
                                 query.counts, ## Counts are required here.
-                                query.mapping, ## Results of the previous mapping or AIT.anndata$obs, no mapping is required.
+                                query.anno, ## Query annotations to add PatchSeqQC onto.
                                 verbose=FALSE)
 ```
 
@@ -110,6 +112,6 @@ buildMappingDirectory(AIT.anndata    = AIT.anndata,
                       mappingFolder  = '/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016/patchseq_mapping',
                       query.data     = query.counts, ## Counts are required here.
                       query.metadata = query.anno,
-                      query.mapping  = query.mapping,
+                      query.mapping  = query.mapping, ## This has to be an S4 mappingClass from scrattch.mapping.
                       doPatchseqQC   = FALSE)  ## Set to FALSE if not needed or if buildPatchseqTaxonomy was not run.
 ```

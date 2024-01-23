@@ -9,14 +9,9 @@ buildMappingDirectory(
   mappingFolder,
   query.data,
   query.metadata,
-  query.mapping = NULL,
+  query.mapping,
   doPatchseqQC = TRUE,
-  metadata_names = NULL,
-  mc.cores = 1,
-  bs.num = 100,
-  p = 0.7,
-  low.th = 0.15,
-  min.confidence = 0.5
+  metadata_names = NULL
 )
 }
 \arguments{
@@ -28,7 +23,7 @@ buildMappingDirectory(
 
 \item{query.metadata}{A data frame of metadata for the query data.}
 
-\item{query.mapping}{Mapping results from \code{taxonomy_mapping()} or other mapping functions (optional).  If provided row names must match column names in query.data.}
+\item{query.mapping}{Mapping results from \code{taxonomy_mapping()}, must be an mappingClass S4 object. If provided row names must match column names in query.data.}
 
 \item{doPatchseqQC}{Boolean indicating whether patch-seq QC metrics should be calculated (default) or not.}
 
