@@ -135,9 +135,9 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   ## Update markers after pruning
   AIT.anndata = addDendrogramMarkers(AIT.anndata, mode=mode.name, ...)
   # The reference probability matrix for the subsetted taxonomy is defined and outputted in this function as well
-  #' $memb[[mode.name]]
-  #' ...$memb.ref,
-  #' ...$map.df.ref
+  # $memb[[mode.name]]
+  # ...$memb.ref,
+  # ...$map.df.ref
   
   ##
   return(AIT.anndata)
