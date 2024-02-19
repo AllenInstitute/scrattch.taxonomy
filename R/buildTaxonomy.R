@@ -478,7 +478,7 @@ addDendrogramMarkers = function(AIT.anndata,
     
   ##
   if(save.shiny.output){
-    ## NOTE: These are used for a version of mapping not yet implemented (KL mapping)
+    ## NOTE: These are used for KL mapping and potentially for future constellation diagrams
     print("Build membership table of reference vs. reference for use with patch-seq mapping")
     invisible(capture.output({  # Avoid printing lots of numbers to the screen
       memb.ref   = map_dend_membership(reference$dend, 
@@ -495,6 +495,9 @@ addDendrogramMarkers = function(AIT.anndata,
     }))
     memb.ref   = memb.ref[metadata$sample_id,]
     map.df.ref = map.df.ref[metadata$sample_id,]
+    
+    AIT.anndata$uns$memb[[mode]]$memb.ref = memb.ref
+    AIT.anndata$uns$memb[[mode]]$map.df.ref = AIT.anndata$uns$memb[[mode]]$
     save(memb.ref, map.df.ref, file=file.path(taxonomyModeDir, "membership_information_reference.rda"))
   }
 

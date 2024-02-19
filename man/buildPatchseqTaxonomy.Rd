@@ -12,7 +12,8 @@ buildPatchseqTaxonomy(
   class.column = "class_label",
   off.target.types = c("Glia", "glia", "non-neuronal", "Non-neuronal"),
   num.markers = 50,
-  taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir)
+  taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir),
+  ...
 )
 }
 \arguments{
@@ -30,15 +31,24 @@ buildPatchseqTaxonomy(
 
 \item{num.markers}{The maximum number of markers to calculate per node per direction (default = 50)}
 
-\item{taxonomyDir}{= The location to save shiny output (default = current working directory).
+\item{taxonomyDir}{The location to save shiny output (default = current working directory).}
+
+\item{...}{Additional variables to be passed to \code{addDendrogramMarkers}
 
 The following variables are added to AIT.anndata$uns
-markers,
-countsQC,
-cpmQC,
-classBr,
-subclassF,
-allMarkers,}
+$dend[\link{mode.name}]
+$filter[\link{mode.name}]
+$QC_markers[\link{mode.name}]
+...$markers,
+...$countsQC,
+...$cpmQC,
+...$classBr,
+...$subclassF,
+...$allMarkers
+...$de_genes
+$memb[\link{mode.name}]
+...$memb.ref,
+...$map.df.ref}
 }
 \value{
 AIT.anndata An updated AIT.anndata variable with the above content added to AIT.anndata$uns for the relevant mode.name.

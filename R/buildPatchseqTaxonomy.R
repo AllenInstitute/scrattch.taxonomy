@@ -12,15 +12,23 @@
 #' @param off.target.types A character vector of off-target (also known as 'contamination') cell types.  This must include at least one of the cell types found in "class.column" and/or "subclass.column" (both columns are checked)
 #' @param mode.name A name to identify the new taxonomy version.
 #' @param num.markers The maximum number of markers to calculate per node per direction (default = 50)
-#' @param taxonomyDir = The location to save shiny output (default = current working directory).
+#' @param taxonomyDir The location to save shiny output (default = current working directory).
+#' @param ... Additional variables to be passed to `addDendrogramMarkers`
 #' 
 #' The following variables are added to AIT.anndata$uns
-#' markers, 
-#' countsQC, 
-#' cpmQC, 
-#' classBr, 
-#' subclassF, 
-#' allMarkers, 
+#' $dend[[mode.name]]
+#' $filter[[mode.name]]
+#' $QC_markers[[mode.name]]
+#' ...$markers, 
+#' ...$countsQC, 
+#' ...$cpmQC, 
+#' ...$classBr, 
+#' ...$subclassF, 
+#' ...$allMarkers
+#' ...$de_genes
+#' $memb[[mode.name]]
+#' ...$memb.ref,
+#' ...$map.df.ref
 #' 
 #' @import patchseqtools
 #' @import scrattch.hicat
@@ -35,7 +43,8 @@ buildPatchseqTaxonomy = function(AIT.anndata,
                                  class.column = "class_label",
                                  off.target.types = c("Glia","glia","non-neuronal","Non-neuronal"), ## "Gluta", "NN"
                                  num.markers = 50,
-                                 taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir)
+                                 taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir),
+                                 ...
 ){
 
   ## Ensure filtering mode doesn't already exist
@@ -47,7 +56,7 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   if(!is.element(class.column, colnames(AIT.anndata$obs))){stop(paste(class.column,"is not a column in the metadata data frame."))}
   if(!dir.exists(file.path(taxonomyDir))){"Specified taxonomy folder does not exist."}
 
-  ## Determine taxonomy mode directory (Move to utilty function)
+  ## Determine taxonomy mode directory (Move to utility function)
   if(mode.name == "standard"){ taxonomyModeDir = file.path(taxonomyDir) } else { taxonomyModeDir = file.path(file.path(taxonomyDir), mode.name) }
   if(!dir.exists(taxonomyModeDir)){ dir.create(taxonomyModeDir, showWarnings = TRUE) }
 
@@ -98,6 +107,7 @@ buildPatchseqTaxonomy = function(AIT.anndata,
                                                   "qc_samples" = colnames(countsQC),
                                                   "qc_genes" = rownames(countsQC))
   
+
   ##################
   ## ------- Modify the dendrogram and save
   ##
@@ -123,8 +133,12 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   }
 
   ## Update markers after pruning
-  AIT.anndata = addDendrogramMarkers(AIT.anndata, mode=mode.name)
-
+  AIT.anndata = addDendrogramMarkers(AIT.anndata, mode=mode.name, ...)
+  # The reference probability matrix for the subsetted taxonomy is defined and outputted in this function as well
+  #' $memb[[mode.name]]
+  #' ...$memb.ref,
+  #' ...$map.df.ref
+  
   ##
   return(AIT.anndata)
 }

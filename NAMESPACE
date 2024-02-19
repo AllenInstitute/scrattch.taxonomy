@@ -3,7 +3,6 @@
 export(addDendrogramMarkers)
 export(applyPatchseqQC)
 export(buildMappingDirectory)
-export(buildPatchseqTaxonomy)
 export(buildTaxonomy)
 export(checkTaxonomy)
 export(dend_to_json)
