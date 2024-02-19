@@ -144,6 +144,9 @@ buildMappingDirectory = function(AIT.anndata,
     query.metadata <- applyPatchseqQC(AIT.anndata, query.data, query.metadata)
   }
   
+  ## Add quality calls from KL divergence to the query metadata [***NEW!***]
+  query.metadata <- cbind(query.metadata, tree_quality_call(AIT.anndata, query.mapping))
+  
   ## Process and output metadata and desc files
   # Auto_annotate the data
   meta.data = scrattch.io::auto_annotate(query.metadata)

@@ -11,7 +11,9 @@ buildMappingDirectory(
   query.metadata,
   query.mapping,
   doPatchseqQC = TRUE,
-  metadata_names = NULL
+  metadata_names = NULL,
+  min.confidence = 0.7,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -29,11 +31,9 @@ buildMappingDirectory(
 
 \item{metadata_names}{An optional named character vector where the vector NAMES correspond to columns in the metadata matrix and the vector VALUES correspond to how these metadata should be displayed in Shiny. This is used for writing the desc.feather file later.}
 
-\item{mc.cores}{Number of cores to use for running this function to speed things up.  Default = 1.  Values>1 are only supported in an UNIX environment and require \code{foreach} and \code{doParallel} R libraries.}
+\item{min.confidence}{Probability below which a cell cannot be assigned to a cell type (default 0.7).  In other words, if no cell types have probabilities greater than resolution.index, then the assigned cluster will be an internal node of the dendrogram.}
 
-\item{bs.num, p, low.th}{Extra variables for the \code{map_dend_membership} function in scrattch.hicat.  Defaults are set reasonably.}
-
-\item{min.confidence}{Probability below which a cell cannot be assigned to a cell type (default 0.7).  In other words, if no cell types have probabilities greater than resolution.index, then the assigned cluster will be an internal node of the dendrogram.
+\item{verbose}{Should detail logging be printed to the screen?
 
 This function writes files to the mappingFolder directory for visualization with molgen-shiny tools
 --- anno.feather - query metadata
