@@ -49,7 +49,7 @@ compute_KLdiv <- function(query_probabilities, reference_probabilities, select.c
 
 #' Calculate tree mapping quality call 
 #' 
-#' This function returns the "Good", "I1", "I2", "I3", "PoorQ" calls used to help assess Patch-seq quality.  These scores are based on a combination of KL divergence, correlation to the best matching type, and tree mapping to the top two types.
+#' This function returns the "Core", "I1", "I2", "I3", "PoorQ" calls used to help assess Patch-seq quality.  These scores are based on a combination of KL divergence, correlation to the best matching type, and tree mapping to the top two types.
 #'
 #' @param AIT.anndata A reference taxonomy object on which buildPatchseqTaxonomy has already been run
 #' @param query.mapping The output from taxonomy_mapping with both corr.map and tree.map set to TRUE, and with the same mode as currently set in AIT.anndata
