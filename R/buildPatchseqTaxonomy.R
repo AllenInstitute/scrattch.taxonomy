@@ -98,7 +98,7 @@ buildPatchseqTaxonomy = function(AIT.anndata,
 
   ## Filter out off target cells along with additional cells beyond those subsampled
   AIT.anndata$uns$filter[[mode.name]] = is.element(metadata$class_label, off.target.types) | is.element(metadata$subclass_label, off.target.types)
-  AIT.anndata$uns$filter[[mode.name]] = AIT.anndata$uns$filter[[mode.name]]&(!(subsampleCells(metadata$cluster_label,subsample))) # NEW, Need to test
+  AIT.anndata$uns$filter[[mode.name]] = !((!AIT.anndata$uns$filter[[mode.name]])&((subsampleCells(metadata$cluster_label,subsample)))) # NEW, for subsampling
   
   ## Save patchseqQC information to uns
   AIT.anndata$uns$QC_markers[[mode.name]] = list("allMarkers" = allMarkers,
