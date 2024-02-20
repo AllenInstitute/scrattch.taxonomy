@@ -39,7 +39,7 @@ buildMappingDirectory = function(AIT.anndata,
   if(!all(colnames(query.data) == rownames(mapping.results))){stop("Colnames of `query.data` and rownames of `mapping.results` do not match.")}
 
   ## Filter taxonomy to mode cells
-  AIT.anndata = AIT.anndata[AIT.anndata$uns$filter[[AIT.anndata$uns$mode]]]
+  AIT.anndata = AIT.anndata[!AIT.anndata$uns$filter[[AIT.anndata$uns$mode]]]  # This is a filter of cells to OMIT
 
   ## Merge mapping metadata inputs
   if(length(setdiff(colnames(mapping.results),colnames(query.metadata)))>0){

@@ -8,9 +8,11 @@
 #' @param select.cl An (optional) vector of cluster ids (e.g., row/col names of reference_probabilities) representing clusters for which KL divergence should be calculated using
 #' @param select.cells An (optional) vector of cell ids (e.g., row names of query_probabilities) representing cells for which KL divergence should be calculated on
 #'
-#' @return A matrix of KL divergenes for each requested cell (row) in each requsted cluster (column)
+#' @return A matrix of KL divergences for each requested cell (row) in each requested cluster (column)
 #' 
 #' @keywords external
+#'
+#' @export
 compute_KLdiv <- function(query_probabilities, reference_probabilities, select.cl=NULL, select.cells=NULL){
   
   # variables prep and checks. THIS NEEDS BETTER CHECKS!
@@ -55,6 +57,8 @@ compute_KLdiv <- function(query_probabilities, reference_probabilities, select.c
 #' @return A matrix with "Tree_call" and some other useful columns, one per cell in query.mapping
 #' 
 #' @keywords external
+#' 
+#' @export
 tree_quality_call <- function(AIT.anndata, query.mapping){
   
   ## NEED TO ADD ALL THE TESTS HERE 

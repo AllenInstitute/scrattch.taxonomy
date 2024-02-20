@@ -21,7 +21,7 @@ compute_KLdiv(
 \item{select.cells}{An (optional) vector of cell ids (e.g., row names of query_probabilities) representing cells for which KL divergence should be calculated on}
 }
 \value{
-A matrix of KL divergenes for each requested cell (row) in each requsted cluster (column)
+A matrix of KL divergences for each requested cell (row) in each requested cluster (column)
 }
 \description{
 From Wikipedia: "The Kullback–Leibler (KL) divergence (also called relative entropy and I-divergence) is a type of statistical distance that measures how one probability distribution P is different from a second, reference probability distribution Q. A simple interpretation of the KL divergence of P from Q is the expected excess surprise from using Q as a model when the actual distribution is P."  In scrattch.mapping this distance is required for computing categorical confidence calls used for assessing cell quality.

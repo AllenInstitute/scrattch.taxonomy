@@ -132,7 +132,7 @@ loadTaxonomy = function(taxonomyDir,
         mode = "standard", ## Default mode to standard
         clustersUse = clustersUse,
         clusterInfo = clusterInfo,
-        taxonomyName = gsub(".h5ad","", "anndata_file"),
+        taxonomyName = gsub(".h5ad","", anndata_file),
         taxonomyDir = file.path(taxonomyDir, leading_string="/")
       )
     )

@@ -11,6 +11,7 @@
 #' @param class.column Column name corresponding to the low-resolution cell types used for the off-target cell types (default = "class_label").
 #' @param off.target.types A character vector of off-target (also known as 'contamination') cell types.  This must include at least one of the cell types found in "class.column" and/or "subclass.column" (both columns are checked)
 #' @param mode.name A name to identify the new taxonomy version.
+#' @param subclass.subsample The number of cells to retain for PatchseqQC contamination calculation (default = 100, probably no need to change).
 #' @param num.markers The maximum number of markers to calculate per node per direction (default = 50)
 #' @param taxonomyDir The location to save shiny output (default = current working directory).
 #' @param ... Additional variables to be passed to `addDendrogramMarkers`
@@ -42,6 +43,7 @@ buildPatchseqTaxonomy = function(AIT.anndata,
                                  subclass.column = "subclass_label",
                                  class.column = "class_label",
                                  off.target.types = c("Glia","glia","non-neuronal","Non-neuronal"), ## "Gluta", "NN"
+                                 subclass.subsample = 100,
                                  num.markers = 50,
                                  taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir),
                                  ...
@@ -68,7 +70,7 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   metadata$class_label = AIT.anndata$obs[,class.column]  # For compatibility with existing code.
   
   ## Subsample and filter metadata and data
-  kpSamp2  = subsampleCells(metadata$subclass_label, subsample)
+  kpSamp2  = subsampleCells(metadata$subclass_label, subclass.subsample)
   goodSamp = !is.na(metadata$class_label)  # For back-compatibility; usually not used
   kpSamp2  = kpSamp2 & goodSamp            # For back-compatibility; usually not used
   annoQC   = metadata[kpSamp2,]
@@ -94,8 +96,9 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   countsQC   = datQC[allMarkers,]
   cpmQC      = cpm(datQC)[allMarkers,]  ## Only use of scrattch.hicat in this function
 
-  ## Identify off target cells to filter out.
+  ## Filter out off target cells along with additional cells beyond those subsampled
   AIT.anndata$uns$filter[[mode.name]] = is.element(metadata$class_label, off.target.types) | is.element(metadata$subclass_label, off.target.types)
+  AIT.anndata$uns$filter[[mode.name]] = AIT.anndata$uns$filter[[mode.name]]&(!(subsampleCells(metadata$cluster_label,subsample))) # NEW, Need to test
   
   ## Save patchseqQC information to uns
   AIT.anndata$uns$QC_markers[[mode.name]] = list("allMarkers" = allMarkers,
