@@ -34,6 +34,7 @@ colnames(taxonomy.counts) <- rownames(taxonomy.metadata) # To correct "-" to "."
 ```R
 ## This is where our taxonomy will be created
 taxonomy = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/Taxonomies/AIT15.3/"
+```
 
 For creating the standard taxonomy (see "Building a Shiny taxonomy" tutorial):
 * Count matrix (gene x cell), with genes as rownames and sample identifiers as colnames
