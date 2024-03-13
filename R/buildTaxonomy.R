@@ -310,6 +310,7 @@ buildTaxonomy = function(counts,
       umap = umap.coords ## A data frame with sample_id, and 2D coordinates for umap (or comparable) representation(s)
     ),
     uns = list(
+      cellSet     = sample_id, ## All original cells before subsampling
       dend        = list("standard" = toJSON(dend_to_json(dend))), # FILE NAME with dendrogram
       filter      = list("standard" = rep(FALSE, nrow(datReference))),
       QC_markers  = list("standard" = list()), ## Standard will hold de.genes for dendrogram, we should rename this uns field.
