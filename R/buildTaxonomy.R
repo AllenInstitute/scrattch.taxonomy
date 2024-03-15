@@ -496,7 +496,7 @@ addDendrogramMarkers = function(AIT.anndata,
     memb.ref   = memb.ref[metadata$sample_id,]
     map.df.ref = map.df.ref[metadata$sample_id,]
     
-    AIT.anndata$uns$memb[[mode]]$memb.ref = memb.ref
+    AIT.anndata$uns$memb[[mode]]$memb.ref = as.data.frame.matrix(memb.ref)
     AIT.anndata$uns$memb[[mode]]$map.df.ref = map.df.ref
     save(memb.ref, map.df.ref, file=file.path(taxonomyModeDir, "membership_information_reference.rda"))
   }

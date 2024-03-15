@@ -58,15 +58,17 @@ compute_KLdiv <- function(query_probabilities, reference_probabilities, select.c
 #' 
 #' @keywords external
 #' 
+#' @import reticulate
+#' 
 #' @export
 tree_quality_call <- function(AIT.anndata, query.mapping){
   
   ## NEED TO ADD ALL THE TESTS HERE 
   
-  # NEED TO EDIT location of "memb.ref" FROM separate file to specified location in uns
-  load(file.path(AIT.anndata$uns$mode,"membership_information_reference.rda"))
-  select.cl = intersect(colnames(memb.ref),unique(AIT.anndata$obs$cluster_label))
-  memb.ref  = memb.ref[,select.cl]
+  memb.ref   = as.matrix(reticulate::py_to_r(AIT.anndata$uns$memb[[AIT.anndata$uns$mode]]$memb.ref))
+  map.df.ref = reticulate::py_to_r(AIT.anndata$uns$memb[[AIT.anndata$uns$mode]]$map.df.ref)
+  select.cl  = intersect(colnames(memb.ref),unique(AIT.anndata$obs$cluster_label))
+  memb.ref   = memb.ref[,select.cl]
   cls <- as.character(AIT.anndata$obs[rownames(memb.ref),"cluster_label"])
   reference_probability = NULL
   for (cl in select.cl){

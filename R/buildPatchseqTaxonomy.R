@@ -42,7 +42,7 @@ buildPatchseqTaxonomy = function(AIT.anndata,
                                  subsample = 100,
                                  subclass.column = "subclass_label",
                                  class.column = "class_label",
-                                 off.target.types = c("Glia","glia","non-neuronal","Non-neuronal"), ## "Gluta", "NN"
+                                 off.target.types = c("Glia","glia","non-neuronal","Non-neuronal"), ## "Glia", "NN"
                                  subclass.subsample = 100,
                                  num.markers = 50,
                                  taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir),
@@ -116,7 +116,7 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   ##
 
   ## Load the complete dendrogram, always from standard mode
-  dend = readRDS(file.path(AIT.anndata$uns$taxonomyDir, "dend.RData"))
+  dend = json_to_dend(fromJSON(AIT.anndata$uns$dend[["standard"]])) # readRDS(file.path(AIT.anndata$uns$taxonomyDir, "dend.RData"))
 
   ## Prune dendrogram to remove off.target types
   dend = prune(dend, setdiff(labels(dend), unique(AIT.anndata$obs$cluster_label[!AIT.anndata$uns$filter[[mode.name]]])))

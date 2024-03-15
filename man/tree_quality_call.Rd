@@ -15,6 +15,6 @@ tree_quality_call(AIT.anndata, query.mapping)
 A matrix with "Tree_call" and some other useful columns, one per cell in query.mapping
 }
 \description{
-This function returns the "Good", "I1", "I2", "I3", "PoorQ" calls used to help assess Patch-seq quality.  These scores are based on a combination of KL divergence, correlation to the best matching type, and tree mapping to the top two types.
+This function returns the "Core", "I1", "I2", "I3", "PoorQ" calls used to help assess Patch-seq quality.  These scores are based on a combination of KL divergence, correlation to the best matching type, and tree mapping to the top two types.
 }
 \keyword{external}

@@ -19,6 +19,8 @@
 #' --- tsne.feather - low dimensional coordinates for data
 #' --- tsne_desc.feather - table indicating which low-D representations to share
 #' 
+#' @import reticulate
+#' 
 #' @export
 buildMappingDirectory = function(AIT.anndata, 
                                  mappingFolder,
@@ -63,7 +65,8 @@ buildMappingDirectory = function(AIT.anndata,
   if(verbose == TRUE) print("Saving dendrogram to mapping folder.")
 
   ## Read in the reference tree and copy to new directory
-  dend = readRDS(file.path(AIT.anndata$uns$taxonomyDir, AIT.anndata$uns$mode, "dend.RData"))
+  #dend = readRDS(file.path(AIT.anndata$uns$taxonomyDir, AIT.anndata$uns$mode, "dend.RData"))
+  dend = json_to_dend(fromJSON(AIT.anndata$uns$dend[[AIT.anndata$uns$mode]])) 
 
   ## Output dend to mapping folder
   saveRDS(dend, file.path(mappingFolder, "dend.RData"))
