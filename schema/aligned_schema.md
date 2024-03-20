@@ -43,25 +43,73 @@ And now let's go on to the schema!
 
 # Proposed integrated schema
 
+
 ## Data
 
-This includes anything critical for understanding the cell by gene matrix and to link it with other components.  This includes data (raw and processed), gene information, and cell identifiers.
+This includes anything critical for understanding the cell by gene matrix and to link it with other components.  This includes data (raw and processed), gene information, and cell identifiers.  **Ideally a schema for this will be defined through other BICAN groups, and can be adopted here.**
 
-#### X
+#### X 
 
 The `X` component contains logCPM normalized expression data (cell x gene).
 
 #### layers
 
-The `layers` component contains the count matrix (cell x gene). (**Optional**)
+The `layers` component contains the count matrix (cell x gene).
 
-* `counts`: The count matrix from which `X` was derived.
+* `counts` :fire::fire::fire: : The count matrix from which `X` was derived in **AIT**. Called `raw.x` in **CELLxGENE**. We should convert `counts` to `raw.x`.
+
+#### obs
+
+The `obs` component contains cell level metadata.
+
+* `cell_label` :fire::fire::fire: : ID corresponding to each individual cell.  This ID MUST be included in the **data** and in every other location to refer to the data (e.g., metadata and annotations). This is also called `cell_id`, `sample_id`, and `sample_name` in various places.  We should align on a single term. 
+
+#### var
+
+The `var` component contains gene level information.
+
+* `gene` :fire::fire::fire: : A vector of gene symbols.  Broadly useful in the community for defining genes but occasionally problematic; called `gene_symbol` in **BKP**.  More generally, some alignment is needed about whether these or the `ensembl_id` are used for the gene identifier column (CELLxGENE uses a very specific version of `ensembl_id` for the INDEX).
+* `ensembl_id` :fire::fire::fire: : A vector of corresponding Ensembl IDs for each gene symbol. This is required for disambiguation of gene symbols; called `gene_identifier` in **BKP**. This is optional for **AIT** (but maybe it sholdn't be?).
+* `biotype`: biotype from the gtf file (e.g., protein_coding); used in BKP and BICAN for filtering of genes (but optional elsewhere)
+* `name`: Longer gene name from the gtf file; used in BKP
+* `[additional gene info]`: Optional uncontrolled gene info; could include gene length, Genecode IDs, NCBI identifiers, etc.
+
+#### uns
+
+The `uns` component contains more general information and fields with formatting incompatible with the above components.
+
+* `dataset_metadata` :fire::fire::fire: : TBD information about the data set itself. A standard on this is not established (as far as I know?) but could include some combination of these pieces of information recorded for **Annotations** below: description, dataset_url, title, dataset_doi, author_list, author_name, author_contact, orcid, etc.
+
+
+## Assigned metadata
+
+This includes cell-level metadata that is assigned at some point in the process between when a cell goes from the donor to a value in the data, and (in theory) can be ENTIRELY captured by values in Allen Institute, BICAN, or related standardized pipelines.  It includes things like donor metadata, experimental protocols, dissection information, RNA QC metrics, and sequencing metadata.  **Ideally a schema for this will be defined through other BICAN groups, and can be adopted here.**
+
+#### obs
+
+The `obs` component contains cell level metadata.
+
+* `cell_label`: ID corresponding to each individual cell.  See above.
+* `cluster`
+* `brain_region`
+* `species`
+* `age`
+* `[additional cell ID columns]`: Optional additional IDs per cell.  They are not used for taxonomy efforts.  This could include things like IDs for RNA wells, barcodes, or other tracking IDs used for data processing.
+
+
+
+
+
+
+## Analysis
 
 #### obsm
 
-The `obsm` component contains all dimensionality reductions of the taxonomy (cell x dim). 
+The `obsm` component contains all dimensionality reductions of the taxonomy (cell x dim). For all fields listed below, columns are of the format '[FIELD]_#' where # is 1, 2, 3, etc..
 
-* `umap`: 2-dimensional representation of cells.
+* `umap` :fire::fire::fire: : 2 (or more)-dimensional representation of cells in **AIT**. Must be of the form `X_[...]` for use with **CELLxGENE**.  Only the first two dimensions are used for AIT and CELLxGENE, but 3 dimensions can be used for cirrocumulus.
+* `pca`: Additional terms for embedding multi-dimensional principal components and latent spaces
+* `scVI`: Additional terms for embedding multi-dimensional principal components and latent spaces
 
 #### obs
 
