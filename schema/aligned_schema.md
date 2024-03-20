@@ -26,10 +26,10 @@ Here are the current categories that all fields are placed in as a starting poin
 
 * **[Data](https://github.com/AllenInstitute/scrattch.taxonomy/blob/KL_div/schema/aligned_schema.md#data)**: This includes anything critical for understanding the cell by gene matrix and to link it with other components.  This includes data (raw and processed), gene information, and cell identifiers.  *Note that for the purposes of this schema, we are excluding raw data (fastq, bam files, etc.) from consideration and are starting from the count matrix.*
 * **[Assigned metadata](https://github.com/AllenInstitute/scrattch.taxonomy/blob/KL_div/schema/aligned_schema.md#assigned-metadata)**: This includes cell-level metadata that is assigned at some point in the process between when a cell goes from the donor to a value in the data, and (in theory) can be ENTIRELY captured by values in Allen Institute, BICAN, or related standardized pipelines.  It includes things like donor metadata, experimental protocols, dissection information, RNA QC metrics, and sequencing metadata.
-* **Calculated metadata**: This includes any cell-level or cluster-level metadata that can be calculated explicitly from the **Data** and **Assigned Metadata** without the need for human intervention.  Some examples include # reads detected/cell, # UMI/cell, fraction of cells per cluster derived from each anatomic dissections, expressed neurotransmitter genes (quantitatively defined), average QUANTITATIVE_VALUE (e.g., doublet score) per cluster.
-* **Annotations**: This includes any fields related to the annotation of clusters or groups of clusters (collectively called "cell sets").  This includes things like cluster levels, cluster relationships, canonical marker genes, links to existing ontologies (e.g., CL, UBERON) based on judgement calls, expert annotations, and dendrograms.
-* **Analysis**: This includes any fields included as the result of or required for specific analysis.  Some examples include latent spaces (e.g., UMAP), cluster level gene summaries (e.g., cluster means, proportions), and variable genes.
-* **Tooling**: This includes any fields required for specific tools (e.g., cellxgene, TDT, CAS, CAP) that are not strictly part of the taxonomy and that do not fit in any of the above categories.  This includes things like schema versions and redundent fields from above with different column names.
+* **[Calculated metadata](https://github.com/AllenInstitute/scrattch.taxonomy/blob/KL_div/schema/aligned_schema.md#calculated-metadata)**: This includes any cell-level or cluster-level metadata that can be calculated explicitly from the **Data** and **Assigned Metadata** without the need for human intervention.  Some examples include # reads detected/cell, # UMI/cell, fraction of cells per cluster derived from each anatomic dissections, expressed neurotransmitter genes (quantitatively defined), average QUANTITATIVE_VALUE (e.g., doublet score) per cluster.
+* **[Annotations](https://github.com/AllenInstitute/scrattch.taxonomy/blob/KL_div/schema/aligned_schema.md#annotations)**: This includes any fields related to the annotation of clusters or groups of clusters (collectively called "cell sets").  This includes things like cluster levels, cluster relationships, canonical marker genes, links to existing ontologies (e.g., CL, UBERON) based on judgement calls, expert annotations, and dendrograms.
+* **[Analysis](https://github.com/AllenInstitute/scrattch.taxonomy/blob/KL_div/schema/aligned_schema.md#analysis)**: This includes any fields included as the result of or required for specific analysis.  Some examples include latent spaces (e.g., UMAP), cluster level gene summaries (e.g., cluster means, proportions), and variable genes.
+* **[Tooling](https://github.com/AllenInstitute/scrattch.taxonomy/blob/KL_div/schema/aligned_schema.md#tooling)**: This includes any fields required for specific tools (e.g., cellxgene, TDT, CAS, CAP) that are not strictly part of the taxonomy and that do not fit in any of the above categories.  This includes things like schema versions and redundent fields from above with different column names.
 
 We expect some of these categories to change but feel this is a good starting point.
 
@@ -91,6 +91,8 @@ The `obs` component contains cell level metadata from the experiment
 
 * `cell_label`: ID corresponding to each individual cell.  See above.
 * `[additional cell ID columns]`: Optional additional IDs per cell.  They are not used for taxonomy efforts.  This could include things like IDs for RNA wells, barcodes, or other tracking IDs used for data processing.
+* `feature_matrix_label`: ID of the associated feature matrix where the data is stored (if not included in this file). Used in **BKP** when data is found elsewhere for connected cell to data file. 
+* `dataset_label` :fire::fire::fire: : Link between each cell and each dataset in **BKP**.  Need clarification on how this differs from feature_matrix_label; for **CAS** this is a taxonomy-level variable in uns called `dataset_url` (I think).  We should align on this too.
 * `[COLUMN_NAME]_color` :fire::fire::fire: : Color vector for metadata/taxonomy values in format [COLUMN_NAME]_label. This is ONLY used for molgen-shiny plots, but because of this, some metadata files come with these and some don't and that could cause challenges.  Should revisit how to store colors and how to deal with metadata in both formats.  Should also agree on a standard for which way is preferred.
 * `[COLUMN_NAME]_id` :fire::fire::fire: : Same as above, but in this case for the order of metadata values (e.g., the levels of a factor, or ascending order of a numeric)
 
@@ -124,7 +126,68 @@ The `uns` component contains more general information and fields with formatting
 * `batch_condition`: List of obs fields that define “batches”; Used by **CELLxGENE** if provided, but otherwise not needed.
 
 
+## Calculated metadata
 
+This includes any cell-level or cluster-level metadata that can be calculated explicitly from the **Data** and **Assigned Metadata** without the need for human intervention.  Some examples include # reads detected/cell, # UMI/cell, fraction of cells per cluster derived from each anatomic dissections, expressed neurotransmitter genes (quantitatively defined), average QUANTITATIVE_VALUE (e.g., doublet score) per cluster. **Currently none of these are required for the schema, but they are sometimes used for annotation.**
+
+#### obs
+
+The `obs` component contains cell level metadata from the experiment
+
+* `cell_label`: ID corresponding to each individual cell.  See above.
+* `[additional uncontrolled metadata]`: Additional uncontrolled cell metadata. These are not required, but any additional columns are allowed by all h5ad formats.
+* `feature_matrix_label`, `dataset_label`, `[COLUMN_NAME]_color`, `[COLUMN_NAME]_id`: See above.
+
+#### uns
+
+The `uns` component contains more general information and fields with formatting incompatible with the above components.
+
+* `calculated_metadata_metadata` :fire::fire::fire: : TBD information about the calculated_metadata itself. This likely is not needed or should be renamed.
+
+
+## Annotations
+
+This includes any fields related to the annotation of clusters or groups of clusters (collectively called "**cell sets**").  This includes things like cluster levels, cluster relationships, canonical marker genes, links to existing ontologies (e.g., CL, UBERON) based on judgement calls, expert annotations, and dendrograms.
+
+#### obs
+
+The `obs` component contains cell level metadata, as above.
+
+* `cell_label`: ID corresponding to each individual cell.  See above.
+* `cluster` :fire::fire::fire: : This is the **CRITICAL** column used for cluster annotations. It is the baseline for the majority of cell_annotation columns discussed below. Sometimes called `cluster_label`; There is also an additional `cluster_alias` column used in mouse whole brain data and for BKP that I'm not sure how to wrap in. It's also used for cirrocumulus.  Some discussion might be needed on whether this is one or more columns, and which one is the source of truth. It's also worth noting that this is a prerequisite for annotations, so maybe it better fits in a different category (analysis?).
+* `[additional uncontrolled metadata]`: Additional uncontrolled cell metadata. These are not required, but any additional columns are allowed by all h5ad formats.
+* `feature_matrix_label`, `dataset_label`, `[COLUMN_NAME]_color`, `[COLUMN_NAME]_id`: See above.
+
+The `obs` component also contains **cluster-level metadata** summarize at the cell level. In theory a majority of this information could be stored in the uns (or in separate json files), but for now we have it listed here for consistency with **Cell annotation schema**
+
+* `[cellannotation_set]` :fire::fire::fire: : This is where **taxonomy levels** are stored in **CAS**. The column name is a string (e.g., "subclass") and the values are `cell_labels` (e.g., "SST").  The equivalent in **BKP** are `Cluster Annotation Term Set`s and in **CAP** is `label_sets`.  This also encapsulates the concept of `cell_ids` from CAP/CAS, since in the h5ad file each row corresponds to a cell and therefore you get the `cell_label` --> `cell_id`s mapping for free.  This is stored as separate files in both **BKP** and **TDT** and so we should confirm appropriate translations and agree on terms for this.  Finally, this concept is critical for scrattch.taxonomy and scrattch.mapping to work properly, but none of the `[cellannotation_set]--XXXX` fields below are needed for **AIT** (although keeping this is best practice!).
+* `[cellannotation_set]--cell_set_accession` :fire::fire::fire: : ID corresponding to the cell_set; called the "Cluster Annotation Term" in **BKP**.  Some work still needed on deciding what to name this (CCNXXXXX?, a hash code?, something else?) and HOW to name this (automatically? if so, but what authority).
+* `[cellannotation_set]--cell_set_label` :fire::fire::fire: : 
+* `[cellannotation_set]--cell_fullname` :fire::fire::fire: : 
+* `[cellannotation_set]--cell_ontology_exists` :fire::fire::fire: : 
+* `[cellannotation_set]--cell_ontology_term_id` :fire::fire::fire: : 
+* `[cellannotation_set]--cell_ontology_term` :fire::fire::fire: : 
+* `[cellannotation_set]--rationale` :fire::fire::fire: : 
+* `[cellannotation_set]--rationale_dois` :fire::fire::fire: : 
+* `[cellannotation_set]--marker_gene_evidence` :fire::fire::fire: : 
+* `[cellannotation_set]--canonical_marker_genes` :fire::fire::fire: : 
+* `[cellannotation_set]--synonyms` :fire::fire::fire: : 
+* `[cellannotation_set]--category_XXXX` :fire::fire::fire: : 
+* `[cellannotation_set]--parent_cell_set_accession` :fire::fire::fire: : 
+
+(THIS STUFF GOES ABOVE.  I JUST DON'T WANT TO LOSE IT!)
+Cluster label or list of underlying cluster labels (deprecated)	Used to be required for CCN, but can probably be dropped
+Longer name (e.g., "Somatostatin interneuron")	CCN: either this or cell_label is "cell_set_preferred_alias"
+True/false call about whether a cell ontology term exists	(This seems redundant to me with next two rows)
+Highest resolution Cell Ontology term (ID)	CCN: "cell_set_ontology_tag"
+Highest resolution Cell Ontology term (name)	CCN: "cell_set_structure"/"cell_set_aligned_alias"
+Free text evidence for cell annotations	
+Comma-separated publication DOI's of rationale	CCN: "cell_set_alias_citation"
+Comma-separated marker genes used as evidence for cell type annotation (e.g., by NS-Forest)	This is reserved for ontology markers.  See var below for general marker genes.
+Comma separated list of canonical marker genes	I don't understand how this differs from "marker_gene_evidence"
+Comma-separated aliases (e.g., "neuroglial cell, glial cell, neuroglia")	CCN: "cell_set_additional_alias"
+[Same as cell_XXXX above for several fields, e.g., fullname, cell_ontology_term, etc.]	(I'm not sure how this differs from the cell_XXXX)
+ID corresponding to the parent cell_set	ID for each parent cell set; possibly the parent "Cluster Annotation Term" in knowlegebase?
 
 
 
@@ -144,7 +207,6 @@ The `obsm` component contains all dimensionality reductions of the taxonomy (cel
 The `obs` component contains cell level metadata including cell type annotation, brain region, species and additional taxonomy specific fields. Standardized nomenclature for cell metadata to be decided.
 
 * `cell_label`: ID corresponding to each individual cell.  See above.
-* `cluster` :fire::fire::fire: : This is the **CRITICAL** column used for cluster annotations. It is the baseline for the majority of cell_annotation columns discussed below. Sometimes called `cluster_label`; There is also an additional `cluster_alias` column used in mouse whole brain data and for BKP that I'm not sure how to wrap in. It's also used for cirrocumulus.  Some discussion might be needed on whether this is one or more columns, and which one is the source of truth.
 * `brain_region`
 * `species`
 * `age`
