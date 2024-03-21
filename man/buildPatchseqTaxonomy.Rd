@@ -38,7 +38,7 @@ buildPatchseqTaxonomy(
 
 \item{...}{Additional variables to be passed to \code{addDendrogramMarkers}
 
-The following variables are added to AIT.anndata$uns
+The following variables are added to AIT.anndata$uns:
 $dend[\link{mode.name}]
 $filter[\link{mode.name}]
 $QC_markers[\link{mode.name}]

@@ -16,20 +16,20 @@
 #' @param taxonomyDir The location to save shiny output (default = current working directory).
 #' @param ... Additional variables to be passed to `addDendrogramMarkers`
 #' 
-#' The following variables are added to AIT.anndata$uns
-#' $dend[[mode.name]]
-#' $filter[[mode.name]]
-#' $QC_markers[[mode.name]]
-#' ...$markers, 
-#' ...$countsQC, 
-#' ...$cpmQC, 
-#' ...$classBr, 
-#' ...$subclassF, 
-#' ...$allMarkers
-#' ...$de_genes
-#' $memb[[mode.name]]
-#' ...$memb.ref,
-#' ...$map.df.ref
+#' The following variables are added to AIT.anndata$uns:  
+#' $dend[[mode.name]]  
+#' $filter[[mode.name]]  
+#' $QC_markers[[mode.name]]  
+#' ...$markers,  
+#' ...$countsQC,  
+#' ...$cpmQC,  
+#' ...$classBr,  
+#' ...$subclassF,  
+#' ...$allMarkers  
+#' ...$de_genes  
+#' $memb[[mode.name]]  
+#' ...$memb.ref,  
+#' ...$map.df.ref  
 #' 
 #' @import patchseqtools
 #' @import scrattch.hicat
@@ -50,7 +50,7 @@ buildPatchseqTaxonomy = function(AIT.anndata,
 ){
 
   ## Ensure filtering mode doesn't already exist
-  if(mode.name %in% names(AIT.anndata$uns$filter)){ print(paste0("Print ", mode.name, " already in Taxonomy, you will be overwriting the previous mode files.")) }
+  if(mode.name %in% names(AIT.anndata$uns$filter)){ print(paste0("Mode ", mode.name, " already in Taxonomy, you will be overwriting the previous mode files.")) }
 
   ## Create the required files for patchSeqQC and determine offtarget cells
   if(!is.element("counts", names(AIT.anndata$layers))){stop("`counts` must exist in AIT.anndata$layers, check taxonomy.")}
@@ -136,7 +136,7 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   }
 
   ## Update markers after pruning
-  AIT.anndata = addDendrogramMarkers(AIT.anndata, mode=mode.name, ...)
+  AIT.anndata = addDendrogramMarkers(AIT.anndata, mode=mode.name, taxonomyDir=taxonomyDir, ...)
   # The reference probability matrix for the subsetted taxonomy is defined and outputted in this function as well
   # $memb[[mode.name]]
   # ...$memb.ref,

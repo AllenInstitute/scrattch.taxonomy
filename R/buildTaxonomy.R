@@ -341,8 +341,9 @@ buildTaxonomy = function(counts,
 #' @param p proportion of marker genes to include in each iteration of the mapping algorithm.
 #' @param low.th the minimum difference in Pearson correlation required to decide on which branch
 #' @param overwriteMarkers If markers already are calculated a tree, should they be overwritten (default = TRUE)
+#' @param taxonomyDir The location to create the directory with taxonomy mode information (default is as a subdirectory of the taxonomy location stored in the anndata object).
 #'
-#' NOTES
+#' NOTES:
 #' By default VERY loose parameters are set for de_param in an effort to get extra marker genes for each node.  The defaults previously proposed for 10x nuclei are the following `de_param(low.th = 1, padj.th = 0.01, lfc.th = 1, q1.th = 0.3, q2.th = NULL, q.diff.th = 0.7, de.score.th = 100, min.cells = 2, min.genes = 5)`. See the function `de_param` in the scrattch.hicat for more details.  
 #'
 #' If save.shiny.output=TRUE, membership_information_reference.rda will be generated, which includes two variables
@@ -377,13 +378,14 @@ addDendrogramMarkers = function(AIT.anndata,
                                 bs.num=100, 
                                 p=0.8, 
                                 low.th=0.1,
-                                overwriteMarkers = TRUE){
+                                overwriteMarkers = TRUE,
+                                taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir)){
 
   ## We should already know this? Clean up in future.
   if(!is.element(celltypeColumn, colnames(AIT.anndata$obs))){ stop(paste(celltypeColumn, "is not a column in the metadata data frame.")) }
 
   ##
-  if(mode == "standard"){ taxonomyModeDir = file.path(AIT.anndata$uns$taxonomyDir) } else { taxonomyModeDir = file.path(file.path(AIT.anndata$uns$taxonomyDir), mode) }
+  if(mode == "standard"){ taxonomyModeDir = file.path(taxonomyDir) } else { taxonomyModeDir = file.path(taxonomyDir, mode) }
   if(!dir.exists(taxonomyModeDir)){ stop("Taxonomy version doesn't exist, please run `buildPatchseqTaxonomy()` then retry.") }
 
   ## Filter and Subsample

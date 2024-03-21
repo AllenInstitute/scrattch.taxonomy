@@ -10,14 +10,14 @@
 #' @param min.confidence Probability below which a cell cannot be assigned to a cell type (default 0.7).  In other words, if no cell types have probabilities greater than resolution.index, then the assigned cluster will be an internal node of the dendrogram. 
 #' @param verbose Should detail logging be printed to the screen?
 #' 
-#' This function writes files to the mappingFolder directory for visualization with molgen-shiny tools
-#' --- anno.feather - query metadata
-#' --- data.feather - query data
-#' --- dend.RData   - dendrogram (copied from reference)
-#' --- desc.feather - table indicating which anno columns to share
-#' --- memb.feather - tree mapping of each query cell to each tree node (not just the best matching type like in treeMap)
-#' --- tsne.feather - low dimensional coordinates for data
-#' --- tsne_desc.feather - table indicating which low-D representations to share
+#' This function writes files to the mappingFolder directory for visualization with molgen-shiny tools  
+#' --- anno.feather - query metadata  
+#' --- data.feather - query data  
+#' --- dend.RData   - dendrogram (copied from reference)  
+#' --- desc.feather - table indicating which anno columns to share  
+#' --- memb.feather - tree mapping of each query cell to each tree node (not just the best matching type like in treeMap)  
+#' --- tsne.feather - low dimensional coordinates for data  
+#' --- tsne_desc.feather - table indicating which low-D representations to share  
 #' 
 #' @import reticulate
 #' 
