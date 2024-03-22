@@ -58,8 +58,9 @@ buildMappingDirectory = function(AIT.anndata,
 
   if(verbose == TRUE) print("Gathering cluster medians from taxonomy folder.")
 
-  ## Read in cluster medians
-  cl.summary = read_feather(file.path(AIT.anndata$uns$taxonomyDir, "medians.feather")) %>% as.data.frame()
+  ## Read in cluster medians from uns file location
+  #cl.summary = read_feather(file.path(AIT.anndata$uns$taxonomyDir, "medians.feather")) %>% as.data.frame()
+  cl.summary = AIT.anndata$uns$medianmat  # Medians now stored in the uns to avoid needing to read files
   cl.dat = as.matrix(cl.summary[,-1]); rownames(cl.dat) = cl.summary[,1]
 
   if(verbose == TRUE) print("Saving dendrogram to mapping folder.")
