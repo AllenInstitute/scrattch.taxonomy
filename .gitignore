@@ -2,3 +2,5 @@
 .RData
 .Ruserdata
 .Rproj.user
+examples/build_MTG_patchseq_taxonomy_TEMP.Rmd
+examples/patchseq.RData

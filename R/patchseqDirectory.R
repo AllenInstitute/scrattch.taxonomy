@@ -10,14 +10,16 @@
 #' @param min.confidence Probability below which a cell cannot be assigned to a cell type (default 0.7).  In other words, if no cell types have probabilities greater than resolution.index, then the assigned cluster will be an internal node of the dendrogram. 
 #' @param verbose Should detail logging be printed to the screen?
 #' 
-#' This function writes files to the mappingFolder directory for visualization with molgen-shiny tools
-#' --- anno.feather - query metadata
-#' --- data.feather - query data
-#' --- dend.RData   - dendrogram (copied from reference)
-#' --- desc.feather - table indicating which anno columns to share
-#' --- memb.feather - tree mapping of each query cell to each tree node (not just the best matching type like in treeMap)
-#' --- tsne.feather - low dimensional coordinates for data
-#' --- tsne_desc.feather - table indicating which low-D representations to share
+#' This function writes files to the mappingFolder directory for visualization with molgen-shiny tools  
+#' --- anno.feather - query metadata  
+#' --- data.feather - query data  
+#' --- dend.RData   - dendrogram (copied from reference)  
+#' --- desc.feather - table indicating which anno columns to share  
+#' --- memb.feather - tree mapping of each query cell to each tree node (not just the best matching type like in treeMap)  
+#' --- tsne.feather - low dimensional coordinates for data  
+#' --- tsne_desc.feather - table indicating which low-D representations to share  
+#' 
+#' @import reticulate
 #' 
 #' @export
 buildMappingDirectory = function(AIT.anndata, 
@@ -39,7 +41,7 @@ buildMappingDirectory = function(AIT.anndata,
   if(!all(colnames(query.data) == rownames(mapping.results))){stop("Colnames of `query.data` and rownames of `mapping.results` do not match.")}
 
   ## Filter taxonomy to mode cells
-  AIT.anndata = AIT.anndata[AIT.anndata$uns$filter[[AIT.anndata$uns$mode]]]
+  AIT.anndata = AIT.anndata[!AIT.anndata$uns$filter[[AIT.anndata$uns$mode]]]  # This is a filter of cells to OMIT
 
   ## Merge mapping metadata inputs
   if(length(setdiff(colnames(mapping.results),colnames(query.metadata)))>0){
@@ -56,14 +58,19 @@ buildMappingDirectory = function(AIT.anndata,
 
   if(verbose == TRUE) print("Gathering cluster medians from taxonomy folder.")
 
-  ## Read in cluster medians
-  cl.summary = read_feather(file.path(AIT.anndata$uns$taxonomyDir, "medians.feather")) %>% as.data.frame()
+  ## Read in cluster medians from uns file location (either within anndata object or from the folder [for back-compatibility])
+  if(!is.null(AIT.anndata$uns$medianmat)){
+    cl.summary = AIT.anndata$uns$medianmat  # Medians now stored in the uns to avoid needing to read files
+  } else {
+    cl.summary = read_feather(file.path(AIT.anndata$uns$taxonomyDir, "medians.feather")) %>% as.data.frame()
+  }
   cl.dat = as.matrix(cl.summary[,-1]); rownames(cl.dat) = cl.summary[,1]
 
   if(verbose == TRUE) print("Saving dendrogram to mapping folder.")
 
   ## Read in the reference tree and copy to new directory
-  dend = readRDS(file.path(AIT.anndata$uns$taxonomyDir, AIT.anndata$uns$mode, "dend.RData"))
+  #dend = readRDS(file.path(AIT.anndata$uns$taxonomyDir, AIT.anndata$uns$mode, "dend.RData"))
+  dend = json_to_dend(fromJSON(AIT.anndata$uns$dend[[AIT.anndata$uns$mode]])) 
 
   ## Output dend to mapping folder
   saveRDS(dend, file.path(mappingFolder, "dend.RData"))
@@ -143,6 +150,9 @@ buildMappingDirectory = function(AIT.anndata,
     if(verbose == TRUE) print("Performing patchseqQC and updating metadata.")
     query.metadata <- applyPatchseqQC(AIT.anndata, query.data, query.metadata)
   }
+  
+  ## Add quality calls from KL divergence to the query metadata [***NEW!***]
+  query.metadata <- cbind(query.metadata, tree_quality_call(AIT.anndata, query.mapping))
   
   ## Process and output metadata and desc files
   # Auto_annotate the data

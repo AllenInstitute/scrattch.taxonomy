@@ -30,7 +30,7 @@ buildTaxonomy(
 
 \item{taxonomyDir}{The location to save Shiny objects, e.g. "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/NHP_BG_20220104/"}
 
-\item{taxonomyName}{The name to assign for the Taxonomy h5ad.}
+\item{taxonomyName}{The file name to assign for the Taxonomy h5ad.}
 
 \item{celltypeColumn}{Column name corresponding to where the clusters are located (default="cluster")}
 
