@@ -45,6 +45,13 @@ colnames(taxonomy.counts) <- rownames(taxonomy.metadata) # To correct "-" to "."
 ```
 
 ### 1.2: Create the (parent) AIT Taxonomy 
+=======
+### Create the base Shiny Taxonomy for the ENTIRE Hodge et al 2019 data set
+
+```R
+## This is where our taxonomy will be created
+taxonomy = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/Taxonomies/AIT15.3/"
+```
 
 This section will create the parent taxonomy for the reference data.  In this case, we include up 1000 cells for **every** cell type defined in Hodge et al 2019, along with their associated metadata, and will subsample the clusters and cells further at a later step.
 
