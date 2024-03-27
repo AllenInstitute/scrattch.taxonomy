@@ -45,13 +45,6 @@ colnames(taxonomy.counts) <- rownames(taxonomy.metadata) # To correct "-" to "."
 ```
 
 ### 1.2: Create the (parent) AIT Taxonomy 
-=======
-### Create the base Shiny Taxonomy for the ENTIRE Hodge et al 2019 data set
-
-```R
-## This is where our taxonomy will be created
-taxonomy = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/Taxonomies/AIT15.3/"
-```
 
 This section will create the parent taxonomy for the reference data.  In this case, we include up 1000 cells for **every** cell type defined in Hodge et al 2019, along with their associated metadata, and will subsample the clusters and cells further at a later step.
 
@@ -86,13 +79,13 @@ AIT.anndata = buildTaxonomy(counts = taxonomy.counts,
               dend        = dend_Hodge2019,  # If this is omitted buildTaxonomy will generate a dendrogram
               feature.set = binary.genes,
               umap.coords = umap.coords,
-              taxonomyName= "MTG_Hodge2019",
+              taxonomyName= "AI_taxonomy",  # Determines the file name
               taxonomyDir = taxonomy,
               subsample   = 1000) # Minimal subsampling (N=1000)
 
 ## Alternatively, if you have already created the taxonomy, you can load it using "loadTaxonomy"
 ## Load the taxonomy (from h5ad file name)
-#AIT.anndata = loadTaxonomy(taxonomy, "MTG_Hodge2019.h5ad")
+#AIT.anndata = loadTaxonomy(taxonomy, "AI_taxonomy.h5ad")
 ```
 
 ### 1.3: Create a child taxonomy for patch-seq mapping
@@ -159,7 +152,7 @@ AIT.anndata = mappingMode(AIT.anndata, mode="AIT30.1")
 
 ### 2.3: Map query cells to Patch-seq reference
 
-This is the step that performs the mapping.  Since we have very different query and reference data sets, we are omitting Seurat mapping in this example. Note that each mapping algorithm can map to multiple levels of the taxonomy. 
+This is the step that performs the mapping.  Since we have very different query and reference data sets, Seurat mapping in this example may not be reliable. Note that each mapping algorithm can map to multiple levels of the taxonomy. 
 
 ```R
 # This function is part of the 'scrattch.mapping' library
@@ -167,7 +160,7 @@ query.mapping = taxonomy_mapping(AIT.anndata= AIT.anndata,
                                  query.data = query.logCPM, 
                                  corr.map   = TRUE, # Flags for which mapping algorithms to run
                                  tree.map   = TRUE, 
-                                 seurat.map = FALSE, 
+                                 seurat.map = TRUE, 
                                  label.cols = c("cluster_label", "subclass_label" ,"class_label")) # Columns to map against from AIT.anndata$obs
 ```
 
