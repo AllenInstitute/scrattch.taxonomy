@@ -5,7 +5,7 @@
 #' @param feature.set Set of feature used to calculate dendrogram. Typically highly variable and/or marker genes.
 #' @param umap.coords Dimensionality reduction coordiant data.frame with 2 columns. Rownames must be equal to colnames of counts.
 #' @param taxonomyDir The location to save Shiny objects, e.g. "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/NHP_BG_20220104/"
-#' @param taxonomyName The file name to assign for the Taxonomy h5ad.
+#' @param taxonomyName The name to assign for the Taxonomy h5ad.
 #' @param celltypeColumn Column name corresponding to where the clusters are located (default="cluster")
 #' @param cluster_colors An optional named character vector where the values correspond to colors and the names correspond to celltypes in celltypeColumn.  If this vector is incomplete, a warning is thrown and it is ignored. cluster_colors can also be provided in the metadata (see notes)
 #' @param metadata_names An optional named character vector where the vector NAMES correspond to columns in the metadata matrix and the vector VALUES correspond to how these metadata should be displayed in Shiny. This is used for writing the desc.feather file later.
@@ -88,6 +88,9 @@ buildTaxonomy = function(counts,
   ## Ensure directory exists, if not create it
   taxonomyDir <- file.path(taxonomyDir) # Convert from windows to unix or vice versa
   dir.create(taxonomyDir, showWarnings = FALSE)
+
+  ## Save all original cells before subsampling
+  pre_subsample<-colnames(counts)
 
   ## Subsample nuclei per cluster, max
   kpClusters <- rep(TRUE,length(meta.data$cluster))
@@ -310,7 +313,7 @@ buildTaxonomy = function(counts,
       umap = umap.coords ## A data frame with sample_id, and 2D coordinates for umap (or comparable) representation(s)
     ),
     uns = list(
-      cellSet     = sample_id, ## All original cells before subsampling
+      cellSet     = pre_subsample, ## All original cells before subsampling
       dend        = list("standard" = toJSON(dend_to_json(dend))), # FILE NAME with dendrogram
       filter      = list("standard" = rep(FALSE, nrow(datReference))),
       QC_markers  = list("standard" = list()), ## Standard will hold de.genes for dendrogram, we should rename this uns field.
@@ -318,8 +321,7 @@ buildTaxonomy = function(counts,
       clustersUse = clustersUse,
       clusterInfo = clusterInfo,
       taxonomyName = taxonomyName,
-      taxonomyDir = file.path(normalizePath(taxonomyDir), leading_string="/"), ## Normalize path in case where user doesn't provide absolute path.
-      medianmat = medianmat
+      taxonomyDir = file.path(normalizePath(taxonomyDir), leading_string="/") ## Normalize path in case where user doesn't provide absolute path.
     )
   )
   AIT.anndata$write_h5ad(file.path(taxonomyDir, paste0(taxonomyName, ".h5ad")))
@@ -343,9 +345,8 @@ buildTaxonomy = function(counts,
 #' @param p proportion of marker genes to include in each iteration of the mapping algorithm.
 #' @param low.th the minimum difference in Pearson correlation required to decide on which branch
 #' @param overwriteMarkers If markers already are calculated a tree, should they be overwritten (default = TRUE)
-#' @param taxonomyDir The location to create the directory with taxonomy mode information (default is as a subdirectory of the taxonomy location stored in the anndata object).
 #'
-#' NOTES:
+#' NOTES
 #' By default VERY loose parameters are set for de_param in an effort to get extra marker genes for each node.  The defaults previously proposed for 10x nuclei are the following `de_param(low.th = 1, padj.th = 0.01, lfc.th = 1, q1.th = 0.3, q2.th = NULL, q.diff.th = 0.7, de.score.th = 100, min.cells = 2, min.genes = 5)`. See the function `de_param` in the scrattch.hicat for more details.  
 #'
 #' If save.shiny.output=TRUE, membership_information_reference.rda will be generated, which includes two variables
@@ -380,14 +381,13 @@ addDendrogramMarkers = function(AIT.anndata,
                                 bs.num=100, 
                                 p=0.8, 
                                 low.th=0.1,
-                                overwriteMarkers = TRUE,
-                                taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir)){
+                                overwriteMarkers = TRUE){
 
   ## We should already know this? Clean up in future.
   if(!is.element(celltypeColumn, colnames(AIT.anndata$obs))){ stop(paste(celltypeColumn, "is not a column in the metadata data frame.")) }
 
   ##
-  if(mode == "standard"){ taxonomyModeDir = file.path(taxonomyDir) } else { taxonomyModeDir = file.path(taxonomyDir, mode) }
+  if(mode == "standard"){ taxonomyModeDir = file.path(AIT.anndata$uns$taxonomyDir) } else { taxonomyModeDir = file.path(file.path(AIT.anndata$uns$taxonomyDir), mode) }
   if(!dir.exists(taxonomyModeDir)){ stop("Taxonomy version doesn't exist, please run `buildPatchseqTaxonomy()` then retry.") }
 
   ## Filter and Subsample
@@ -482,7 +482,7 @@ addDendrogramMarkers = function(AIT.anndata,
     
   ##
   if(save.shiny.output){
-    ## NOTE: These are used for KL mapping and potentially for future constellation diagrams
+    ## NOTE: These are used for a version of mapping not yet implemented (KL mapping)
     print("Build membership table of reference vs. reference for use with patch-seq mapping")
     invisible(capture.output({  # Avoid printing lots of numbers to the screen
       memb.ref   = map_dend_membership(reference$dend, 
@@ -499,9 +499,6 @@ addDendrogramMarkers = function(AIT.anndata,
     }))
     memb.ref   = memb.ref[metadata$sample_id,]
     map.df.ref = map.df.ref[metadata$sample_id,]
-    
-    AIT.anndata$uns$memb[[mode]]$memb.ref = as.data.frame.matrix(memb.ref)
-    AIT.anndata$uns$memb[[mode]]$map.df.ref = map.df.ref
     save(memb.ref, map.df.ref, file=file.path(taxonomyModeDir, "membership_information_reference.rda"))
   }
 
