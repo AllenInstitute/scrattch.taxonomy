@@ -2,3 +2,11 @@
 .RData
 .Ruserdata
 .Rproj.user
+<<<<<<< HEAD
+scrattch.taxonomy.Rproj
+examples/patchseq.RData
+examples/build_MTG_patchseq_taxonomy_temp.Rmd
+=======
+examples/build_MTG_patchseq_taxonomy_TEMP.Rmd
+examples/patchseq.RData
+>>>>>>> 382589bde863094987e831ac0e3e3f1b06c38e4e

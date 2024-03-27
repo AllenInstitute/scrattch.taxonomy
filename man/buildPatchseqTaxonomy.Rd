@@ -11,8 +11,10 @@ buildPatchseqTaxonomy(
   subclass.column = "subclass_label",
   class.column = "class_label",
   off.target.types = c("Glia", "glia", "non-neuronal", "Non-neuronal"),
+  subclass.subsample = 100,
   num.markers = 50,
-  taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir)
+  taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir),
+  ...
 )
 }
 \arguments{
@@ -28,17 +30,28 @@ buildPatchseqTaxonomy(
 
 \item{off.target.types}{A character vector of off-target (also known as 'contamination') cell types.  This must include at least one of the cell types found in "class.column" and/or "subclass.column" (both columns are checked)}
 
+\item{subclass.subsample}{The number of cells to retain for PatchseqQC contamination calculation (default = 100, probably no need to change).}
+
 \item{num.markers}{The maximum number of markers to calculate per node per direction (default = 50)}
 
-\item{taxonomyDir}{= The location to save shiny output (default = current working directory).
+\item{taxonomyDir}{The location to save shiny output (default = current working directory).}
 
-The following variables are added to AIT.anndata$uns
-markers,
-countsQC,
-cpmQC,
-classBr,
-subclassF,
-allMarkers,}
+\item{...}{Additional variables to be passed to \code{addDendrogramMarkers}
+
+The following variables are added to AIT.anndata$uns:
+$dend[\link{mode.name}]
+$filter[\link{mode.name}]
+$QC_markers[\link{mode.name}]
+...$markers,
+...$countsQC,
+...$cpmQC,
+...$classBr,
+...$subclassF,
+...$allMarkers
+...$de_genes
+$memb[\link{mode.name}]
+...$memb.ref,
+...$map.df.ref}
 }
 \value{
 AIT.anndata An updated AIT.anndata variable with the above content added to AIT.anndata$uns for the relevant mode.name.

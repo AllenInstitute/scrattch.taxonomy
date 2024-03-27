@@ -132,11 +132,13 @@ loadTaxonomy = function(taxonomyDir,
         mode = "standard", ## Default mode to standard
         clustersUse = clustersUse,
         clusterInfo = clusterInfo,
-        taxonomyName = gsub(".h5ad","", "anndata_file"),
+        taxonomyName = gsub(".h5ad","", anndata_file),
         taxonomyDir = file.path(taxonomyDir, leading_string="/")
       )
     )
-    AIT.anndata$write_h5ad(file.path(taxonomyDir, anndata_file)) ## Save the anndata taxonomy so the next person doesn't have to build it :).
+    
+    ## Save the anndata taxonomy so the next person doesn't have to build it :).
+    AIT.anndata$write_h5ad(file.path(taxonomyDir, anndata_file)) 
   }else{
     stop("Required files to load Allen Institute taxonomy are missing.")
   }
