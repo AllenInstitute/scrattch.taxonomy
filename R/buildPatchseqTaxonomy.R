@@ -11,16 +11,25 @@
 #' @param class.column Column name corresponding to the low-resolution cell types used for the off-target cell types (default = "class_label").
 #' @param off.target.types A character vector of off-target (also known as 'contamination') cell types.  This must include at least one of the cell types found in "class.column" and/or "subclass.column" (both columns are checked)
 #' @param mode.name A name to identify the new taxonomy version.
+#' @param subclass.subsample The number of cells to retain for PatchseqQC contamination calculation (default = 100, probably no need to change).
 #' @param num.markers The maximum number of markers to calculate per node per direction (default = 50)
-#' @param taxonomyDir = The location to save shiny output (default = current working directory).
+#' @param taxonomyDir The location to save shiny output (default = current working directory).
+#' @param ... Additional variables to be passed to `addDendrogramMarkers`
 #' 
-#' The following variables are added to AIT.anndata$uns
-#' markers, 
-#' countsQC, 
-#' cpmQC, 
-#' classBr, 
-#' subclassF, 
-#' allMarkers, 
+#' The following variables are added to AIT.anndata$uns:  
+#' $dend[[mode.name]]  
+#' $filter[[mode.name]]  
+#' $QC_markers[[mode.name]]  
+#' ...$markers,  
+#' ...$countsQC,  
+#' ...$cpmQC,  
+#' ...$classBr,  
+#' ...$subclassF,  
+#' ...$allMarkers  
+#' ...$de_genes  
+#' $memb[[mode.name]]  
+#' ...$memb.ref,  
+#' ...$map.df.ref  
 #' 
 #' @import patchseqtools
 #' @import scrattch.hicat
@@ -33,13 +42,15 @@ buildPatchseqTaxonomy = function(AIT.anndata,
                                  subsample = 100,
                                  subclass.column = "subclass_label",
                                  class.column = "class_label",
-                                 off.target.types = c("Glia","glia","non-neuronal","Non-neuronal"), ## "Gluta", "NN"
+                                 off.target.types = c("Glia","glia","non-neuronal","Non-neuronal"), ## "Glia", "NN"
+                                 subclass.subsample = 100,
                                  num.markers = 50,
-                                 taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir)
+                                 taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir),
+                                 ...
 ){
 
   ## Ensure filtering mode doesn't already exist
-  if(mode.name %in% names(AIT.anndata$uns$filter)){ print(paste0("Print ", mode.name, " already in Taxonomy, you will be overwriting the previous mode files.")) }
+  if(mode.name %in% names(AIT.anndata$uns$filter)){ print(paste0("Mode ", mode.name, " already in Taxonomy, you will be overwriting the previous mode files.")) }
 
   ## Create the required files for patchSeqQC and determine offtarget cells
   if(!is.element("counts", names(AIT.anndata$layers))){stop("`counts` must exist in AIT.anndata$layers, check taxonomy.")}
@@ -47,7 +58,7 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   if(!is.element(class.column, colnames(AIT.anndata$obs))){stop(paste(class.column,"is not a column in the metadata data frame."))}
   if(!dir.exists(file.path(taxonomyDir))){"Specified taxonomy folder does not exist."}
 
-  ## Determine taxonomy mode directory (Move to utilty function)
+  ## Determine taxonomy mode directory (Move to utility function)
   if(mode.name == "standard"){ taxonomyModeDir = file.path(taxonomyDir) } else { taxonomyModeDir = file.path(file.path(taxonomyDir), mode.name) }
   if(!dir.exists(taxonomyModeDir)){ dir.create(taxonomyModeDir, showWarnings = TRUE) }
 
@@ -59,7 +70,7 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   metadata$class_label = AIT.anndata$obs[,class.column]  # For compatibility with existing code.
   
   ## Subsample and filter metadata and data
-  kpSamp2  = subsampleCells(metadata$subclass_label, subsample)
+  kpSamp2  = subsampleCells(metadata$subclass_label, subclass.subsample)
   goodSamp = !is.na(metadata$class_label)  # For back-compatibility; usually not used
   kpSamp2  = kpSamp2 & goodSamp            # For back-compatibility; usually not used
   annoQC   = metadata[kpSamp2,]
@@ -85,8 +96,9 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   countsQC   = datQC[allMarkers,]
   cpmQC      = cpm(datQC)[allMarkers,]  ## Only use of scrattch.hicat in this function
 
-  ## Identify off target cells to filter out.
+  ## Filter out off target cells along with additional cells beyond those subsampled
   AIT.anndata$uns$filter[[mode.name]] = is.element(metadata$class_label, off.target.types) | is.element(metadata$subclass_label, off.target.types)
+  AIT.anndata$uns$filter[[mode.name]] = !((!AIT.anndata$uns$filter[[mode.name]])&((subsampleCells(metadata$cluster_label,subsample)))) # NEW, for subsampling
   
   ## Save patchseqQC information to uns
   AIT.anndata$uns$QC_markers[[mode.name]] = list("allMarkers" = allMarkers,
@@ -98,12 +110,13 @@ buildPatchseqTaxonomy = function(AIT.anndata,
                                                   "qc_samples" = colnames(countsQC),
                                                   "qc_genes" = rownames(countsQC))
   
+
   ##################
   ## ------- Modify the dendrogram and save
   ##
 
   ## Load the complete dendrogram, always from standard mode
-  dend = readRDS(file.path(AIT.anndata$uns$taxonomyDir, "dend.RData"))
+  dend = json_to_dend(fromJSON(AIT.anndata$uns$dend[["standard"]])) # readRDS(file.path(AIT.anndata$uns$taxonomyDir, "dend.RData"))
 
   ## Prune dendrogram to remove off.target types
   dend = prune(dend, setdiff(labels(dend), unique(AIT.anndata$obs$cluster_label[!AIT.anndata$uns$filter[[mode.name]]])))
@@ -123,8 +136,12 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   }
 
   ## Update markers after pruning
-  AIT.anndata = addDendrogramMarkers(AIT.anndata, mode=mode.name)
-
+  AIT.anndata = addDendrogramMarkers(AIT.anndata, mode=mode.name, taxonomyDir=taxonomyDir, ...)
+  # The reference probability matrix for the subsetted taxonomy is defined and outputted in this function as well
+  # $memb[[mode.name]]
+  # ...$memb.ref,
+  # ...$map.df.ref
+  
   ##
   return(AIT.anndata)
 }
