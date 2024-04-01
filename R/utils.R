@@ -59,6 +59,7 @@ json_to_dend = function(json){
     # define merging pattern: 
     #    negative numbers are leaves, 
     #    positive are merged clusters (defined by row number in $merge)
+    json = fromJSON(json)
     hclust.tmp$merge <- json$cluster_tree    # leaf merges
     hclust.tmp$height <- json$node_heights   # define merge heights
     hclust.tmp$order <- json$order           # order of leaves(trivial if hand-entered)
