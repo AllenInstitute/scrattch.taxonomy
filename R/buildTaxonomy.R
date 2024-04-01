@@ -313,12 +313,12 @@ buildTaxonomy = function(counts,
       dend        = list("standard" = toJSON(dend_to_json(dend))), # FILE NAME with dendrogram
       filter      = list("standard" = rep(FALSE, nrow(datReference))),
       QC_markers  = list("standard" = list()), ## Standard will hold de.genes for dendrogram, we should rename this uns field.
+      stats   = list("standard" = list("medianmat" = medianmat, "sums" = sums, "count_gt0" = count_gt0, "count_gt1" = count_gt1, "count_n" = count_n)),
       mode = "standard", ## Default mode to standard
       clustersUse = clustersUse,
       clusterInfo = clusterInfo,
       taxonomyName = taxonomyName,
       taxonomyDir = file.path(normalizePath(taxonomyDir), leading_string="/"), ## Normalize path in case where user doesn't provide absolute path.
-      medianmat = medianmat
     )
   )
   AIT.anndata$write_h5ad(file.path(taxonomyDir, paste0(taxonomyName, ".h5ad")))

@@ -59,8 +59,8 @@ buildMappingDirectory = function(AIT.anndata,
   if(verbose == TRUE) print("Gathering cluster medians from taxonomy folder.")
 
   ## Read in cluster medians from uns file location (either within anndata object or from the folder [for back-compatibility])
-  if(!is.null(AIT.anndata$uns$medianmat)){
-    cl.summary = AIT.anndata$uns$medianmat  # Medians now stored in the uns to avoid needing to read files
+  if(!is.null(AIT.anndata$uns$stats[["standard"]]$medianmat)){
+    cl.summary = AIT.anndata$uns$stats[["standard"]]$medianmat  # Medians now stored in the uns to avoid needing to read files
   } else {
     cl.summary = read_feather(file.path(AIT.anndata$uns$taxonomyDir, "medians.feather")) %>% as.data.frame()
   }
