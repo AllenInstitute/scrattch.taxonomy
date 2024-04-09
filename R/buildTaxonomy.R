@@ -89,6 +89,9 @@ buildTaxonomy = function(counts,
   taxonomyDir <- file.path(taxonomyDir) # Convert from windows to unix or vice versa
   dir.create(taxonomyDir, showWarnings = FALSE)
 
+  ## Save all original cells before subsampling
+  cellSet <- colnames(counts)
+
   ## Subsample nuclei per cluster, max
   kpClusters <- rep(TRUE,length(meta.data$cluster))
   if(!is.null(dend))
@@ -313,15 +316,16 @@ buildTaxonomy = function(counts,
       dend        = list("standard" = toJSON(dend_to_json(dend))), # FILE NAME with dendrogram
       filter      = list("standard" = rep(FALSE, nrow(datReference))),
       QC_markers  = list("standard" = list()), ## Standard will hold de.genes for dendrogram, we should rename this uns field.
-      stats   = list("standard" = list("medianmat" = medianmat, "sums" = sums, "count_gt0" = count_gt0, "count_gt1" = count_gt1, "count_n" = count_n)),
+      stats   = list("standard" = list("medianmat" = medianmat)),
       mode = "standard", ## Default mode to standard
+      cellSet = cellSet,
       clustersUse = clustersUse,
       clusterInfo = clusterInfo,
       taxonomyName = taxonomyName,
-      taxonomyDir = file.path(normalizePath(taxonomyDir), leading_string="/"), ## Normalize path in case where user doesn't provide absolute path.
+      taxonomyDir = file.path(normalizePath(taxonomyDir), leading_string="/") ## Normalize path in case where user doesn't provide absolute path.
     )
   )
-  AIT.anndata$write_h5ad(file.path(taxonomyDir, paste0(taxonomyName, ".h5ad")))
+  AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$taxonomyName, ".h5ad")))
   
   ## Return the anndata object
   return(AIT.anndata)
@@ -393,7 +397,7 @@ addDendrogramMarkers = function(AIT.anndata,
   keep.samples = ((!AIT.anndata$uns$filter[[mode]]) & subsampleCells(AIT.anndata$obs[[celltypeColumn]], subsample)) ##  & is.element(cluster.vector, labels(dend))
 
   ## Checks and data formatting
-  dend = json_to_dend(fromJSON(AIT.anndata$uns$dend[[mode]])) #readRDS(file.path(AIT.anndata$uns$dend[[mode]]))
+  dend = json_to_dend(AIT.anndata$uns$dend[[mode]])
 
   ## norm.data
   norm.data = Matrix::t(AIT.anndata$X[keep.samples,])

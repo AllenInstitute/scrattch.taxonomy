@@ -144,7 +144,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
       
       ## Check the dendrogram is correct and can be loaded in from json format
       tryCatch({
-          dat = json_to_dend(fromJSON(AIT.anndata$uns$dend[[AIT.anndata$uns$mode]]))
+          dat = json_to_dend(AIT.anndata$uns$dend[[AIT.anndata$uns$mode]])
         },
         error=function(cond) {
           isValid = FALSE

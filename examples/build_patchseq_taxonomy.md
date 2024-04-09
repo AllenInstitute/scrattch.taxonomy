@@ -37,7 +37,7 @@ query.anno = query.anno[keep,]
 taxonomy = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016"
 
 ## Load in the taxonomy
-AIT.anndata = loadTaxonomy(taxonomy)
+AIT.anndata = loadTaxonomy(taxonomy, anndata_file="Tasic2016.h5ad")
 ```
 
 ### Define off target cell types
@@ -89,7 +89,7 @@ AIT.anndata = mappingMode(AIT.anndata, mode="patchseq")
 ```R
 # This function is part of the 'scrattch.mapping' library
 query.mapping = taxonomy_mapping(AIT.anndata= AIT.anndata,
-                                  query.data = query.logCPM, 
+                                  query.data = query.logCPM,
                                   corr.map   = TRUE, # Flags for which mapping algorithms to run
                                   tree.map   = TRUE, 
                                   seurat.map = FALSE, 

@@ -60,7 +60,7 @@ buildMappingDirectory = function(AIT.anndata,
 
   ## Read in cluster medians from uns file location (either within anndata object or from the folder [for back-compatibility])
   if(!is.null(AIT.anndata$uns$stats[["standard"]]$medianmat)){
-    cl.summary = AIT.anndata$uns$stats[["standard"]]$medianmat  # Medians now stored in the uns to avoid needing to read files
+    cl.summary = reticulate::py_to_r(AIT.anndata$uns$stats[["standard"]]$medianmat)  # Medians now stored in the uns to avoid needing to read files
   } else {
     cl.summary = read_feather(file.path(AIT.anndata$uns$taxonomyDir, "medians.feather")) %>% as.data.frame()
   }
@@ -69,8 +69,7 @@ buildMappingDirectory = function(AIT.anndata,
   if(verbose == TRUE) print("Saving dendrogram to mapping folder.")
 
   ## Read in the reference tree and copy to new directory
-  #dend = readRDS(file.path(AIT.anndata$uns$taxonomyDir, AIT.anndata$uns$mode, "dend.RData"))
-  dend = json_to_dend(fromJSON(AIT.anndata$uns$dend[[AIT.anndata$uns$mode]])) 
+  dend = json_to_dend(AIT.anndata$uns$dend[[AIT.anndata$uns$mode]])
 
   ## Output dend to mapping folder
   saveRDS(dend, file.path(mappingFolder, "dend.RData"))
