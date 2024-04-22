@@ -84,7 +84,7 @@ python -m cell_type_mapper.cli.precompute_stats_scrattch \
 
 *Note*:
 * Create a folder in your own directory where the built taxonomy files are saved, to later be used for mapping, and pass instead of <path_to_your_taxonomy_files_directory>.
-* Change the query h5ad_path parameter above to any other h5ad taxonomy file location.
+* Change the reference taxonomy file --h5ad_path parameter above to any other h5ad taxonomy file location.
 * Change the name of the precompute_stats file (siletti_hmba_subsampled_precompute_stats.h5) if you're using a different taxonomy.
 * Change the hierarchy based on the hierarchy of your taxonomy; for example '["class", "subclass", "cluster"]'.
 * Change normalization to either 'log2CPM' or keep as 'raw' based on the count matrix of your taxonomy.
