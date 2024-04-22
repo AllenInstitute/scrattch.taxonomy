@@ -59,7 +59,7 @@ pip install -e .
 * Install the required packages (dependencies).
 * Install the cell_type_mapper package itself. Note: this needs to be run from the root directory of this repository, i.e. <path_to_your_directory>/cell_type_mapper
 
-#### Step 2: Build the taxonomy
+### Step 2: Build the taxonomy
 
 *Note*: conda environment needs to be activated to run the code below. Run `conda activate <your-env-name>` to activate.
   
