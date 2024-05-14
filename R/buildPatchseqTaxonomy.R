@@ -46,6 +46,7 @@ buildPatchseqTaxonomy = function(AIT.anndata,
                                  subclass.subsample = 100,
                                  num.markers = 50,
                                  taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir),
+                                 dend = NULL,
                                  ...
 ){
 
@@ -61,6 +62,35 @@ buildPatchseqTaxonomy = function(AIT.anndata,
   ## Determine taxonomy mode directory (Move to utility function)
   if(mode.name == "standard"){ taxonomyModeDir = file.path(taxonomyDir) } else { taxonomyModeDir = file.path(file.path(taxonomyDir), mode.name) }
   if(!dir.exists(taxonomyModeDir)){ dir.create(taxonomyModeDir, showWarnings = TRUE) }
+
+
+
+
+
+  ## Now check the dendrogram clusters and formatting, if dendrogram is provided
+    if(!is.null(dend)){
+      if(!is.element("dendrogram",class(dend))){stop("If provided, dend must be of R class dendrogram.")}
+      clusters=unique(meta.data$cluster)
+      extra_labels <- setdiff(labels(dend), clusters)
+      if(length(extra_labels)>0){stop(paste("Dendrogram has labels not included in metadata:",paste(extra_labels,collapse=", ")))}
+      extra_labels <- setdiff(clusters, labels(dend))
+      if(length(extra_labels)>0){
+        warning(paste0("Metadata include cluster labels not found in dendrogram: ", paste(extra_labels, collapse=", "),
+                      ". Cells from these clusters will be EXCLUDED from all taxonomy files."))
+      }
+    }
+
+####################color issue, AIT2.3.1 has color embedded in dendogram
+#pdir <- "//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/patch_seq/star/mouse_patchseq_VISp_20210818_collapsed40_cpm/"
+#lastmapdir<-"//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/patch_seq/star/mouse_patchseq_VISp_20210804_collapsed40_cpm/"
+#regions=c("VISp","TCx","FCx","MOp","TEa","HIPCA1") #mapping everything  batch RSC-244 and later
+#current_dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
+#setwd(pdir)
+#dend_file="VISp_dend_20180626"
+#load("V1.dend.with.gen.cl.with.bp.40.rda")
+
+
+
 
   ## Copy metadata
   metadata = AIT.anndata$obs
@@ -109,18 +139,23 @@ buildPatchseqTaxonomy = function(AIT.anndata,
                                                   "subclassF" = subclassF,
                                                   "qc_samples" = colnames(countsQC),
                                                   "qc_genes" = rownames(countsQC))
+
+
+  print("===== Building dendrogram =====")
+  if(!is.null(dend)){
+    print("...using provided dendrogram.")
+    # FOR FUTURE UPDATE: should check here whether dendrogram colors match what is in meta-data.
+  } else {
   
+    ##################
+    ## ------- Modify the dendrogram and save
+    ##
+    ## Load the complete dendrogram, always from standard mode
+    dend = json_to_dend(AIT.anndata$uns$dend[["standard"]])
 
-  ##################
-  ## ------- Modify the dendrogram and save
-  ##
-
-  ## Load the complete dendrogram, always from standard mode
-  dend = json_to_dend(AIT.anndata$uns$dend[["standard"]])
-
-  ## Prune dendrogram to remove off.target types
-  dend = prune(dend, setdiff(labels(dend), unique(AIT.anndata$obs$cluster_label[!AIT.anndata$uns$filter[[mode.name]]])))
-
+    ## Prune dendrogram to remove off.target types
+    dend = prune(dend, setdiff(labels(dend), unique(AIT.anndata$obs$cluster_label[!AIT.anndata$uns$filter[[mode.name]]])))
+  }
   ## Save dendrogram
   saveRDS(dend, file.path(taxonomyModeDir, "dend.RData"))
 
@@ -129,11 +164,22 @@ buildPatchseqTaxonomy = function(AIT.anndata,
 
   ## Save patch-seq mode into taxonomy anndata
   AIT.anndata$write_h5ad(file.path(taxonomyDir, paste0(AIT.anndata$uns$taxonomyName, ".h5ad")))
+
   
+
+
+
+
+
   ## Update the log file and check the taxonomy for proper quality
   if(!checkTaxonomy(AIT.anndata,taxonomyDir)){
     stop(paste("Taxonomy has some breaking issues.  Please check checkTaxonomy_log.txt in",taxonomyDir,"for details"))
   }
+
+
+
+
+
 
   ## Update markers after pruning
   AIT.anndata = addDendrogramMarkers(AIT.anndata, mode=mode.name, taxonomyDir=taxonomyDir, ...)
