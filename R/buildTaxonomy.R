@@ -516,3 +516,85 @@ addDendrogramMarkers = function(AIT.anndata,
   ##
   return(AIT.anndata)
 }
+
+
+buildMapMyCellsTaxonomy = function(AIT_anndata,
+                                anndata_path = file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$taxonomyName, ".h5ad")),
+                                n_processors = 3,
+                                normalization = "raw",
+                                tmp_dir = NULL,
+                                hierarchy){
+  
+  ```{python}
+  from cell_type_mapper.cli.precompute_stats_scrattch import (
+      PrecomputationScrattchRunner)
+  import time
+  import os
+
+  delete_temp_folder = False
+  if temp_dir is None:
+    tmp_dir = "./temp"
+    delete_temp_folder = True
+
+  precomp_stats_filename = "precompute_stats_" + time.strftime("%Y%m%d-%H%M%S") + ".h5"
+  precomp_stats_output_path = os.path.join(tmp_dir, precomp_stats_filename)
+  #hierarchy = ["supercluster_term", "cluster_id", "subcluster_id"]  #_label  tasic: broad_type primary_type_label
+
+  # PRECOMPUTE STATS
+  precomp_stats_config = {
+      'h5ad_path': r.anndata_path,
+      'n_processors': n_processors,
+      'normalization': normalization,
+      'tmp_dir': tmp_dir,
+      'output_path': precomp_stats_output_path,
+      'hierarchy': hierarchy
+  }
+
+  precomp_stats_runner = PrecomputationScrattchRunner(
+      args=[],
+      input_data=precomp_stats_config)
+  precomp_stats_runner.run()
+
+
+  # REFERENCE MARKERS
+  ref_markers_config = {
+      'n_processors': n_processors,
+      'precomputed_path_list': [precomp_stats_output_path],
+      'output_dir': tmp_dir,
+      'tmp_dir': tmp_dir
+  }
+
+  ref_markers_runner = ReferenceMarkerRunner(
+      args=[], 
+      input_data=ref_markers_config)
+  ref_markers_runner.run()
+
+  # ADD TO UNS
+
+
+  # QUERY MARKERS
+  ref_markers_file_path = os.path.join(tmp_dir, "reference_markers.h5")
+  query_markers_filename = "query_markers_" + time.strftime("%Y%m%d-%H%M%S") + ".h5"
+  query_markers_output_path = os.path.join(tmp_dir, query_markers_filename)
+
+  query_markers_config = {
+      'query_path': r.anndata_path,
+      'reference_marker_path_list': [ref_markers_file_path],
+      'n_processors': n_processors,
+      'output_path': query_markers_output_path,
+      'tmp_dir': tmp_dir}
+
+  query_markers_runner = QueryMarkerRunner(
+      args=[],
+      input_data=query_markers_config)
+  query_markers_runner.run()
+
+
+  os.remove(precomp_stats_filename)
+  os.remove(ref_markers_file_path)
+  os.remove(query_markers_output_path)
+  if delete_temp_folder:
+    os.rmdir(tmp_dir)
+  ```
+
+}
