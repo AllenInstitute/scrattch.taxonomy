@@ -526,8 +526,11 @@ buildMapMyCellsTaxonomy = function(AIT_anndata,
                                 hierarchy){
   
   ```{python}
-  from cell_type_mapper.cli.precompute_stats_scrattch import (
-      PrecomputationScrattchRunner)
+  from cell_type_mapper.cli.precompute_stats_scrattch import (PrecomputationScrattchRunner)
+  from cell_type_mapper.cli.reference_markers import (ReferenceMarkerRunner)
+  from cell_type_mapper.cli.query_markers import (QueryMarkerRunner)
+  from cell_type_mapper.utils import output_utils 
+
   import time
   import os
 
@@ -554,7 +557,12 @@ buildMapMyCellsTaxonomy = function(AIT_anndata,
       args=[],
       input_data=precomp_stats_config)
   precomp_stats_runner.run()
-
+  
+  # ADD TO UNS
+  output_utils.precomputed_stats_to_uns(
+    precomputed_stats_path=precomp_stats_output_path, 
+    h5ad_path=r.anndata_path, 
+    uns_key="MapMyCells_stats")
 
   # REFERENCE MARKERS
   ref_markers_config = {
@@ -568,8 +576,6 @@ buildMapMyCellsTaxonomy = function(AIT_anndata,
       args=[], 
       input_data=ref_markers_config)
   ref_markers_runner.run()
-
-  # ADD TO UNS
 
 
   # QUERY MARKERS
