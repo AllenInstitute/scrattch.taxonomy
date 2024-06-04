@@ -517,90 +517,15 @@ addDendrogramMarkers = function(AIT.anndata,
   return(AIT.anndata)
 }
 
-
 buildMapMyCellsTaxonomy = function(AIT_anndata,
-                                anndata_path = file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$taxonomyName, ".h5ad")),
+                                hierarchy,
+                                anndata_path,
                                 n_processors = 3,
-                                normalization = "raw",
-                                tmp_dir = NULL,
-                                hierarchy){
-  
-  ```{python}
-  from cell_type_mapper.cli.precompute_stats_scrattch import (PrecomputationScrattchRunner)
-  from cell_type_mapper.cli.reference_markers import (ReferenceMarkerRunner)
-  from cell_type_mapper.cli.query_markers import (QueryMarkerRunner)
-  from cell_type_mapper.utils import output_utils 
-
-  import time
-  import os
-
-  delete_temp_folder = False
-  if temp_dir is None:
-    tmp_dir = "./temp"
-    delete_temp_folder = True
-
-  precomp_stats_filename = "precompute_stats_" + time.strftime("%Y%m%d-%H%M%S") + ".h5"
-  precomp_stats_output_path = os.path.join(tmp_dir, precomp_stats_filename)
-  #hierarchy = ["supercluster_term", "cluster_id", "subcluster_id"]  #_label  tasic: broad_type primary_type_label
-
-  # PRECOMPUTE STATS
-  precomp_stats_config = {
-      'h5ad_path': r.anndata_path,
-      'n_processors': n_processors,
-      'normalization': normalization,
-      'tmp_dir': tmp_dir,
-      'output_path': precomp_stats_output_path,
-      'hierarchy': hierarchy
+                                normalization = "log2CPM",
+                                tmp_dir = NULL){
+  if(missing(anndata_path)){
+    anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$taxonomyName, ".h5ad"))
   }
-
-  precomp_stats_runner = PrecomputationScrattchRunner(
-      args=[],
-      input_data=precomp_stats_config)
-  precomp_stats_runner.run()
-  
-  # ADD TO UNS
-  output_utils.precomputed_stats_to_uns(
-    precomputed_stats_path=precomp_stats_output_path, 
-    h5ad_path=r.anndata_path, 
-    uns_key="MapMyCells_stats")
-
-  # REFERENCE MARKERS
-  ref_markers_config = {
-      'n_processors': n_processors,
-      'precomputed_path_list': [precomp_stats_output_path],
-      'output_dir': tmp_dir,
-      'tmp_dir': tmp_dir
-  }
-
-  ref_markers_runner = ReferenceMarkerRunner(
-      args=[], 
-      input_data=ref_markers_config)
-  ref_markers_runner.run()
-
-
-  # QUERY MARKERS
-  ref_markers_file_path = os.path.join(tmp_dir, "reference_markers.h5")
-  query_markers_filename = "query_markers_" + time.strftime("%Y%m%d-%H%M%S") + ".h5"
-  query_markers_output_path = os.path.join(tmp_dir, query_markers_filename)
-
-  query_markers_config = {
-      'query_path': r.anndata_path,
-      'reference_marker_path_list': [ref_markers_file_path],
-      'n_processors': n_processors,
-      'output_path': query_markers_output_path,
-      'tmp_dir': tmp_dir}
-
-  query_markers_runner = QueryMarkerRunner(
-      args=[],
-      input_data=query_markers_config)
-  query_markers_runner.run()
-
-
-  os.remove(precomp_stats_filename)
-  os.remove(ref_markers_file_path)
-  os.remove(query_markers_output_path)
-  if delete_temp_folder:
-    os.rmdir(tmp_dir)
-  ```
-
+  source_python("/allen/programs/celltypes/workgroups/rnaseqanalysis/EvoGen/Team/Inkar/repositories/scrattch.taxonomy/R/buildTaxonomyMapMyCells.py")
+  buildMapMyCellsTaxonomy(anndata_path, hierarchy, tmp_dir, n_processors, normalization)
 }
