@@ -68,17 +68,17 @@ buildPatchseqTaxonomy = function(AIT.anndata,
 
 
   ## Now check the dendrogram clusters and formatting, if dendrogram is provided
-    if(!is.null(dend)){
-      if(!is.element("dendrogram",class(dend))){stop("If provided, dend must be of R class dendrogram.")}
-      clusters=unique(meta.data$cluster)
-      extra_labels <- setdiff(labels(dend), clusters)
-      if(length(extra_labels)>0){stop(paste("Dendrogram has labels not included in metadata:",paste(extra_labels,collapse=", ")))}
-      extra_labels <- setdiff(clusters, labels(dend))
-      if(length(extra_labels)>0){
-        warning(paste0("Metadata include cluster labels not found in dendrogram: ", paste(extra_labels, collapse=", "),
-                      ". Cells from these clusters will be EXCLUDED from all taxonomy files."))
-      }
-    }
+  #  if(!is.null(dend)){
+  #    if(!is.element("dendrogram",class(dend))){stop("If provided, dend must be of R class dendrogram.")}
+  #    clusters=unique(meta.data$cluster)
+  #    extra_labels <- setdiff(labels(dend), clusters)
+  #    if(length(extra_labels)>0){stop(paste("Dendrogram has labels not included in metadata:",paste(extra_labels,collapse=", ")))}
+  #    extra_labels <- setdiff(clusters, labels(dend))
+  #    if(length(extra_labels)>0){
+  #      warning(paste0("Metadata include cluster labels not found in dendrogram: ", paste(extra_labels, collapse=", "),
+  #                    ". Cells from these clusters will be EXCLUDED from all taxonomy files."))
+  #    }
+  #  }
 
 ####################color issue, AIT2.3.1 has color embedded in dendogram
 #pdir <- "//allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/patch_seq/star/mouse_patchseq_VISp_20210818_collapsed40_cpm/"
