@@ -42,7 +42,7 @@ def buildMapMyCellsTaxonomy(anndata_path, hierarchy, tmp_dir, n_processors, norm
     output_utils.precomputed_stats_to_uns(
         precomputed_stats_path=precomp_stats_output_path, 
         h5ad_path=anndata_path, 
-        uns_key="MapMyCells_precomp_stats"
+        uns_key="MapMyCells_HANN_precomp_stats"
     )
 
     # REFERENCE MARKERS
@@ -76,17 +76,17 @@ def buildMapMyCellsTaxonomy(anndata_path, hierarchy, tmp_dir, n_processors, norm
     query_markers_runner.run()
 
     query_markers_data = json.load(open(query_markers_output_path))
-    query_markers_uns_key = "MapMyCells_query_markers"
+    query_markers_uns_key = "MapMyCells_HANN_query_markers"
     anndata_utils.update_uns(
         h5ad_path=anndata_path,
         new_uns={query_markers_uns_key: query_markers_data},
         clobber=False
     )
 
-    # redo for if execution haults before reaching this line
-    os.remove(precomp_stats_output_path)
-    os.remove(ref_markers_file_path)
-    os.remove(query_markers_output_path)
+    # redo for if execution stops before reaching this line
+    #os.remove(precomp_stats_output_path)
+    #os.remove(ref_markers_file_path)
+    #os.remove(query_markers_output_path)
     if delete_tmp_folder:
         os.rmdir(tmp_dir)
 

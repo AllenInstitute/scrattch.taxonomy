@@ -56,4 +56,7 @@ AIT.anndata = buildTaxonomy(counts = taxonomy.counts,
 
 ## Add markers to dendrogram
 AIT.anndata = addDendrogramMarkers(AIT.anndata = AIT.anndata)
+
+hierarchy = list("broad_type_label", "primary_type_label")
+AIT.anndata = addHANNMapMyCells(AIT.anndata, hierarchy)
 ```
