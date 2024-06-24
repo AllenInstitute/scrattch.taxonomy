@@ -1,5 +1,7 @@
 # AIT / CAS / BKP schema integration
 
+*(Note: An evolving version of this standard is available **[as a Google Doc](https://docs.google.com/document/d/1nj6LHUPoo3JnNwZ7PTdniT9pBPsoJr1B/edit?usp=sharing&ouid=113573359044104089630&rtpof=true&sd=true)**).*
+
 Several competing schema have been created for packaging of taxonomies, data sets, and associated metadata and annotations.  This document aims to align three such schema and propose a way of integrating them into the Allen Institute Taxonomies (AIT) .h5ad file format presented as part of this GitHub repository. The three standards are:
 
 1. **AIT** (described herein)
@@ -7,6 +9,8 @@ Several competing schema have been created for packaging of taxonomies, data set
 3. **Brain Knowledge Platform (BKP)**: this schema isn't publicly laid out anywhere that I can find, but this is the data model used for [Jupyter Notebooks](https://alleninstitute.github.io/abc_atlas_access/intro.html) associated with the [Allen Brain Cell (ABC) Atlas](https://portal.brain-map.org/atlases-and-data/bkp/abc-atlas).  More generally, any data sets to be included in ABC Atlas, [MapMyCells](https://portal.brain-map.org/atlases-and-data/bkp/mapmycells), or other related BKP resources will eventually need to conform to this format.
 
 It's worth noting that all of these schema are still under development, and we hope they will approach a common schema.
+
+[Taxonomy_field_mappings](https://docs.google.com/spreadsheets/d/1PhsOipO0yCrtTGrkWXLU2Tj2m4qFPgdKID0SqetYN0Y/edit#gid=0) in table form.
 
 ## Cell type taxonomy organization
 
@@ -33,6 +37,10 @@ Here are the current categories that all fields are placed in as a starting poin
 
 We expect some of these categories to change but feel this is a good starting point.
 
+Here is a graphical representation of these terms in the context of data, metadata, and taxonomies:
+![image](https://github.com/AllenInstitute/scrattch.taxonomy/assets/25486679/eaf6b3d3-0b5f-49fc-9a49-2b7168605964)
+
+
 ### Anndata schematic
 
 Within each broad categorical term, fields are ordered by their location in the anndata object: X, layers, obsm, obs, var, uns.
@@ -52,7 +60,7 @@ This includes anything critical for understanding the cell by gene matrix and to
 
 The `X` component contains logCPM normalized expression data (cell x gene).
 
-#### layers
+#### layers → (Use raw.X instead)
 
 The `layers` component contains the count matrix (cell x gene).
 
@@ -62,7 +70,7 @@ The `layers` component contains the count matrix (cell x gene).
 
 The `obs` component contains cell level metadata.
 
-* `cell_label` :fire::fire::fire: : ID corresponding to each individual cell.  This ID MUST be included in the **data** and in every other location to refer to the data (e.g., metadata and annotations). This is also called `cell_id`, `sample_id`, and `sample_name` in various places.  We should align on a single term. 
+* `cell_label` :fire::fire::fire: : **Use `cell_id`** ID corresponding to each individual cell.  This ID MUST be included in the **data** and in every other location to refer to the data (e.g., metadata and annotations). This is also called `cell_id`, `sample_id`, and `sample_name` in various places.  We should align on a single term. 
 
 #### var
 
