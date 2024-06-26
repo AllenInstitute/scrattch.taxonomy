@@ -56,4 +56,28 @@ AIT.anndata = buildTaxonomy(counts = taxonomy.counts,
 
 ## Add markers to dendrogram
 AIT.anndata = addDendrogramMarkers(AIT.anndata = AIT.anndata)
+
+```
+
+# Tutorial: Building a Shiny taxonomy 
+
+In this tutorial we demonstrate how to setup a MapMyCells taxonomy using scrattch.taxonomy for running HANN mapping algorithm against with scrattch.mapping.
+
+#### Required inputs:
+
+* Hierarchy of the taxonomy as a list, such as class_label, subclass_label, cluster_label
+* AIT.anndata, MolGen Shiny (scrattch) taxonomy
+
+#### Additional prerequisites:
+
+* Installation of the `tasic2016data` data package [from here](https://github.com/AllenInstitute/tasic2016data/), or replace with your own data set.
+
+#### Build taxonomy:
+
+```R
+## Provide hierarchy of the taxonomy
+hierarchy = list("broad_type_label", "primary_type_label")
+
+## Build MapMyCells taxonomy
+AIT.anndata = buildHANNMapMyCells(AIT.anndata, hierarchy)
 ```
