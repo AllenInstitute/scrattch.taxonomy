@@ -516,19 +516,3 @@ addDendrogramMarkers = function(AIT.anndata,
   ##
   return(AIT.anndata)
 }
-
-addHANNMapMyCells = function(AIT_anndata,
-                                hierarchy,
-                                anndata_path,
-                                n_processors = 3,
-                                normalization = "log2CPM",
-                                tmp_dir = NULL){
-  if(missing(anndata_path)){
-    anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$taxonomyName, ".h5ad"))
-  }
-  source_python("/allen/programs/celltypes/workgroups/rnaseqanalysis/EvoGen/Team/Inkar/repositories/scrattch.taxonomy/R/buildTaxonomyMapMyCells.py")
-  buildMapMyCellsTaxonomy(anndata_path, hierarchy, tmp_dir, n_processors, normalization)
-
-  AIT_anndata = read_h5ad(anndata_path)
-  return(AIT_anndata)
-}
