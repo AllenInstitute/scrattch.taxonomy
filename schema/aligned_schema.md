@@ -5,7 +5,7 @@
 Several competing schema have been created for packaging of taxonomies, data sets, and associated metadata and annotations.  This document aims to align three such schema and propose a way of integrating them into the Allen Institute Taxonomies (AIT) .h5ad file format presented as part of this GitHub repository. The three standards are:
 
 1. **AIT** (described herein)
-2. **[Cell Annotation Schema](https://github.com/cellannotation/cell-annotation-schema/) (CAS)**: this schema is becoming more widely-used in the cell typing field as a whole because it is largely compatible with [the CZ CELLxGENE schema](https://github.com/chanzuckerberg/single-cell-curation/blob/main/schema/3.0.0/schema.md). It is also compabible with [Cell Annotation Platform](https://celltype.info/) (CAP) and with [Taxonomy Development Tools](https://brain-bican.github.io/taxonomy-development-tools/) (TDT). CAS has both a general schema and a BICAN-associated schema, both of which are considered herein.
+2. **[Cell Annotation Schema](https://github.com/cellannotation/cell-annotation-schema/) (CAS)**: this schema is becoming more widely-used in the cell typing field as a whole because it is largely compatible with [the CZ CELLxGENE schema](https://github.com/chanzuckerberg/single-cell-curation/blob/main/schema/3.0.0/schema.md). It is also compabible with [Cell Annotation Platform](https://celltype.info/) (CAP) and with [Taxonomy Development Tools](https://brain-bican.github.io/taxonomy-development-tools/) (TDT). CAS has both a general schema and a BICAN-associated schema, both of which are considered herein.  CAS can be embedded in the header (`uns`) of an AIT/Scraatch.taxonomy file, where it functions as a store of extended information about an annotation, including ontology term mappings, evidence for annotation (from annotation transfer and marker expression).
 3. **Brain Knowledge Platform (BKP)**: this schema isn't publicly laid out anywhere that I can find, but this is the data model used for [Jupyter Notebooks](https://alleninstitute.github.io/abc_atlas_access/intro.html) associated with the [Allen Brain Cell (ABC) Atlas](https://portal.brain-map.org/atlases-and-data/bkp/abc-atlas).  More generally, any data sets to be included in ABC Atlas, [MapMyCells](https://portal.brain-map.org/atlases-and-data/bkp/mapmycells), or other related BKP resources will eventually need to conform to this format.
 
 It's worth noting that all of these schema are still under development, and we hope they will approach a common schema.
@@ -151,6 +151,36 @@ The `obs` component contains cell level metadata from the experiment
 The `uns` component contains more general information and fields with formatting incompatible with the above components.
 
 * `calculated_metadata_metadata` :fire::fire::fire: : TBD information about the calculated_metadata itself. This likely is not needed or should be renamed.
+*  `cell_annotation_schema` - extended metadata about annotations and labelsets stores in JSON.
+   * extended metadata about labelsets is stored under the `labelsets' key` in CAS (master documentation in [CAS - BICAN extension](https://github.com/cellannotation/cell-annotation-schema/blob/main/build/BICAN_schema.md) under `labelsets`.  Summarised here:
+      * name (string, required): name of annotation key. This corresponds to the `obs` key name e.g. SubClass, Neurotransmitter.  In `BKP` this corresonds to cluster_annotation_term_set.name. 
+      * description (string): Some text describing what types of cell annotation this annotation key is used to record, e.g. This labelset is used to record neurotransmitter.
+      * annotation_method (string): The method used for creating the cell annotations. This MUST be one of the following strings: 'algorithmic', 'manual', or 'both' . Must be one of: ["algorithmic", "manual", "both"].
+      * annotation_rank: An integer used to indicate hierarchy level with 0 being the most granular.  e.g. a hierarchy consisting of cluster, subtype, type, class would have ranks 0,1,2,3 respectively.  For non hierarchical labelsets, this should be left blank.  BKP level is similar but reversed (leaf nodes are the most granular).
+   * extended metadata about cell sets is stored under the `annotations' key in CAS. (master documentation in [CAS - BICAN extension](https://github.com/cellannotation/cell-annotation-schema/blob/main/build/BICAN_schema.md) under `labelsets`.  The values of labelset and cell_label corresponds to obs key value pairs:
+   * labelset: This corresponds to the `obs` key name e.g. SubClass, Neurotransmitter.  The equivalent in **BKP** is `Cluster Annotation Term Set Name' (BKP also has asn ID for this,  referred to as `Cluster Annotation Term Set Label`
+   * cell_label: This corresponds to a value of the obs key: e.g. MSN-D1, cholinergic
+   * cell_fullname`: The longer name for a cell type, with abbreviations spelled out (e.g., "Somatostatin interneuron 1" rather than "SST 1").  This was called the `cell_set_preferred_alias` in CCN.
+   * cell_ontology_term_id`: Highest resolution Cell Ontology term (ID); was called `cell_set_ontology_tag` in CCN
+   * cell_ontology_term`: Highest resolution Cell Ontology term (name); was called `cell_set_structure` in CCN and was also largely mapping to the `cell_set_aligned_alias`  
+   * `cell_set_accession` :fire::fire::fire: : ID corresponding to the cell_set; called the "Cluster Annotation Term Label" in **BKP**.  ***Some work still needed on deciding what to name this (CCNXXXXX?, a hash code?, something else?) and HOW to name this (automatically? if so, but what authority).***
+   * `rationale`: Free text field descrbing the evidence for cell annotations.
+   * `rationale_dois` :fire::fire::fire: : List of DOIs of supporting papers.  CAS stores this as a list, but there is some variation in the delimiter used in string representation for reporting and editing purposes (`,`,`|`,`/#/` purposes represented as strings 
+    * `marker_gene_evidence`: List of genes used as evidence that this labelset corresponds to the cell type referred to by the cell_label.  For example, expression of DRD1 might be used as evidence that that this cell set correpsonds to DRD1 cells.
+    * `synonyms`: Lst of commonly used synonyms/aliases for this cell type (e.g., "neuroglial cell, glial cell, neuroglia"); was called `cell_set_additional_alias` in CCN.
+    * `parent_cell_set_accession` :fire::fire::fire: : ID corresponding to the parent cell_set. In BKP this corresponds to  `cluster_annotation_term.parent_term_label` 
+    * author_annotation_fields:  CAS supports any additional fields that taxonomy authors may need to associate with cell sets.
+    *  `transferred_annotations` :fire::fire::fire: : This key stores a sub-table of annotation transfers: 
+       * transferred_cell_label (string): Transferred cell label.
+       * source_taxonomy (string): PURL of source taxonomy.
+       * source_node_accession (string): accession of node that label was transferred from.
+       * algorithm_name (string): 
+       * comment (string): Free text comment on annotation transfer.
+
+
+    
+
+
 
 
 ## Annotations
@@ -161,28 +191,14 @@ This includes any fields related to the annotation of clusters or groups of clus
 
 The `obs` component contains cell level metadata, as above.
 
-* `cell_label`: ID corresponding to each individual cell.  See above.
+* In AnnData files, the ID corresponding to each individual cell is stored in the obs index.
 * `cluster` :fire::fire::fire: : This is the **CRITICAL** column used for cluster annotations. It is the baseline for the majority of cell_annotation columns discussed below. Sometimes called `cluster_label`; There is also an additional `cluster_alias` column used in mouse whole brain data and for BKP that I'm not sure how to wrap in. It's also used for cirrocumulus.  Some discussion might be needed on whether this is one or more columns, and which one is the source of truth. It's also worth noting that this is a prerequisite for annotations, so maybe it better fits in a different category (analysis?).
 * `[additional uncontrolled metadata]`: Additional uncontrolled cell metadata. These are not required, but any additional columns are allowed by all h5ad formats.
 * `feature_matrix_label`, `dataset_label`, `[COLUMN_NAME]_color`, `[COLUMN_NAME]_id`: See above.
 
-The `obs` component also contains **cluster-level metadata** summarize at the cell level. In theory a majority of this information could be stored in the uns (or in separate json files), but for now we have it listed here for consistency with **Cell annotation schema**
+The `obs` component also contains **cell-level metadata** summarize at the cell level. In theory a majority of this information could be stored in the uns (or in separate json files), but for now we have it listed here for consistency with **Cell annotation schema**
 
-* `[cellannotation_set]` :fire::fire::fire: : This is where **taxonomy levels** are stored in **CAS**. The column name is a string (e.g., "subclass") and the values are `cell_labels` (e.g., "SST").  The equivalent in **BKP** are `Cluster Annotation Term Set`s and in **CAP** is `label_sets`.  This also encapsulates the concept of `cell_ids` from CAP/CAS, since in the h5ad file each row corresponds to a cell and therefore you get the `cell_label` --> `cell_id`s mapping for free.  This is stored as separate files in both **BKP** and **TDT** and so we should confirm appropriate translations and agree on terms for this.  Finally, this concept is critical for scrattch.taxonomy and scrattch.mapping to work properly, but none of the `[cellannotation_set]--XXXX` fields below are needed for **AIT** (although keeping this is best practice!).
-* `[cellannotation_set]--cell_set_accession` :fire::fire::fire: : ID corresponding to the cell_set; called the "Cluster Annotation Term" in **BKP**.  ***Some work still needed on deciding what to name this (CCNXXXXX?, a hash code?, something else?) and HOW to name this (automatically? if so, but what authority).***
-* `[cellannotation_set]--cell_set_label` :fire::fire::fire: : This can probably be dropped. For CCN this was used as a tag for each cluster or (for cell sets with >1 cluster) included a list of underlying cluster labels. It was important for proper databasing without a database. 
-* `[cellannotation_set]--cell_fullname`: The longer name for a cell type (e.g., "Somatostatin interneuron 1" rather than "SST 1").  This was called the `cell_set_preferred_alias` in CCN.
-* `[cellannotation_set]--cell_ontology_exists` :fire::fire::fire: : True/false call about whether a cell ontology term exists (This seems redundant to me with next two rows). I vote we remove it and derive as needed.
-* `[cellannotation_set]--cell_ontology_term_id`: Highest resolution Cell Ontology term (ID); was called `cell_set_ontology_tag` in CCN
-* `[cellannotation_set]--cell_ontology_term` :fire::fire::fire: : Highest resolution Cell Ontology term (name); was called `cell_set_structure` in CCN and was also largely mapping to the `cell_set_aligned_alias`.  ***Note that we currently don't have a field in the schema for dealing with cross-species homologies (like the `cell_set_aligned_alias`) as far as I can tell.***
-* `[cellannotation_set]--rationale`: Free text evidence for cell annotations.
-* `[cellannotation_set]--rationale_dois` :fire::fire::fire: : Comma-separated publication DOI's of rationale	CCN: "cell_set_alias_citation".  NOTE: We sometimes use comma-separated and sometimes "|"-separated (and BICAN uses something else: "/#/").
-* `[cellannotation_set]--marker_gene_evidence`: Comma-separated marker genes **used as evidence for cell type annotation** (e.g., by NS-Forest). Note: This is reserved for ontology markers.  See var below for how to store general marker genes.
-* `[cellannotation_set]--canonical_marker_genes` :fire::fire::fire: : Comma separated list of canonical marker genes. I don't understand how this differs from `marker_gene_evidence`. I vote we omit this.
-* `[cellannotation_set]--synonyms`: Comma-separated aliases (e.g., "neuroglial cell, glial cell, neuroglia"); was called `cell_set_additional_alias` in CCN.
-* `[cellannotation_set]--category_XXXX` :fire::fire::fire: : I'm not entirely sure what these columns represent.  They appear to be the same as `cell_XXXX` above for several fields (e.g., fullname, cell_ontology_term, etc.).	***Can we please omit or clarify?***
-* `[cellannotation_set]--parent_cell_set_accession` :fire::fire::fire: : ID corresponding to the parent cell_set. I think this would correspond to the parent `Cluster Annotation Term` ID in knowlegebase?
-* `[transferred_annotations]` :fire::fire::fire: : Column name is a string corresponding to the taxonomy of comparison; values are the transferred cell label from that taxonomy. I think there is still some work on the best way to code this, but it is important. This is also already encoded in **TDT**--how? It is linked to some information in the uns below. Potentially more columns needed for annotation-level metadata (e.g., source_node_accesssion, comments).
+
 
 #### var
 
