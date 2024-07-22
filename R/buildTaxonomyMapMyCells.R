@@ -15,7 +15,7 @@ buildHANNMapMyCells = function(AIT_anndata,
       cell_type_mapper <- import("cell_type_mapper")
       temp_folder = tmp_dir
 
-      if (!is.null(AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]]) && force==FALSE) {
+      if ((length(AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]]) > 0) && force==FALSE) {
         stop(paste0(paste0("ERROR: mode provided '", AIT_anndata$uns$mode), 
         "' already exists, choose a new mode name or use force=TRUE to override."))
       }
@@ -110,6 +110,7 @@ save_precopm_stats_to_uns = function(anndata_path, precomp_stats_output_path) {
 
   # take the precomputed_stats from uns and save to uns$hierarchical$mode
   precomp_stats_json = AIT_anndata$uns[[temp_precomp_stats_name]]
+  AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]] <- list()
   AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]][["precomp_stats"]] <- precomp_stats_json
   AIT_anndata$uns[[temp_precomp_stats_name]] <- NULL
 
