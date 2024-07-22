@@ -317,6 +317,7 @@ buildTaxonomy = function(counts,
       filter      = list("standard" = rep(FALSE, nrow(datReference))),
       QC_markers  = list("standard" = list()), ## Standard will hold de.genes for dendrogram, we should rename this uns field.
       stats   = list("standard" = list("medianmat" = medianmat)),
+      hierarchical = list("standard" = list()),
       mode = "standard", ## Default mode to standard
       cellSet = cellSet,
       clustersUse = clustersUse,

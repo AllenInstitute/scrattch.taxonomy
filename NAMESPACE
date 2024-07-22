@@ -2,6 +2,7 @@
 
 export(addDendrogramMarkers)
 export(applyPatchseqQC)
+export(buildHANNMapMyCells)
 export(buildMappingDirectory)
 export(buildPatchseqTaxonomy)
 export(buildTaxonomy)
