@@ -59,7 +59,7 @@ AIT.anndata = addDendrogramMarkers(AIT.anndata = AIT.anndata)
 
 ```
 
-# Tutorial: Building a Shiny taxonomy 
+# Setup MapMyCells taxonomy
 
 In this tutorial we demonstrate how to setup a MapMyCells taxonomy using scrattch.taxonomy for running HANN mapping algorithm against with scrattch.mapping.
 
