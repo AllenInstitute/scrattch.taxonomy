@@ -75,6 +75,9 @@ In this tutorial we demonstrate how to setup a MapMyCells taxonomy using scrattc
 #### Build taxonomy:
 
 ```R
+library(reticulate)
+cell_type_mapper <- import("cell_type_mapper")
+
 ## Provide hierarchy of the taxonomy
 hierarchy = list("broad_type_label", "primary_type_label")
 
