@@ -5,6 +5,7 @@
 #' @param sample_id Field in reference taxonomy that defines the sample_id.
 #' @param hGenes User supplied variable gene vector.  If not provided, then all genes are used.
 #' @param gene_id Field in counts.feather that defines the gene_id.
+#' @param log.file.path Path to write log file to. Defaults to current working directory. 
 #' @param force Force rebuild the anndata object for the taxonomy.
 #'
 #' @return Organized reference object ready for mapping against.
@@ -15,6 +16,7 @@ loadTaxonomy = function(taxonomyDir,
                         sample_id = "sample_id", 
                         hGenes=NULL, 
                         gene_id = "gene",
+                        log.file.path=getwd(),
                         force=FALSE){
 
   ## Load from directory name input 
@@ -35,8 +37,8 @@ loadTaxonomy = function(taxonomyDir,
       }))
     }
     ## Ensure anndata is in scrattch.mapping format
-    if(!checkTaxonomy(AIT.anndata,taxonomyDir)){
-     stop(paste("Taxonomy has some breaking issues.  Please check checkTaxonomy_log.txt in", taxonomyDir, "for details"))
+    if(!checkTaxonomy(AIT.anndata,log.file.path)){
+     stop(paste("Taxonomy has some breaking issues.  Please check checkTaxonomy_log.txt in", log.file.path, "for details"))
     }
   } else if(all(file.exists(c(file.path(taxonomyDir,"anno.feather"), 
                               file.path(taxonomyDir,"data.feather"), 
