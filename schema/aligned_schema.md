@@ -49,8 +49,9 @@ Within each broad categorical term, fields are ordered by their location in the 
 
 And now let's go on to the schema!
 
-# Proposed integrated schema
+## Proposed integrated schema
 
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED" "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14, RFC2119, and RFC8174 when, and only when, they appear in all capitals, as shown here.  :fire::fire::fire: :fire::fire::fire: :fire::fire::fire:
 
 ## Data
 
@@ -58,28 +59,28 @@ This includes anything critical for understanding the cell by gene matrix and to
 
 #### X 
 
-The `X` component contains logCPM normalized expression data (cell x gene).
+The `X` :green_circle: component contains logCPM normalized expression data (cell x gene).
 
-#### layers → (Use raw.X instead)
+#### raw.X
 
-The `layers` component contains the count matrix (cell x gene).
+The `raw` component contains the count matrix (cell x gene).
 
-* `counts` :fire::fire::fire: : The count matrix from which `X` was derived in **AIT**. Called `raw.x` in **CELLxGENE**. We should convert `counts` to `raw.x`.
+* `X` :green_circle: : The count matrix from which `X` was derived in **AIT**. Called `raw.x` in **CELLxGENE**.
 
 #### obs
 
 The `obs` component contains cell level metadata.
 
-* `cell_label` :fire::fire::fire: : **Use `cell_id`** ID corresponding to each individual cell.  This ID MUST be included in the **data** and in every other location to refer to the data (e.g., metadata and annotations). This is also called `cell_id`, `sample_id`, and `sample_name` in various places.  We should align on a single term. 
+* `cell_label` :fire::fire::fire: :green_circle::green_circle::green_circle: (Aligned on `cell_id`): **Use `cell_id`** ID corresponding to each individual cell.  This ID MUST be included in the **data** and in every other location to refer to the data (e.g., metadata and annotations). This is also called `cell_id`, `sample_id`, and `sample_name` in various places.  We should align on a single term. 
 
 #### var
 
 The `var` component contains gene level information.
 
-* `gene` :fire::fire::fire: : A vector of gene symbols.  Broadly useful in the community for defining genes but occasionally problematic; called `gene_symbol` in **BKP**.  More generally, some alignment is needed about whether these or the `ensembl_id` are used for the gene identifier column (CELLxGENE uses a very specific version of `ensembl_id` for the INDEX).
-* `ensembl_id` :fire::fire::fire: : A vector of corresponding Ensembl IDs for each gene symbol. This is required for disambiguation of gene symbols; called `gene_identifier` in **BKP**. This is optional for **AIT** (but maybe it sholdn't be?).
-* `biotype`: biotype from the gtf file (e.g., protein_coding); used in BKP and BICAN for filtering of genes (but optional elsewhere)
-* `name`: Longer gene name from the gtf file; used in BKP
+* `gene` :fire::fire::fire: :green_circle::green_circle::green_circle: : A vector of gene symbols.  Broadly useful in the community for defining genes but occasionally problematic; called `gene_symbol` in **BKP**.  More generally, some alignment is needed about whether these or the `ensembl_id` are used for the gene identifier column (CELLxGENE uses a very specific version of `ensembl_id` for the INDEX).
+* `ensembl_id` :fire::fire::fire: :stop_sign:: A vector of corresponding Ensembl IDs for each gene symbol. This is required for disambiguation of gene symbols; called `gene_identifier` in **BKP**. This is optional for **AIT** (but maybe it sholdn't be?).
+* `biotype` :stop_sign:: biotype from the gtf file (e.g., protein_coding); used in BKP and BICAN for filtering of genes (but optional elsewhere)
+* `name` :stop_sign::stop_sign: :stop_sign: (Example needed) : Longer gene name from the gtf file; used in BKP (optional for now)
 * `[additional gene info]`: Optional uncontrolled gene info; could include gene length, Genecode IDs, NCBI identifiers, etc.
 
 #### uns
@@ -87,6 +88,15 @@ The `var` component contains gene level information.
 The `uns` component contains more general information and fields with formatting incompatible with the above components.
 
 * `dataset_metadata` :fire::fire::fire: : TBD information about the data set itself. A standard on this is not established (as far as I know?) but could include some combination of these pieces of information recorded for **Annotations** below: description, dataset_url, title, dataset_doi, author_list, author_name, author_contact, orcid, etc.
+  * `description`,
+  * `dataset_url`,
+  * `title`,
+  * `dataset_doi`,
+  * `author_list`,
+  * `author_name`,
+  * `author_contact`,
+  * `orcid`
+  * NJJ - Have this as a REQUIRED input when publishing to S3, optional otherwise? :fire::fire::fire:
 
 
 ## Assigned metadata
@@ -97,9 +107,9 @@ This includes cell-level metadata that is assigned at some point in the process 
 
 The `obs` component contains cell level metadata from the experiment
 
-* `cell_label`: ID corresponding to each individual cell.  See above.
+* `cell_id` :fire::fire::fire: :green_circle::green_circle::green_circle: (Aligned on `cell_id`): ID corresponding to each individual cell.  See above.
 * `[additional cell ID columns]`: Optional additional IDs per cell.  They are not used for taxonomy efforts.  This could include things like IDs for RNA wells, barcodes, or other tracking IDs used for data processing.
-* `feature_matrix_label`: ID of the associated feature matrix where the data is stored (if not included in this file). Used in **BKP** when data is found elsewhere for connected cell to data file. 
+* `feature_matrix_label` :stop_sign: (Example required) : ID of the associated feature matrix where the data is stored (if not included in this file). Used in **BKP** when data is found elsewhere for connected cell to data file. 
 * `dataset_label` :fire::fire::fire: : Link between each cell and each dataset in **BKP**.  Need clarification on how this differs from feature_matrix_label; for **CAS** this is a taxonomy-level variable in uns called `dataset_url` (I think).  We should align on this too.
 * `[COLUMN_NAME]_color` :fire::fire::fire: : Color vector for metadata/taxonomy values in format [COLUMN_NAME]_label. This is ONLY used for molgen-shiny plots, but because of this, some metadata files come with these and some don't and that could cause challenges.  Should revisit how to store colors and how to deal with metadata in both formats.  Should also agree on a standard for which way is preferred.
 * `[COLUMN_NAME]_id` :fire::fire::fire: : Same as above, but in this case for the order of metadata values (e.g., the levels of a factor, or ascending order of a numeric)
@@ -215,7 +225,7 @@ The `uns` component contains more general information and fields with formatting
 * `labelsets` :fire::fire::fire: : ***CRITICAL extra component***; Equilalent to `Cluster annotation term set` in **BKP**. This is saved as a data frame representation (or is a list of data frames needed?), with some information about each `[cellannotation_set]` set of columns (e.g., subclass, class, neurotransmitter, etc.). Specifically: "name", "description", and "rank" (0 most specific) and some information about provenance are needed for each labelset.
 * `cell_set_relationships` :fire::fire::fire: : **NEW** proposed mechanism for dealing with sibling relationships for things like gradients, trajectories, constellation diagrams, etc.. This is stored as a data frame (table) of all relations with five columns: cells_set_accession1, cell_set_accession2, relation_label, value, direction.  Could alternatively be stored as a JSON representation that unpacks into a dataframe.
 * `filter` :fire::fire::fire: : Indicator of which cells to use for a given child taxonomy (subset), saved as a list of vectors. Each entree in this list is named for the relevant "mode" and has TRUE/FALSE calls indicating whether a cell is filtered out (e.g., the "standard" taxonony is all FALSE). This is critical for how child taxonomies are defined and implemented in **scrattch.taxonomy** but differs from how taxonomies are stored in all other schemas--*some discussion may be needed*.  
-* `taxonomyName` :fire::fire::fire: : Taxonomy name (e.g., "AIT30"); called `title` in **cellxgene**, not sure about other schema. Called `Taxonomy short name` in taxonomy Google Sheet. 
+* `title` :fire::fire::fire: :green_circle::green_circle::green_circle: (Aligned on title): Taxonomy name (e.g., "AIT30"); called `title` in **cellxgene**, not sure about other schema. Called `Taxonomy short name` in taxonomy Google Sheet. 
 * `taxonomy_id` :fire::fire::fire: : Taxonomy ID in CCN format (e.g., "CCN030420240"); TBD how this is generated, but MUST be globally unique. Also used as part of PURL (I think).  Called `Taxonomy ID` in taxonomy Google Sheet too.
 * `description` :fire::fire::fire: : Free text description of the taxonomy (or of the dataset on **CAP**). This is also something we are adding as a requirement for the **BKP**, and I think should be required for all taxonomies.  Called `Description` in taxonomy Google Sheet.
 * `taxonomy_citation`: "|"-separated publication DOI's of the taxonomy (e.g., "doi:10.1038/s41586-018-0654-5"). Called `Publication` in taxonomy Google Sheet.
