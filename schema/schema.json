@@ -1,0 +1,291 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "X": {
+      "type": "object",
+      "properties": {
+        "logCPM": {
+          "type": "string",
+          "description": "Contains logCPM normalized expression data (cell x gene).",
+          "tag": ["Data"]
+        }
+      }
+    },
+    "raw": {
+      "type": "object",
+      "properties": {
+        "count_matrix": {
+          "type": "string",
+          "description": "Contains the count matrix (cell x gene).",
+          "tag": ["Data"]
+        }
+      }
+    },
+    "obs": {
+      "type": "object",
+      "properties": {
+        "cell_id": {
+          "type": "string",
+          "description": "Identifier corresponding to each individual cell.",
+          "tag": ["Data", "Assigned Metadata", "Calculated Metadata", "Tooling"]
+        },
+        "[additional_cell_ID_columns]": {
+          "type": "string",
+          "description": "Optional additional IDs per cell.",
+          "tag": ["Assigned Metadata"]
+        },
+        "feature_matrix_label": {
+          "type": "string",
+          "description": "ID of the associated feature matrix where the data is stored.",
+          "tag": ["Assigned Metadata", "Calculated Metadata", "Annotations"]
+        },
+        "dataset_label": {
+          "type": "string",
+          "description": "Link between each cell and each dataset.",
+          "tag": ["Assigned Metadata", "Calculated Metadata", "Annotations"]
+        },
+        "[COLUMN_NAME]_color": {
+          "type": "string",
+          "description": "Color vector for metadata/taxonomy values.",
+          "tag": ["Assigned Metadata", "Calculated Metadata", "Annotations"]
+        },
+        "[COLUMN_NAME]_id": {
+          "type": "string",
+          "description": "Order of metadata values.",
+          "tag": ["Assigned Metadata", "Calculated Metadata", "Annotations"]
+        },
+        "assay": {
+          "type": "string",
+          "description": "Human-readable modality along with the associated EFO ontology term.",
+          "tag": ["Assigned Metadata"]
+        },
+        "suspension_type": {
+          "type": "string",
+          "description": "Either 'cell', 'nucleus', or 'na'.",
+          "tag": ["Assigned Metadata"]
+        },
+        "[batch_condition_columns]": {
+          "type": "string",
+          "description": "Vectors of metadata associated with batches.",
+          "tag": ["Assigned Metadata"]
+        },
+        "[additional_uncontrolled_metadata]": {
+          "type": "string",
+          "description": "Additional uncontrolled cell metadata.",
+          "tag": ["Assigned Metadata", "Calculated Metadata"]
+        },
+        "brain_region": {
+          "type": "string",
+          "description": "Brain region(s) sampled.",
+          "tag": ["Assigned Metadata"]
+        },
+        "tissue": {
+          "type": "string",
+          "description": "UBERON terms for the 'brain region' fields.",
+          "tag": ["Assigned Metadata"]
+        },
+        "donor_id": {
+          "type": "string",
+          "description": "Identifier for the unique individual.",
+          "tag": ["Assigned Metadata"]
+        },
+        "species": {
+          "type": "string",
+          "description": "Species sampled.",
+          "tag": ["Assigned Metadata"]
+        },
+        "age": {
+          "type": "string",
+          "description": "Free text field for defining the age of the donor.",
+          "tag": ["Assigned Metadata"]
+        },
+        "sex": {
+          "type": "string",
+          "description": "Placeholder for donor sex.",
+          "tag": ["Assigned Metadata"]
+        },
+        "donor_genotype": {
+          "type": "string",
+          "description": "Column related to the genotype of the animal.",
+          "tag": ["Assigned Metadata"]
+        },
+        "self_reported_ethnicity_ontology_term_id": {
+          "type": "string",
+          "description": "HANCESTRO term if human and 'na' if non-human.",
+          "tag": ["Assigned Metadata"]
+        },
+        "disease": {
+          "type": "string",
+          "description": "Human-readable name for a disease.",
+          "tag": ["Assigned Metadata"]
+        },
+        "cluster": {
+          "type": "string",
+          "description": "CRITICAL column used for cluster annotations.",
+          "tag": ["Annotations"]
+        },
+        "[cellannotation_set]--parent_cell_set_accession": {
+          "type": "string",
+          "description": "ID corresponding to the parent cell_set.",
+          "tag": ["Tooling"]
+        }
+      }
+    },
+    "var": {
+      "type": "object",
+      "properties": {
+        "gene": {
+          "type": "string",
+          "description": "A vector of gene symbols.",
+          "tag": ["Data", "Analysis"]
+        },
+        "ensembl_id": {
+          "type": "string",
+          "description": "A vector of corresponding Ensembl IDs.",
+          "tag": ["Data"]
+        },
+        "biotype": {
+          "type": "string",
+          "description": "biotype from the gtf file.",
+          "tag": ["Data"]
+        },
+        "name": {
+          "type": "string",
+          "description": "Longer gene name from the gtf file.",
+          "tag": ["Data"]
+        },
+        "[additional_gene_info]": {
+          "type": "string",
+          "description": "Optional uncontrolled gene info.",
+          "tag": ["Data"]
+        },
+        "marker_genes_[...]": {
+          "type": "string",
+          "description": "Logical vectors indicating which genes are markers.",
+          "tag": ["Annotations", "Analysis"]
+        },
+        "highly_variable_genes": {
+          "type": "string",
+          "description": "Logical vector indicating which genes are highly variable.",
+          "tag": ["Analysis"]
+        }
+      }
+    },
+    "uns": {
+      "type": "object",
+      "properties": {
+        "dataset_metadata": {
+          "type": "string",
+          "description": "Information about the data set itself.",
+          "tag": ["Data"]
+        },
+        "description": {
+          "type": "string",
+          "description": "Free text description of the dataset.",
+          "tag": ["Annotations"]
+        },
+        "dend": {
+          "type": "string",
+          "description": "Json formatted dendrogram used for tree mapping.",
+          "tag": ["Annotations", "Analysis"]
+        },
+        "labelsets": {
+          "type": "string",
+          "description": "Information about each labelset.",
+          "tag": ["Annotations"]
+        },
+        "cell_set_relationships": {
+          "type": "string",
+          "description": "Mechanism for dealing with sibling relationships for gradients, trajectories, etc.",
+          "tag": ["Annotations"]
+        },
+        "filter": {
+          "type": "string",
+          "description": "Indicator of which cells to use for a given child taxonomy.",
+          "tag": ["Annotations"]
+        },
+        "title": {
+          "type": "string",
+          "description": "Taxonomy name.",
+          "tag": ["Annotations"]
+        },
+        "taxonomy_id": {
+          "type": "string",
+          "description": "Taxonomy ID in CCN format.",
+          "tag": ["Annotations"]
+        },
+        "taxonomy_citation": {
+          "type": "string",
+          "description": "Publication DOI's of the taxonomy.",
+          "tag": ["Annotations"]
+        },
+        "marker_gene_metadata": {
+          "type": "string",
+          "description": "Data frame of Marker genes x dims that includes metadata for marker gene sets.",
+          "tag": ["Annotations"]
+        },
+        "transferred_annotations_metadata": {
+          "type": "string",
+          "description": "Information about transferred annotation columns.",
+          "tag": ["Annotations"]
+        },
+        "taxonomyDir": {
+          "type": "string",
+          "description": "Location of the h5ad file.",
+          "tag": ["Annotations"]
+        },
+        "dataset_url": {
+          "type": "string",
+          "description": "PURL of taxonomy.",
+          "tag": ["Annotations", "Tooling"]
+        },
+        "matrix_file_id": {
+          "type": "string",
+          "description": "Like dataset_url, needed for connected cell to data file.",
+          "tag": ["Annotations", "Tooling"]
+        },
+        "author_list": {
+          "type": "string",
+          "description": "List of all collaborators.",
+          "tag": ["Annotations", "Tooling"]
+        },
+        "author_name": {
+          "type": "string",
+          "description": "The primary author name.",
+          "tag": ["Annotations"]
+        },
+        "author_contact": {
+          "type": "string",
+          "description": "Valid email address of the primary author.",
+          "tag": ["Annotations"]
+        },
+        "orcid": {
+          "type": "string",
+          "description": "Valid ORCID of the primary author.",
+          "tag": ["Annotations"]
+        },
+        "annotation_source": {
+          "type": "string",
+          "description": "Additional metadata about annotation algorithm.",
+          "tag": ["Annotations"]
+        },
+        "assigned_metadata_metadata": {
+          "type": "string",
+          "description": "Information about the assigned_metadata itself.",
+          "tag": ["Assigned Metadata"]
+        }
+      }
+    },
+    "obsm": {
+      "type": "object",
+      "properties": {
+        "[dimensionality_reduction]": {
+          "type": "string",
+          "description": "Dimensionality reduction information.",
+          "tag": ["Analysis"]
+        }
+      }
+    }
+  }
+}
