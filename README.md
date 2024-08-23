@@ -40,12 +40,6 @@ This strategy **might not work outside the docker** due to complicated dependenc
 ## Usage examples
 
 1. [**Build a Shiny taxonomy**](https://github.com/AllenInstitute/scrattch.taxonomy/blob/main/examples/build_taxonomy.md) This example provides the basics for creating a new taxonomy compatible with scrattch.mapping mapping functions and (internal Allen Institute) MolGen Shiny tools.
-
-2. [**Build and map against a small mouse PatchSeq taxonomy**](https://github.com/AllenInstitute/scrattch.taxonomy/blob/main/examples/build_patchseq_taxonomy.md) This example provides the basics for updating a taxonomy to be compatible with patchseq style mapping and visualization on (internal Allen Institute) MolGen Shiny tools.
-
-3. [**Build and map against a human MTG PatchSeq taxonomy**](https://github.com/AllenInstitute/scrattch.taxonomy/blob/main/examples/build_MTG_patchseq_taxonomy.md) This example provides shows how to create a standard taxonomy and update it to be compatible with patchseq style mapping and visualization on (internal Allen Institute) MolGen Shiny tools. This example essentially combines examples 1 and 2 and applies them to human neocortical data sets.  Data is from Hodge et al. (2019) for human MTG and patch-seq examples are from Berg et al (2021) (layer 2-3, excitatory neurons). 
-
-4. [**Build and map against a MapMyCells taxonomy**](https://github.com/AllenInstitute/scrattch.taxonomy/blob/main/examples/build_taxonomy_MapMyCells.md) This tutorial shows how to run the MapMyCells python mapping algorithm against a taxonomy.
    
 ## Reporting issues
 
