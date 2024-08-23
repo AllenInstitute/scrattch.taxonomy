@@ -1,3 +1,117 @@
+#' Function to update meta.data
+#'
+#' @param meta.data A data.frame with cell metadata
+#' @param cluster_colors A named vector of colors for each cluster
+#' 
+#' @return auto_annotated meta.data
+#'
+#' @keywords internal
+.formatMetadata = function(meta.data, cluster_colors=NULL){
+
+  print("===== Format metadata table for AIT schema =====")
+  ## Check for duplicate columns (e.g., XXXX_label and XXXX together will crash auto_annotate)  # NEW #
+  column_names = colnames(meta.data)
+  column_names_revised = gsub("_label$","", column_names)
+  duplicates <- names(table(column_names_revised))[table(column_names_revised)>1]
+  if(length(duplicates > 0)){
+    warning("Duplicate entries for", paste(duplicates, collapse=" and "),"have been DELETED. Please check output carefully!")
+    meta.data <- meta.data[,setdiff(column_names, duplicates)]
+  }
+
+  ## Run auto_annotate
+  meta.data = scrattch.io::auto_annotate(meta.data)
+
+  ## Convert chars and factors to characters (moved to AFTER auto_annotate, so numbers can be assigned in correct order for factors)
+  for (col in colnames(meta.data)){ 
+      if(is.character(meta.data[,col]) | is.factor(meta.data[,col])){
+          meta.data[,col] = as.character(meta.data[,col])
+      }
+  }
+  # Shouldn't be needed as factors are okay, and actually suggested for cluster order
+  
+  ## Varibow color set is broken -- this will fix it
+  for (col in which(grepl("_color",colnames(meta.data)))){
+      kp = nchar(meta.data[,col])==5
+      meta.data[kp,col] = paste0(meta.data[kp,col],"FF")
+  }
+
+  ## Adjust the cluster colors to match cluster_colors, if available. 
+  if(!is.null(cluster_colors)){
+    if(length(setdiff(meta.data$cluster,names(cluster_colors)))>0){
+      warning("cluster_colors is not a named vector with colors for every cluster and will therefore be ignored.")
+    } else {
+      meta.data$cluster_color <- as.character(cluster_colors[meta.data$cluster_label])
+    }
+  }
+  return(meta.data)
+}
+
+#' Function to sanity check buildTaxonomy parameters
+#'
+#' @param counts A count matrix (cells x genes)
+#' @param meta.data A data.frame with cell metadata
+#' @param celltypeColumn The column name in meta.data that contains the cell type information
+#' @param feature.set A list of variable features
+#' @param umap.coords A matrix of UMAP coordinates
+#' 
+#' @return Stops the function if any of the parameters are not as expected
+#'
+#' @keywords internal
+.checkBuildTaxonomyParams <- function(counts, meta.data, feature.set, 
+                                        umap.coords, taxonomyDir, taxonomyName, 
+                                        celltypeColumn, cluster_colors, dend){
+  if(sum(is.element(paste0(celltypeColumn,c("","_label")), colnames(meta.data)))==0){stop("cluster column must be defined in the meta.data object")}
+  if(is.null(feature.set)){stop("Compute variable features and supply feature.set")}
+  if(is.null(umap.coords)){stop("Compute UMAP dimensions and supply umap.coords")}
+  if(!all(colnames(counts) == rownames(meta.data))){stop("Colnames of `counts` and rownames of `meta.data` do not match.")}
+  if(!is.data.frame(meta.data)){stop("meta.data must be a data.frame, convert using as.data.frame(meta.data)")}
+  if("sample" %in% colnames(meta.data)){stop("meta.data column name 'sample' is reserved and cannot be used, please remove or rename.")}
+
+  ## Rename celltypeColumn to "cluster" if needed
+  celltypeColumn <- gsub("_label","",celltypeColumn)
+  if(celltypeColumn!="cluster"){
+    inCol     <- paste0(celltypeColumn,c("","_label","_id","_color"))
+    outCol    <- paste0("cluster",c("","_label","_id","_color"))
+    meta.data <- meta.data[,setdiff(colnames(meta.data),outCol)]
+    for (i in 1:4) if(is.element(inCol[i],colnames(meta.data))) {
+      colnames(meta.data) <- gsub(inCol[i],outCol[i],colnames(meta.data))
+    }
+  }
+  if(sum(is.element(c("cluster","cluster_label"),colnames(meta.data)))>1){stop("Only a single cluster column can be provided (e.g., cluster or cluster_label but not both).")}
+  
+  ## Capture the cluster colors from the metadata if provided and if possible
+  if(sum(is.element("cluster_color", colnames(meta.data))) == 1){
+    if(length(meta.data$cluster_label)>0){
+      cluster_colors <- setNames(meta.data$cluster_color, meta.data$cluster_label)
+      cluster_colors <- cluster_colors[unique(names(cluster_colors))]
+      meta.data$cluster <- meta.data$cluster_label
+      meta.data <- meta.data[,setdiff(colnames(meta.data),paste0("cluster",c("_label","_id","_color")))]
+    }else {
+      warning("Cannot match cluster_label and cluster_color in meta.data, so cluster_color will be ignored.")
+    }
+  }
+
+  ## Now check the dendrogram clusters and formatting, if dendrogram is provided
+  if(!is.null(dend)){
+    if(!is.element("dendrogram",class(dend))){stop("If provided, dend must be of R class dendrogram.")}
+    clusters=unique(meta.data$cluster)
+    extra_labels <- setdiff(labels(dend), clusters)
+    if(length(extra_labels)>0){stop(paste("Dendrogram has labels not included in metadata:",paste(extra_labels,collapse=", ")))}
+    extra_labels <- setdiff(clusters, labels(dend))
+    if(length(extra_labels)>0){
+      warning(paste0("Metadata include cluster labels not found in dendrogram: ", paste(extra_labels, collapse=", "),
+                     ". Cells from these clusters will be EXCLUDED from all taxonomy files."))
+    }
+  }
+
+  ## Ensure directory exists, if not create it
+  taxonomyDir <- file.path(taxonomyDir) # Convert from windows to unix or vice versa
+  dir.create(taxonomyDir, showWarnings = FALSE)
+
+  ##
+  return(list(meta.data=meta.data, celltypeColumn=celltypeColumn))
+}
+
 #' Function to subsample cells
 #'
 #' @param cluster.names A vector of cluster names in the reference taxonomy.
@@ -334,7 +448,7 @@ revert_dend_label <- function(dend, value, attribute="label")
 #' @return membership table
 #' 
 #' @keywords internal
-map_dend_membership <-
+.map_dend_membership <-
   function(dend,
            cl.dat,
            map.dat,
@@ -360,7 +474,7 @@ map_dend_membership <-
     }
     mem = foreach(i = 1:bs.num, .combine = 'c') %dopar% {
       print(i)
-      map_dend(dend, cl.dat, map.dat, map.cells, seed=i)
+      .map_dend(dend, cl.dat, map.dat, map.cells, seed=i)
     }
     memb = data.frame(cell = names(mem), cl = mem)
     memb = table(memb$cell, memb$cl)
@@ -386,7 +500,7 @@ map_dend_membership <-
 #' @return tree mapping to the dendrogram table (cells x nodes with values as probabilities)
 #' 
 #' @keywords internal
-map_dend <-
+.map_dend <-
   function(dend,
            cl.dat,
            map.dat,
@@ -408,7 +522,7 @@ map_dend <-
     names(cl.g) = 1:length(cl.g)
     genes = names(markers)
     genes = union(genes, default.markers)
-    mapped.cl = resolve_cl(cl.g,
+    mapped.cl = .resolve_cl(cl.g,
                            cl.dat,
                            markers,
                            map.dat,
@@ -422,7 +536,7 @@ map_dend <-
         if (length(select.cells) > 0) {
           final.cl = c(
             final.cl,
-            map_dend(
+            .map_dend(
               dend[[as.integer(i)]],
               cl.dat,
               map.dat,
@@ -453,7 +567,7 @@ map_dend <-
 #' @return mapped.cl output
 #' 
 #' @keywords internal
-resolve_cl <-
+.resolve_cl <-
   function(cl.g,
            cl.dat,
            markers,

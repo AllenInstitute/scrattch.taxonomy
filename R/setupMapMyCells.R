@@ -1,6 +1,5 @@
 #' @export
-
-buildHANNMapMyCells = function(AIT_anndata,
+buildMapMyCells = function(AIT_anndata,
                              hierarchy,
                              anndata_path=NULL,
                              force=FALSE,
@@ -72,7 +71,10 @@ buildHANNMapMyCells = function(AIT_anndata,
   )
 }
 
+#' @keywords internal
 run_precomp_stats = function(anndata_path, n_processors, normalization, temp_folder, hierarchy) {
+
+  ##
   temp_precomp_stats_name = paste0("precomp_stats_", format(Sys.time(), "%Y%m%d-%H%M%S"))
   precomp_stats_filename <- paste0(temp_precomp_stats_name, ".h5")
   precomp_stats_output_path <- file.path(temp_folder, precomp_stats_filename)
@@ -94,6 +96,7 @@ run_precomp_stats = function(anndata_path, n_processors, normalization, temp_fol
   return(precomp_stats_output_path)
 }
 
+#' @keywords internal
 save_precopm_stats_to_uns = function(anndata_path, precomp_stats_output_path) {
   # save precomp stats to anndata h5ad file using cell_type_mapper's precomputed_stats_to_uns
   temp_precomp_stats_name = tools::file_path_sans_ext(basename(precomp_stats_output_path))
@@ -102,13 +105,13 @@ save_precopm_stats_to_uns = function(anndata_path, precomp_stats_output_path) {
       precomputed_stats_path=precomp_stats_output_path, 
       uns_key=temp_precomp_stats_name)
 
-  # load again b/c cell_type_mapper's precomputed_stats_to_uns saved precompstats to
-  # the .h5ad file, not AIT object.
+  ## load again b/c cell_type_mapper's precomputed_stats_to_uns saved precompstats to
+  ## the .h5ad file, not AIT object.
   taxonomy_dir_path <- dirname(anndata_path)
   anndata_file_name <- basename(anndata_path)
   AIT_anndata = loadTaxonomy(taxonomyDir = taxonomy_dir_path, anndata_file=anndata_file_name)
 
-  # take the precomputed_stats from uns and save to uns$hierarchical$mode
+  ## take the precomputed_stats from uns and save to uns$hierarchical$mode
   precomp_stats_json = AIT_anndata$uns[[temp_precomp_stats_name]]
   AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]] <- list()
   AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]][["precomp_stats"]] <- precomp_stats_json
@@ -117,6 +120,7 @@ save_precopm_stats_to_uns = function(anndata_path, precomp_stats_output_path) {
   return(AIT_anndata)
 }
 
+#' @keywords internal
 run_reference_markers = function(precomp_stats_output_path, n_processors, temp_folder) {
   ref_markers_config <- list(
       'n_processors' = n_processors,
@@ -134,6 +138,7 @@ run_reference_markers = function(precomp_stats_output_path, n_processors, temp_f
   return(ref_markers_file_path)
 }
 
+#' @keywords internal
 run_query_markers = function(anndata_path, ref_markers_file_path, n_processors, temp_folder) {
   query_markers_filename = paste0(paste0("query_markers_", format(Sys.time(), "%Y%m%d-%H%M%S")), ".json")
   query_markers_output_path = file.path(temp_folder, query_markers_filename)
@@ -154,12 +159,13 @@ run_query_markers = function(anndata_path, ref_markers_file_path, n_processors, 
   return(query_markers_output_path)
 }
 
+#' @keywords internal
 save_query_markers_to_uns = function(AIT_anndata, query_markers_output_path) {
-  # extract query_markers data and serialize it
+  ## extract query_markers data and serialize it
   query_markers_data = fromJSON(query_markers_output_path)
   serialized_query_markers = cell_type_mapper$utils$utils$clean_for_uns_serialization(query_markers_data)
   
-  # save serialized query_markers to uns$hierarchical$mode
+  ## save serialized query_markers to uns$hierarchical$mode
   AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]][["query_markers"]] <- serialized_query_markers
 
   return(AIT_anndata)

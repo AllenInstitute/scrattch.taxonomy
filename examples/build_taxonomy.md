@@ -47,16 +47,15 @@ taxonomyDir = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq
 
 ## Build Shiny taxonomy 
 AIT.anndata = buildTaxonomy(counts = taxonomy.counts,
-                meta.data = taxonomy.anno,
-                feature.set = binary.genes,
-                umap.coords = umap.coords,
-                taxonomyName = "Tasic2016", ## NEW!
-                taxonomyDir = taxonomyDir,
-                subsample=2000)
+                                meta.data = taxonomy.anno,
+                                feature.set = binary.genes,
+                                umap.coords = umap.coords,
+                                taxonomyName = "Tasic2016", ## NEW!
+                                taxonomyDir = taxonomyDir,
+                                subsample=2000)
 
-## Add markers to dendrogram
+## Add markers to dendrogram for Tree mapping
 AIT.anndata = addDendrogramMarkers(AIT.anndata = AIT.anndata)
-
 ```
 
 # Setup MapMyCells taxonomy
@@ -81,6 +80,6 @@ cell_type_mapper <- import("cell_type_mapper")
 ## Provide hierarchy of the taxonomy
 hierarchy = list("broad_type_label", "primary_type_label")
 
-## Build MapMyCells taxonomy
-AIT.anndata = buildHANNMapMyCells(AIT.anndata, hierarchy)
+## Build MapMyCells stats into AIT file for hierarchy mapping
+AIT.anndata = buildMapMyCells(AIT.anndata, hierarchy)
 ```

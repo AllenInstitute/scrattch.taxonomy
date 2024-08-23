@@ -1,6 +1,6 @@
 Package: scrattch.taxonomy
 Title: Generalized Allen Institute taxonomy building.
-Version: 0.3
+Version: 0.5.12
 Authors@R: 
     person(given = "Nelson",
            family = "Johansen",
@@ -14,6 +14,10 @@ Authors@R:
             family = "Lee",
             role = c("aut", "cre"),
             email = "changkyul@alleninstitute.org")
+    person(given = "Inkar",
+        family = "Kapen",
+        role = c("aut", "cre"),
+        email = "inkar.kapen@alleninstitute.org")
 Description: ADD
 License: GPL-3
 Depends: feather,
@@ -24,6 +28,7 @@ Depends: feather,
     feather,
     tibble,
     Matrix,
+    MatrixExtra,
     MatrixGenerics,
     foreach,
     pvclust,
@@ -40,7 +45,8 @@ Depends: feather,
     arrow,
     BiocNeighbors,
     RANN,
-    jsonlite
+    jsonlite,
+    reticulate
 Suggests: knitr,
     rmarkdown, 
     testthat,

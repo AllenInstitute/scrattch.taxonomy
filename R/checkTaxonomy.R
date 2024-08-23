@@ -121,7 +121,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
     messages = c(messages,"\nERROR: A directory location must exist as a character file path in AIT.anndata$uns$taxonomyDir.")
   } else if(!file.exists(file.path(dat))) {
     isValid = FALSE
-    messages = c(messages,"\nERROR: the folder",dat,"is not found.")
+    messages = c(messages,"\nWARNING: the folder",dat,"is not found.")
   } else if (substr(dat,1,1)=="\\"){
     isWarning = TRUE
     messages = c(messages,"\nWARNING: the folder",dat,"should have a UNIX file structure not a Windows file structure.")

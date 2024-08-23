@@ -29,7 +29,7 @@ loadTaxonomy = function(taxonomyDir,
     ##
     for(mode in names(AIT.anndata$uns$dend)){
       invisible(capture.output({
-        if(basename(AIT.anndata$uns$dend[[mode]]) == "dend.RData"){
+        if(grepl("dend.RData", AIT.anndata$uns$dend[[mode]])){
           print("Loading an older AIT .h5ad version. Converting dendrogram to JSON format for mapping.")
           dend = readRDS(AIT.anndata$uns$dend[[mode]])
           AIT.anndata$uns$dend[[mode]] = toJSON(dend_to_json(dend))

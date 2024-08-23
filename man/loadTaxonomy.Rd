@@ -10,6 +10,7 @@ loadTaxonomy(
   sample_id = "sample_id",
   hGenes = NULL,
   gene_id = "gene",
+  log.file.path = getwd(),
   force = FALSE
 )
 }
@@ -23,6 +24,8 @@ loadTaxonomy(
 \item{hGenes}{User supplied variable gene vector.  If not provided, then all genes are used.}
 
 \item{gene_id}{Field in counts.feather that defines the gene_id.}
+
+\item{log.file.path}{Path to write log file to. Defaults to current working directory.}
 
 \item{force}{Force rebuild the anndata object for the taxonomy.}
 }

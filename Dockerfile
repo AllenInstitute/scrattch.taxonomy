@@ -20,7 +20,7 @@ RUN R -e 'BiocManager::install(c( "munsell", "rhdf5", "dplyr", \
                                   "ggplot2", "WGCNA"), dependenceis=NA, update=TRUE)' 
 RUN R -e 'BiocManager::install(c( "randomForest", "LaplacesDemon", "reshape2", \
                                   "feather", "future", "tibble", "dendextend", \
-                                  "Matrix" ), dependenceis=NA, update=TRUE)' 
+                                  "Matrix", "MatrixExtra"), dependenceis=NA, update=TRUE)' 
 RUN R -e 'BiocManager::install(c( "mgcv", "edgeR", "caret", \
                                   "ggbeeswarm", "pvclust", \
                                   "cowplot" ), dependenceis=NA, update=TRUE)'
