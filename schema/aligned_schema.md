@@ -53,41 +53,76 @@ And now let's go on to the schema!
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED" "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14, RFC2119, and RFC8174 when, and only when, they appear in all capitals, as shown here.  :fire::fire::fire: :fire::fire::fire: :fire::fire::fire:
 
-## Data
-
-This includes anything critical for understanding the cell by gene matrix and to link it with other components.  This includes data (raw and processed), gene information, and cell identifiers.  **Ideally a schema for this will be defined through other BICAN groups, and can be adopted here.**
+## Schema
 
 #### X 
 
-The `X` :green_circle: component contains logCPM normalized expression data (cell x gene).
+The `X` : ["Data"] : component contains logCPM normalized expression data (cell x gene).
 
 #### raw.X
 
 The `raw` component contains the count matrix (cell x gene).
 
-* `X` :green_circle: : The count matrix from which `X` was derived in **AIT**. Called `raw.x` in **CELLxGENE**.
+* `X` : ["Data"] : The count matrix from which `X` was derived in **AIT**. Called `raw.x` in **CELLxGENE**.
 
 #### obs
 
-The `obs` component contains cell level metadata.
+The `obs` component also contains **cell-level metadata** summarize at the cell level. In theory a majority of this information could be stored in the uns (or in separate json files), but for now we have it listed here for consistency with **Cell annotation schema**
 
-* `cell_label` :fire::fire::fire: :green_circle::green_circle::green_circle: (Aligned on `cell_id`): **Use `cell_id`** ID corresponding to each individual cell.  This ID MUST be included in the **data** and in every other location to refer to the data (e.g., metadata and annotations). This is also called `cell_id`, `sample_id`, and `sample_name` in various places.  We should align on a single term. 
+* `cell_id` : ["Data", "Assigned Metadata", "Calculated Metadata" ,"Tooling"] : Identifier corresponding to each individual cell. Included in the **data** and in every other location to refer to the data (e.g., metadata and annotations). In AnnData files, the ID corresponding to each individual cell is stored in the obs index.
 
+The `obs` component contains cell level metadata from the experiment
+
+* `[additional cell ID columns]`: ["Assigned Metadata"] : Optional additional IDs per cell.  They are not used for taxonomy efforts.  This could include things like IDs for RNA wells, barcodes, or other tracking IDs used for data processing.
+* `feature_matrix_label` :stop_sign: (Example required) : ["Assigned Metadata", "Calculated Metadata", "Annotations"] : ID of the associated feature matrix where the data is stored (if not included in this file). Used in **BKP** when data is found elsewhere for connected cell to data file. 
+* `dataset_label` :fire::fire::fire: : ["Assigned Metadata", "Calculated Metadata", "Annotations"] : Link between each cell and each dataset in **BKP**.  Need clarification on how this differs from feature_matrix_label; for **CAS** this is a taxonomy-level variable in uns called `dataset_url` (I think).  We should align on this too.
+* `[COLUMN_NAME]_color` :fire::fire::fire: : ["Assigned Metadata", "Calculated Metadata", "Annotations"] : Color vector for metadata/taxonomy values in format [COLUMN_NAME]_label. This is ONLY used for molgen-shiny plots, but because of this, some metadata files come with these and some don't and that could cause challenges.  Should revisit how to store colors and how to deal with metadata in both formats.  Should also agree on a standard for which way is preferred.
+* `[COLUMN_NAME]_id` :fire::fire::fire: : ["Assigned Metadata", "Calculated Metadata", "Annotations"] : Same as above, but in this case for the order of metadata values (e.g., the levels of a factor, or ascending order of a numeric)
+
+The `obs` component also contains **experiment metadata** per cell
+
+* `assay` and `assay_ontology_term_id` :fire::fire::fire: : ["Assigned Metadata"] : In **CELLxGENE** these correspond to a human-readable modality along with the associated EFO ontology term. We often use the term `modality` in place of `assay` (e.g., 'Smart-seq2'corresponds to 'EFO:0008931', '10x 3' v3'corresponds to 'EFO:0009922'). This is called "library method" in **BKP**. Ideally we will agree on a term for this and it will be provided upstream from BICAN. Called `Modality` in taxonomy Google Sheet.
+* `suspension_type` :fire::fire::fire: : ["Assigned Metadata"] : Either "cell", "nucleus", or "na" in **CELLxGENE**. Called `entity` in the **BKP**. We should pick one to use.
+* `[batch_condition_columns]`: ["Assigned Metadata"] : Zero or more vectors of metadata associated with batches. These are not required, but called out separately by cellxgene for analysis purposes.
+* `[additional uncontrolled metadata]`: ["Assigned Metadata", "Calculated Metadata"] : Additional uncontrolled cell metadata. These are not required, but any additional columns are allowed by all h5ad formats.
+
+The `obs` component also contains **brain region metadata** per cell, but this is still an active area of development
+
+* `brain_region` :fire::fire::fire: : ["Assigned Metadata"] : Brain region(s) sampled. Called `tissue_ontology_term_id` in cellxgene; cell_set structures also defined below; called `region_of_interest_label` and `anatomic_division_label` in BKP. Also associated are acronymns, labels, etc.;  More generally need to arrive at a way of dealing with brain regions.  Note that this slot in the **Assigned metadata** is meant to deal with cell-level assignments for brain region (e.g., dissection) and NOT cell set summarizations by brain region, which are included below.
+* `tissue` and `tissue_ontology_term_id` :fire::fire::fire: : ["Assigned Metadata"] : Along with "tissue" field, these correspond to UBERON terms for the 'brain region' fields that we have (e.g., 'brain' = 'UBERON_0000955').  In process: we need to discuss how to integrate Allen reference brain atlases for mouse and human.
+
+The `obs` component also contains **donor level metadata** per cell
+
+* `donor_id` :fire::fire::fire: : ["Assigned Metadata"] : Identifier for the unique individual, ideal from the specimen portal (or other upstream source). This is called `donor_label` in the **BKP**. Should converge on a standard term. More than one identifier may be needed, but ideally for the analysis only a single one is retained and stored here.
+* `species` :fire::fire::fire: : ["Assigned Metadata"] : Species sampled. This is split into two fields in CAP/cellxgene/BICAN: `organism` (e.g., homo sapiens) and  `organism_ontology_term_id` (e.g., 'NCBITaxon:10090'). For consistency, we should change `species` to `organism` and could write a function to automatically identify the ontology term (I think [GeneOrthology](https://github.com/AllenInstitute/GeneOrthology/blob/main/README.md) already has one). Called `Species name` and `Species ID` in taxonomy Google Sheet. 
+* `age` :fire::fire::fire: : ["Assigned Metadata"] : Currently a free text field for defining the age of the donor. In **CELLxGENE** this is recorded in `development_stage_ontology_term_id` and is HsapDv if human, MmusDv if mouse.  I'm not sure what this means, but more generally, we should align with BICAN on how to deal with this value.
+* `sex` :fire::fire::fire: : ["Assigned Metadata"] : Placeholder for donor sex. Called `sex_ontology_term_id` (e.g., PATO:0000384/383 for male/female) in **CELLxGENE** and called "donor_sex" in BKP. We should align on a single term.
+* `donor_genotype`: ["Assigned Metadata"] : One (or sometimes more) column related to the genotype of the animal (for transgenic mice, in particular). Not used for humans and most NHP.
+* `self_reported_ethnicity_ontology_term_id`: ["Assigned Metadata"] : Controversial field that is required for **CELLxGENE** but otherwise not used. HANCESTRO term if human and 'na' if non-human.
+* `disease` and `disease_ontology_term_id`: ["Assigned Metadata"] : A human-readable name for a disease and the associated MONDO ontology term (or PATO:0000461 for 'normal'). Used in **CELLxGENE** and ideally we can also adopt for **SEA-AD** and other use cases.
+
+* `cluster` :fire::fire::fire: : ["Annotations"] : This is the **CRITICAL** column used for cluster annotations. It is the baseline for the majority of cell_annotation columns discussed below. Sometimes called `cluster_label` : ["Annotations"] : There is also an additional `cluster_alias` column used in mouse whole brain data and for BKP that I'm not sure how to wrap in. It's also used for cirrocumulus.  Some discussion might be needed on whether this is one or more columns, and which one is the source of truth. It's also worth noting that this is a prerequisite for annotations, so maybe it better fits in a different category (analysis?).
+* `[additional uncontrolled metadata]` : ["Annotations"] : Additional uncontrolled cell metadata. These are not required, but any additional columns are allowed by all h5ad formats.
+
+* `[cellannotation_set]--parent_cell_set_accession`: ["Tooling"] : ID corresponding to the parent cell_set. If not needed for annotations, definitely needed for tooling.
+  
 #### var
 
 The `var` component contains gene level information.
 
-* `gene` :fire::fire::fire: :green_circle::green_circle::green_circle: : A vector of gene symbols.  Broadly useful in the community for defining genes but occasionally problematic; called `gene_symbol` in **BKP**.  More generally, some alignment is needed about whether these or the `ensembl_id` are used for the gene identifier column (CELLxGENE uses a very specific version of `ensembl_id` for the INDEX).
-* `ensembl_id` :fire::fire::fire: :stop_sign:: A vector of corresponding Ensembl IDs for each gene symbol. This is required for disambiguation of gene symbols; called `gene_identifier` in **BKP**. This is optional for **AIT** (but maybe it sholdn't be?).
-* `biotype` :stop_sign:: biotype from the gtf file (e.g., protein_coding); used in BKP and BICAN for filtering of genes (but optional elsewhere)
-* `name` :stop_sign::stop_sign: :stop_sign: (Example needed) : Longer gene name from the gtf file; used in BKP (optional for now)
-* `[additional gene info]`: Optional uncontrolled gene info; could include gene length, Genecode IDs, NCBI identifiers, etc.
-
+* `gene` :fire::fire::fire: :green_circle::green_circle::green_circle: : ["Data", "Analysis"] : A vector of gene symbols.  Broadly useful in the community for defining genes but occasionally problematic; called `gene_symbol` in **BKP**.  More generally, some alignment is needed about whether these or the `ensembl_id` are used for the gene identifier column (CELLxGENE uses a very specific version of `ensembl_id` for the INDEX).
+* `ensembl_id` : ["Data"] : fire::fire::fire: :stop_sign:: A vector of corresponding Ensembl IDs for each gene symbol. This is required for disambiguation of gene symbols; called `gene_identifier` in **BKP**. This is optional for **AIT** (but maybe it sholdn't be?).
+* `biotype` :stop_sign: : ["Data"] : biotype from the gtf file (e.g., protein_coding); used in BKP and BICAN for filtering of genes (but optional elsewhere)
+* `name` :stop_sign::stop_sign: :stop_sign: (Example needed) : ["Data"] : Longer gene name from the gtf file; used in BKP (optional for now)
+* `[additional gene info]`: ["Data"] : Optional uncontrolled gene info; could include gene length, Genecode IDs, NCBI identifiers, etc.
+* `marker_genes_[...]` :fire::fire::fire: : ["Annotations", "Analysis"] : A set of logical vectors (T/F) indicating which genes are markers used to build dendrogram, or for other purposes. The `[...]` part of the name links to additional metadata in the `uns`. This needs to be **UPDATED** in **AIT** to allow multiple marker gene sets; markers currently stored differently in CAP.
+* `highly_variable_genes`: ["Analysis"] : A logical vector (T/F) indicating which genes are highly variable. Used for correlation-based mapping in **scrattch.mapping**.
+  
 #### uns
 
 The `uns` component contains more general information and fields with formatting incompatible with the above components.
 
-* `dataset_metadata` :fire::fire::fire: : TBD information about the data set itself. A standard on this is not established (as far as I know?) but could include some combination of these pieces of information recorded for **Annotations** below: description, dataset_url, title, dataset_doi, author_list, author_name, author_contact, orcid, etc.
+* `dataset_metadata` :fire::fire::fire: : ["Data"] : TBD information about the data set itself. A standard on this is not established (as far as I know?) but could include some combination of these pieces of information recorded for **Annotations** below: description, dataset_url, title, dataset_doi, author_list, author_name, author_contact, orcid, etc.
   * `description`,
   * `dataset_url`,
   * `title`,
@@ -97,71 +132,30 @@ The `uns` component contains more general information and fields with formatting
   * `author_contact`,
   * `orcid`
   * NJJ - Have this as a REQUIRED input when publishing to S3, optional otherwise? :fire::fire::fire:
-
-
-## Assigned metadata
-
-This includes cell-level metadata that is assigned at some point in the process between when a cell goes from the donor to a value in the data, and (in theory) can be ENTIRELY captured by values in Allen Institute, BICAN, or related standardized pipelines.  It includes things like donor metadata, experimental protocols, dissection information, RNA QC metrics, and sequencing metadata.  **Ideally a schema for this will be defined through other BICAN groups, and can be adopted here.**
-
-#### obs
-
-The `obs` component contains cell level metadata from the experiment
-
-* `cell_id` :fire::fire::fire: :green_circle::green_circle::green_circle: (Aligned on `cell_id`): ID corresponding to each individual cell.  See above.
-* `[additional cell ID columns]`: Optional additional IDs per cell.  They are not used for taxonomy efforts.  This could include things like IDs for RNA wells, barcodes, or other tracking IDs used for data processing.
-* `feature_matrix_label` :stop_sign: (Example required) : ID of the associated feature matrix where the data is stored (if not included in this file). Used in **BKP** when data is found elsewhere for connected cell to data file. 
-* `dataset_label` :fire::fire::fire: : Link between each cell and each dataset in **BKP**.  Need clarification on how this differs from feature_matrix_label; for **CAS** this is a taxonomy-level variable in uns called `dataset_url` (I think).  We should align on this too.
-* `[COLUMN_NAME]_color` :fire::fire::fire: : Color vector for metadata/taxonomy values in format [COLUMN_NAME]_label. This is ONLY used for molgen-shiny plots, but because of this, some metadata files come with these and some don't and that could cause challenges.  Should revisit how to store colors and how to deal with metadata in both formats.  Should also agree on a standard for which way is preferred.
-* `[COLUMN_NAME]_id` :fire::fire::fire: : Same as above, but in this case for the order of metadata values (e.g., the levels of a factor, or ascending order of a numeric)
-
-The `obs` component also contains **experiment metadata** per cell
-
-* `assay` and `assay_ontology_term_id` :fire::fire::fire: : In **CELLxGENE** these correspond to a human-readable modality along with the associated EFO ontology term. We often use the term `modality` in place of `assay` (e.g., 'Smart-seq2'corresponds to 'EFO:0008931', '10x 3' v3'corresponds to 'EFO:0009922'). This is called "library method" in **BKP**. Ideally we will agree on a term for this and it will be provided upstream from BICAN. Called `Modality` in taxonomy Google Sheet.
-* `suspension_type` :fire::fire::fire: : Either "cell", "nucleus", or "na" in **CELLxGENE**. Called `entity` in the **BKP**. We should pick one to use.
-* `[batch_condition_columns]`: Zero or more vectors of metadata associated with batches. These are not required, but called out separately by cellxgene for analysis purposes.
-* `[additional uncontrolled metadata]`: Additional uncontrolled cell metadata. These are not required, but any additional columns are allowed by all h5ad formats.
-
-The `obs` component also contains **brain region metadata** per cell, but this is still an active area of development
-
-* `brain_region` :fire::fire::fire: : Brain region(s) sampled. Called `tissue_ontology_term_id` in cellxgene; cell_set structures also defined below; called `region_of_interest_label` and `anatomic_division_label` in BKP. Also associated are acronymns, labels, etc.;  More generally need to arrive at a way of dealing with brain regions.  Note that this slot in the **Assigned metadata** is meant to deal with cell-level assignments for brain region (e.g., dissection) and NOT cell set summarizations by brain region, which are included below.
-* `tissue` and `tissue_ontology_term_id` :fire::fire::fire: : Along with "tissue" field, these correspond to UBERON terms for the 'brain region' fields that we have (e.g., 'brain' = 'UBERON_0000955').  In process: we need to discuss how to integrate Allen reference brain atlases for mouse and human.
-
-The `obs` component also contains **donor level metadata** per cell
-
-* `donor_id` :fire::fire::fire: : Identifier for the unique individual, ideal from the specimen portal (or other upstream source). This is called `donor_label` in the **BKP**. Should converge on a standard term. More than one identifier may be needed, but ideally for the analysis only a single one is retained and stored here.
-* `species` :fire::fire::fire: : Species sampled. This is split into two fields in CAP/cellxgene/BICAN: `organism` (e.g., homo sapiens) and  `organism_ontology_term_id` (e.g., 'NCBITaxon:10090'). For consistency, we should change `species` to `organism` and could write a function to automatically identify the ontology term (I think [GeneOrthology](https://github.com/AllenInstitute/GeneOrthology/blob/main/README.md) already has one). Called `Species name` and `Species ID` in taxonomy Google Sheet. 
-* `age` :fire::fire::fire: : Currently a free text field for defining the age of the donor. In **CELLxGENE** this is recorded in `development_stage_ontology_term_id` and is HsapDv if human, MmusDv if mouse.  I'm not sure what this means, but more generally, we should align with BICAN on how to deal with this value.
-* `sex` :fire::fire::fire: : Placeholder for donor sex. Called `sex_ontology_term_id` (e.g., PATO:0000384/383 for male/female) in **CELLxGENE** and called "donor_sex" in BKP. We should align on a single term.
-* `donor_genotype`: One (or sometimes more) column related to the genotype of the animal (for transgenic mice, in particular). Not used for humans and most NHP.
-* `self_reported_ethnicity_ontology_term_id`: Controversial field that is required for **CELLxGENE** but otherwise not used. HANCESTRO term if human and 'na' if non-human.
-* `disease` and `disease_ontology_term_id`: A human-readable name for a disease and the associated MONDO ontology term (or PATO:0000461 for 'normal'). Used in **CELLxGENE** and ideally we can also adopt for **SEA-AD** and other use cases.
-
-#### uns
-
-The `uns` component contains more general information and fields with formatting incompatible with the above components.
-
-* `assigned_metadata_metadata` :fire::fire::fire: : TBD information about the assigned_metadata itself. This likely is not needed or should be renamed.
-* `batch_condition`: List of obs fields that define “batches”; Used by **CELLxGENE** if provided, but otherwise not needed.
-
-
-## Calculated metadata
-
-This includes any cell-level or cluster-level metadata that can be calculated explicitly from the **Data** and **Assigned Metadata** without the need for human intervention.  Some examples include # reads detected/cell, # UMI/cell, fraction of cells per cluster derived from each anatomic dissections, expressed neurotransmitter genes (quantitatively defined), average QUANTITATIVE_VALUE (e.g., doublet score) per cluster. **Currently none of these are required for the schema, but they are sometimes used for annotation.**
-
-#### obs
-
-The `obs` component contains cell level metadata from the experiment
-
-* `cell_label`: ID corresponding to each individual cell.  See above.
-* `[additional uncontrolled metadata]`: Additional uncontrolled cell metadata. These are not required, but any additional columns are allowed by all h5ad formats.
-* `feature_matrix_label`, `dataset_label`, `[COLUMN_NAME]_color`, `[COLUMN_NAME]_id`: See above.
-
-#### uns
-
-The `uns` component contains more general information and fields with formatting incompatible with the above components.
-
-* `calculated_metadata_metadata` :fire::fire::fire: : TBD information about the calculated_metadata itself. This likely is not needed or should be renamed.
-*  `cell_annotation_schema` - extended metadata about annotations and labelsets stores in JSON.
+ 
+** `dend` :fire::fire::fire: : ["Annotations", "Analysis"] : A json formatted dendrogram used for tree mapping. Created by **scrattch.taxonomy** if not provided. Sometimes used for taxonomy annotation, but we are moving away from it with larger taxonomies and so this may now make more sense in the "analysis" category.
+* `labelsets` :fire::fire::fire: : ["Annotations"] : ***CRITICAL extra component***; Equilalent to `Cluster annotation term set` in **BKP**. This is saved as a data frame representation (or is a list of data frames needed?), with some information about each `[cellannotation_set]` set of columns (e.g., subclass, class, neurotransmitter, etc.). Specifically: "name", "description", and "rank" (0 most specific) and some information about provenance are needed for each labelset.
+* `cell_set_relationships` :fire::fire::fire: : ["Annotations"] : **NEW** proposed mechanism for dealing with sibling relationships for things like gradients, trajectories, constellation diagrams, etc.. This is stored as a data frame (table) of all relations with five columns: cells_set_accession1, cell_set_accession2, relation_label, value, direction.  Could alternatively be stored as a JSON representation that unpacks into a dataframe.
+* `filter` :fire::fire::fire: : ["Annotations"] : Indicator of which cells to use for a given child taxonomy (subset), saved as a list of vectors. Each entree in this list is named for the relevant "mode" and has TRUE/FALSE calls indicating whether a cell is filtered out (e.g., the "standard" taxonony is all FALSE). This is critical for how child taxonomies are defined and implemented in **scrattch.taxonomy** but differs from how taxonomies are stored in all other schemas--*some discussion may be needed*.  
+* `title` :green_circle::green_circle::green_circle: : ["Annotations"] : Taxonomy name (e.g., "AIT30"); called `title` in **cellxgene**, not sure about other schema. Called `Taxonomy short name` in taxonomy Google Sheet. 
+* `taxonomy_id` :fire::fire::fire: : ["Annotations"] : Taxonomy ID in CCN format (e.g., "CCN030420240"); TBD how this is generated, but MUST be globally unique. Also used as part of PURL (I think).  Called `Taxonomy ID` in taxonomy Google Sheet too.
+* `description` :fire::fire::fire: : ["Annotations"] : Free text description of the taxonomy (or of the dataset on **CAP**). This is also something we are adding as a requirement for the **BKP**, and I think should be required for all taxonomies.  Called `Description` in taxonomy Google Sheet.
+* `taxonomy_citation`: ["Annotations"] : "|"-separated publication DOI's of the taxonomy (e.g., "doi:10.1038/s41586-018-0654-5"). Called `Publication` in taxonomy Google Sheet.
+* `marker_gene_metadata` :fire::fire::fire: : ["Annotations"] : Data frame of Marker genes x dims that includes metadata for marker gene sets in `var` above; **NEW** and required if `marker_genes_[…]` is provided.  At minimum a name (matching above) and description are needed, but potentially other things (e.g., what is it for, with controlled vocabulary).
+* `transferred_annotations_metadata` :fire::fire::fire: : ["Annotations"] : Data frame of info about each transferred annotation column: source_taxonomy, algorithm_name, comment; Still some work on the best way to code this, but it is important.  Linked to data in `var` above.  This is for taxonomy-level metadata. This is also already encoded in **TDT**--how? 
+* `taxonomyDir` :fire::fire::fire: : ["Annotations"] : Location of the h5ad file; we might be able to remove this, since it is redundant with `dataset_url` and/or `matrix_file_id`.  Called `Taxonomy file location` in taxonomy Google Sheet.
+* `dataset_url` :fire::fire::fire: : ["Annotations", "Tooling"] : PURL of taxonomy; Possibly a redundant field, but critical; also `publication_url` and `cellannotation_url` (unclear how different)
+* `matrix_file_id` :fire::fire::fire: : ["Annotations", "Tooling"] : Like `dataset_url`;  e.g. CellXGene_dataset:8e10f1c4-8e98-41e5-b65f-8cd89a887122; Note: needs to be extended to allow for more than one file and connected to `feature_matrix_label` in `obs`.  We need this field!
+* `author_list`: ["Annotations", "Tooling"] : List of all collaborators, comma separated [First] [Last]; Useful in general, even though currently only required by **CAP**. Called `Taxonomy Users` in taxonomy Google Sheet.
+* `author_name`: ["Annotations"] : The primary author [First Name] [Last Name]; in **CCN** was called "taxonomy_author"; In CCN also seperated by cell_set with "cell_set_alias_assignee"; Called `Point person name` in taxonomy Google Sheet.
+* `author_contact`: ["Annotations"] : Valid email address; Called `Point person email` in taxonomy Google Sheet.
+* `orcid`: Valid ORCID; Called `Point person ORCID` in taxonomy Google Sheet.
+* `annotation_source` : ["Annotations"] : Additional metadata about annotation algorithm; Similar to taxonomy algorithm info stored for CCN
+  
+* `assigned_metadata_metadata` :fire::fire::fire: : ["Assigned Metadata"] :TBD information about the assigned_metadata itself. This likely is not needed or should be renamed.
+* `batch_condition`: ["Assigned Metadata"] : List of obs fields that define “batches”; Used by **CELLxGENE** if provided, but otherwise not needed.
+* `calculated_metadata_metadata` :fire::fire::fire: : ["Calculated Metadata"] : TBD information about the calculated_metadata itself. This likely is not needed or should be renamed.
+* `cell_annotation_schema` : ["Calculated Metadata"] : extended metadata about annotations and labelsets stores in JSON.
    * extended metadata about labelsets is stored under the `labelsets' key` in CAS (master documentation in [CAS - BICAN extension](https://github.com/cellannotation/cell-annotation-schema/blob/main/build/BICAN_schema.md) under `labelsets`.  Summarised here:
       * name (string, required): name of annotation key. This corresponds to the `obs` key name e.g. SubClass, Neurotransmitter.  In `BKP` this corresonds to cluster_annotation_term_set.name. 
       * description (string): Some text describing what types of cell annotation this annotation key is used to record, e.g. This labelset is used to record neurotransmitter.
@@ -187,122 +181,30 @@ The `uns` component contains more general information and fields with formatting
        * algorithm_name (string): 
        * comment (string): Free text comment on annotation transfer.
 
+* `QC_markers`: ["Analysis"] : Marker gene expression in on-target and off-target cell populations, useful for patchseq analysis.  Also includes information about KL divergence calculations and associated QC calls. Defined by buildPatchseqTaxonomy.
+* `filter`: ["Analysis"] : Indicator of which cells to use for a given child taxonomy (subset), as defined above.  
+* `mode`: ["Analysis"] : Taxonomy mode that determines which `filter` to use (e.g., that indicates which child taxonomy to map against). Several of the other analysis components of the `uns` have things saved with mode as the name in the h5ad file. See **scrattch.mapping** documentation. Mode is the `Taxonomy short name` in taxonomy Google Sheet for a child taxonomy with the `Parent taxonomy` listed as the `taxonomyName`.
+* `clustersUse` :fire::fire::fire: : ["Analysis"] : A vector of cluster names to use for taxonomy. We should be able to remove this 
+* `clusterInfo` :fire::fire::fire: : ["Analysis"] : A data.frame of cluster information. We should be able to remove this 
+* `marker_gene_metadata`: ["Analysis"] : Metadata about any new marker gene lists added, if any. See above.
+* `development_date`: ["Analysis"] : Data of taxonomy development.  Required for Google Sheet.  Potentially not needed if we want to infer from `taxonomy_id`.
+* `public`: ["Analysis"] : logical flag indicating whether taxonomy should be public or private. Required for Google Sheet.  Potentially not needed if we want to infer from PURL/GitHub somehow.
+* `annotation_sheet`: ["Analysis"] : Link to annotation sheet (ideally a TDT GitHub repo link for communinal annotation).  An optional slot in the Google sheet. I'm not sure if this is listed above somewhere.
+* `purpose`: ["Analysis"] : Controlled vocabulary (currently "General" and/or "Patch-seq"). Required for Google Sheet at the moment.
 
-    
-
-
-
-
-## Annotations
-
-This includes any fields related to the annotation of clusters or groups of clusters (collectively called "**cell sets**").  This includes things like cluster levels, cluster relationships, canonical marker genes, links to existing ontologies (e.g., CL, UBERON) based on judgement calls, expert annotations, and dendrograms.
-
-#### obs
-
-The `obs` component contains cell level metadata, as above.
-
-* In AnnData files, the ID corresponding to each individual cell is stored in the obs index.
-* `cluster` :fire::fire::fire: : This is the **CRITICAL** column used for cluster annotations. It is the baseline for the majority of cell_annotation columns discussed below. Sometimes called `cluster_label`; There is also an additional `cluster_alias` column used in mouse whole brain data and for BKP that I'm not sure how to wrap in. It's also used for cirrocumulus.  Some discussion might be needed on whether this is one or more columns, and which one is the source of truth. It's also worth noting that this is a prerequisite for annotations, so maybe it better fits in a different category (analysis?).
-* `[additional uncontrolled metadata]`: Additional uncontrolled cell metadata. These are not required, but any additional columns are allowed by all h5ad formats.
-* `feature_matrix_label`, `dataset_label`, `[COLUMN_NAME]_color`, `[COLUMN_NAME]_id`: See above.
-
-The `obs` component also contains **cell-level metadata** summarize at the cell level. In theory a majority of this information could be stored in the uns (or in separate json files), but for now we have it listed here for consistency with **Cell annotation schema**
-
-
-
-#### var
-
-The `var` component contains gene level metadata.
-
-* `gene`: Same vector included in "data" to link between files.
-* `marker_genes_[...]` :fire::fire::fire: : A set of logical vectors (T/F) indicating which genes are markers used to build dendrogram, or for other purposes. The `[...]` part of the name links to additional metadata in the `uns`. This needs to be **UPDATED** in **AIT** to allow multiple marker gene sets; markers currently stored differently in CAP.
-
-#### uns
-
-The `uns` component contains more general information and fields with formatting incompatible with the above components.
-
-* `dend` :fire::fire::fire: : A json formatted dendrogram used for tree mapping. Created by **scrattch.taxonomy** if not provided. Sometimes used for taxonomy annotation, but we are moving away from it with larger taxonomies and so this may now make more sense in the "analysis" category.
-* `labelsets` :fire::fire::fire: : ***CRITICAL extra component***; Equilalent to `Cluster annotation term set` in **BKP**. This is saved as a data frame representation (or is a list of data frames needed?), with some information about each `[cellannotation_set]` set of columns (e.g., subclass, class, neurotransmitter, etc.). Specifically: "name", "description", and "rank" (0 most specific) and some information about provenance are needed for each labelset.
-* `cell_set_relationships` :fire::fire::fire: : **NEW** proposed mechanism for dealing with sibling relationships for things like gradients, trajectories, constellation diagrams, etc.. This is stored as a data frame (table) of all relations with five columns: cells_set_accession1, cell_set_accession2, relation_label, value, direction.  Could alternatively be stored as a JSON representation that unpacks into a dataframe.
-* `filter` :fire::fire::fire: : Indicator of which cells to use for a given child taxonomy (subset), saved as a list of vectors. Each entree in this list is named for the relevant "mode" and has TRUE/FALSE calls indicating whether a cell is filtered out (e.g., the "standard" taxonony is all FALSE). This is critical for how child taxonomies are defined and implemented in **scrattch.taxonomy** but differs from how taxonomies are stored in all other schemas--*some discussion may be needed*.  
-* `title` :fire::fire::fire: :green_circle::green_circle::green_circle: (Aligned on title): Taxonomy name (e.g., "AIT30"); called `title` in **cellxgene**, not sure about other schema. Called `Taxonomy short name` in taxonomy Google Sheet. 
-* `taxonomy_id` :fire::fire::fire: : Taxonomy ID in CCN format (e.g., "CCN030420240"); TBD how this is generated, but MUST be globally unique. Also used as part of PURL (I think).  Called `Taxonomy ID` in taxonomy Google Sheet too.
-* `description` :fire::fire::fire: : Free text description of the taxonomy (or of the dataset on **CAP**). This is also something we are adding as a requirement for the **BKP**, and I think should be required for all taxonomies.  Called `Description` in taxonomy Google Sheet.
-* `taxonomy_citation`: "|"-separated publication DOI's of the taxonomy (e.g., "doi:10.1038/s41586-018-0654-5"). Called `Publication` in taxonomy Google Sheet.
-* `marker_gene_metadata` :fire::fire::fire: : Data frame of Marker genes x dims that includes metadata for marker gene sets in `var` above; **NEW** and required if `marker_genes_[…]` is provided.  At minimum a name (matching above) and description are needed, but potentially other things (e.g., what is it for, with controlled vocabulary).
-* `transferred_annotations_metadata` :fire::fire::fire: : Data frame of info about each transferred annotation column: source_taxonomy, algorithm_name, comment; Still some work on the best way to code this, but it is important.  Linked to data in `var` above.  This is for taxonomy-level metadata. This is also already encoded in **TDT**--how? 
-* `taxonomyDir` :fire::fire::fire: : Location of the h5ad file; we might be able to remove this, since it is redundant with `dataset_url` and/or `matrix_file_id`.  Called `Taxonomy file location` in taxonomy Google Sheet.
-* `dataset_url` :fire::fire::fire: : PURL of taxonomy; Possibly a redundant field, but critical; also `publication_url` and `cellannotation_url` (unclear how different)
-* `matrix_file_id` :fire::fire::fire: : Like `dataset_url`;  e.g. CellXGene_dataset:8e10f1c4-8e98-41e5-b65f-8cd89a887122; Note: needs to be extended to allow for more than one file and connected to `feature_matrix_label` in `obs`.  We need this field!
-* `author_list`: List of all collaborators, comma separated [First] [Last]; Useful in general, even though currently only required by **CAP**. Called `Taxonomy Users` in taxonomy Google Sheet.
-* `author_name`: The primary author [First Name] [Last Name]; in **CCN** was called "taxonomy_author"; In CCN also seperated by cell_set with "cell_set_alias_assignee"; Called `Point person name` in taxonomy Google Sheet.
-* `author_contact`: Valid email address; Called `Point person email` in taxonomy Google Sheet.
-* `orcid`: Valid ORCID; Called `Point person ORCID` in taxonomy Google Sheet.
-* `annotation_source` : Additional metadata about annotation algorithm; Similar to taxonomy algorithm info stored for CCN
-
-
-## Analysis
-
-This includes any fields included as the result of or required for specific analysis.  Some examples include latent spaces (e.g., UMAP), cluster level gene summaries (e.g., cluster means, proportions), and variable genes.  These may not need to match between schemas (or even be encoded into schemas).
-
+* `schema_version`: ["Tooling"] : cellxgene schema version (e.g., "3.0.0")
+* `[...]_color` :fire::fire::fire: : ["Tooling"] : RGB color vector for metadata `[...]`; required only for selecting colors in cirrocumulus.  This may be the same as the `[COLUMN_NAME]_color` column above.
+* `cellannotation_schema_version`: ["Tooling"] : **CAS** schema version '[MAJOR].[MINOR].[PATCH]'
+* `cellannotation_timestamp` :fire::fire::fire: : ["Tooling"] : Timestamp when published: %yyyy-%mm-%dd %hh:%mm:%ss; Useful in general, even though currently only required by CAP; also `publication_XXXX` (unclear how different); This also could be the same as `development_date` above.
+* `cellannotation_version` :fire::fire::fire: : ["Tooling"] : **CAP** taxonomy annotation version; required by CAP; also publication_XXXX (unclear how different). I'm also not sure how this differs from the `cellannotation_schema_version`.
+* `[additional information]` :fire::fire::fire: : ["Tooling"] : ***Placeholder for several other (seemingly redundant) fields required by external tools (e.g., CAP, cellxgene) that I want to capture here. It may or may not make sense to spell them all out.***
 
 #### obsm
 
 The `obsm` component contains all dimensionality reductions of the taxonomy (cell x dim). For all fields listed below, columns are of the format '[FIELD]_#' where # is 1, 2, 3, etc..
 
-* `umap` :fire::fire::fire: : 2 (or more)-dimensional representation of cells in **AIT**. Must be of the form `X_[...]` for use with **CELLxGENE**.  Only the first two dimensions are used for AIT and CELLxGENE, but 3 dimensions can be used for cirrocumulus.
-* `pca`: Additional terms for embedding multi-dimensional principal components and latent spaces
-* `scVI`: Additional terms for embedding multi-dimensional principal components and latent spaces
-
-#### var
-
-The `var` component contains gene level metadata.
-
-* `gene`: Same vector included in "data" to link between files.
-* `highly_variable_genes`: A logical vector (T/F) indicating which genes are highly variable. Used for correlation-based mapping in **scrattch.mapping**.
-* `marker_genes_[...]`: Potentially additional sets of logical vectors for marker genes, as defined above. 
-
-#### uns
-
-The `uns` component contains taxonomy associated files useful for reproducing analysis or mapping against the taxonomy.
-
-* `dend`: See above. This may fit better here.
-* `QC_markers`: Marker gene expression in on-target and off-target cell populations, useful for patchseq analysis.  Also includes information about KL divergence calculations and associated QC calls. Defined by buildPatchseqTaxonomy.
-* `filter`: Indicator of which cells to use for a given child taxonomy (subset), as defined above.  
-* `mode`: Taxonomy mode that determines which `filter` to use (e.g., that indicates which child taxonomy to map against). Several of the other analysis components of the `uns` have things saved with mode as the name in the h5ad file. See **scrattch.mapping** documentation. Mode is the `Taxonomy short name` in taxonomy Google Sheet for a child taxonomy with the `Parent taxonomy` listed as the `taxonomyName`.
-* `clustersUse` :fire::fire::fire: : A vector of cluster names to use for taxonomy. We should be able to remove this 
-* `clusterInfo` :fire::fire::fire: : A data.frame of cluster information. We should be able to remove this 
-* `marker_gene_metadata`: Metadata about any new marker gene lists added, if any. See above.
-* `development_date`: Data of taxonomy development.  Required for Google Sheet.  Potentially not needed if we want to infer from `taxonomy_id`.
-* `public`: logical flag indicating whether taxonomy should be public or private. Required for Google Sheet.  Potentially not needed if we want to infer from PURL/GitHub somehow.
-* `annotation_sheet`: Link to annotation sheet (ideally a TDT GitHub repo link for communinal annotation).  An optional slot in the Google sheet. I'm not sure if this is listed above somewhere.
-* `purpose`: Controlled vocabulary (currently "General" and/or "Patch-seq"). Required for Google Sheet at the moment.
-
-
-## Tooling
-
-This includes any fields required for specific tools (e.g., cellxgene, TDT, CAS, CAP) that are not strictly part of the taxonomy and that do not fit in any of the above categories.  This includes things like schema versions and redundent fields from above with different column names.  These may not need to match between schemas (or even be encoded into schemas).  We may want to merge this category with Analysis :fire::fire::fire: .
-
-#### obs
-
-The `obs` component contains cell level metadata, as above.
-
-* `cell_label`: ID corresponding to each individual cell.  See above.
-* `[cellannotation_set]--parent_cell_set_accession`: ID corresponding to the parent cell_set. If not needed for annotations, definitely needed for tooling.
-
-#### uns
-
-The `uns` component contains taxonomy associated files useful for reproducing analysis or mapping against the taxonomy.
-
-* `schema_version`: cellxgene schema version (e.g., "3.0.0")
-* `[...]_color` :fire::fire::fire: : RGB color vector for metadata `[...]`; required only for selecting colors in cirrocumulus.  This may be the same as the `[COLUMN_NAME]_color` column above.
-* `cellannotation_schema_version`: **CAS** schema version '[MAJOR].[MINOR].[PATCH]'
-* `cellannotation_timestamp` :fire::fire::fire: : Timestamp when published: %yyyy-%mm-%dd %hh:%mm:%ss; Useful in general, even though currently only required by CAP; also `publication_XXXX` (unclear how different); This also could be the same as `development_date` above.
-* `cellannotation_version` :fire::fire::fire: : **CAP** taxonomy annotation version; required by CAP; also publication_XXXX (unclear how different). I'm also not sure how this differs from the `cellannotation_schema_version`.
-* `dataset_url`: file location, as defined above.
-* `matrix_file_id`: file location, as defined above.
-* `author_list`: list of taxonomy authors; see above
-* `[additional information]` :fire::fire::fire: : ***Placeholder for several other (seemingly redundant) fields required by external tools (e.g., CAP, cellxgene) that I want to capture here. It may or may not make sense to spell them all out.***
-
+* `umap` :fire::fire::fire: : ["Analysis"] : 2 (or more)-dimensional representation of cells in **AIT**. Must be of the form `X_[...]` for use with **CELLxGENE**.  Only the first two dimensions are used for AIT and CELLxGENE, but 3 dimensions can be used for cirrocumulus.
+* `pca`: ["Analysis"] : Additional terms for embedding multi-dimensional principal components and latent spaces
+* `scVI`: ["Analysis"] : Additional terms for embedding multi-dimensional principal components and latent spaces
 
 END OF SCHEMA
