@@ -13,6 +13,7 @@
   taxonomyName,
   celltypeColumn,
   cluster_colors,
+  cluster_stats,
   dend
 )
 }

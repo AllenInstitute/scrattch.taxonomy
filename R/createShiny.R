@@ -26,7 +26,7 @@ createShiny = function(AIT.anndata,
   kpSub = !AIT.anndata$uns$filter[[AIT.anndata$uns$mode]]
 
   ## Get the data and metadata matrices
-  counts = Matrix::t(AIT.anndata[kpSub,]$layers[["counts"]])
+  counts = Matrix::t(AIT.anndata[kpSub,]$raw[["X"]])
   meta.data = AIT.anndata[kpSub,]$obs
   umap.coords = AIT.anndata[kpSub,]$obsm$X_umap; rownames(umap.coords) = rownames(meta.data)
 

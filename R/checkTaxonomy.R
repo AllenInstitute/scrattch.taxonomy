@@ -26,39 +26,41 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   ## Check the data and metadata
   
   ## Check the normalized data (X)
-  dat <- AIT.anndata$X
-  if((class(dim(dat))!="integer")|(class(dat)[1]=="data.frame")){
-    isValid = FALSE
-    messages = c(messages,"\nERROR: LogCPM are not provided in AIT.anndata$X.")
-  } else if(max(dat)>20) {
-    isWarning = TRUE
-    messages = c(messages,"\nWARNING: AIT.anndata$X has high values.  Please confirm this is log-normalized.")
-  } else {
-    messages = c(messages,":-) AIT.anndata$X looks correct.")
+  if(!is.null(AIT.anndata$X)){
+    dat <- AIT.anndata$X
+    if((class(dim(dat))!="integer")|(class(dat)[1]=="data.frame")){
+      isValid = FALSE
+      messages = c(messages,"\nERROR: LogCPM are not provided in AIT.anndata$X.")
+    } else if(max(dat)>20) {
+      isWarning = TRUE
+      messages = c(messages,"\nWARNING: AIT.anndata$X has high values.  Please confirm this is log-normalized.")
+    } else {
+      messages = c(messages,":-) AIT.anndata$X looks correct.")
+    }
   }
   
   ## Check the raw data (X)
-  dat <- AIT.anndata$layers["counts"]
-  if((class(dim(dat))!="integer")|(class(dat)[1]=="data.frame")){
-    isWarning = TRUE
-    messages = c(messages,"\nWARNING: counts are not provided in AIT.anndata$layers$counts. Counts are **REQUIRED** for the schema, but most downstream scrattch.taxonomy and scrattch.mapping functions should still work.")
-  } else {
-    messages = c(messages,":-) AIT.anndata$layers$counts looks correct.")
+  if(!is.null(AIT.anndata$raw[["X"]])){
+    dat <- AIT.anndata$raw[["X"]]
+    if((class(dim(dat))!="integer")|(class(dat)[1]=="data.frame")){
+      isWarning = TRUE
+      messages = c(messages,"\nWARNING: counts are not provided in AIT.anndata$raw[['X']]. Counts are **REQUIRED** for the schema, but most downstream scrattch.taxonomy and scrattch.mapping functions should still work.")
+    } else {
+      messages = c(messages,":-) AIT.anndata$raw[['X']] looks correct.")
+    }
   }
   
   ## Check the sample metadata (obs)
-  dat <- AIT.anndata$obs
-  cn  <- colnames(dat)
   required.schema.columns = c("brain_region","species")  #  UPDATE THIS LIST AS THE SCHEMA UPDATES
-  if(class(dat)[1]!="data.frame"){
+  if(class(AIT.anndata$obs)[1]!="data.frame"){
     isValid = FALSE
     messages = c(messages,"\nERROR: AIT.anndata$obs is not a valid data frame.")
-  } else if (sum(is.element(c("cluster","cluster_label"),cn))==0){
+  } else if (sum(is.element(c("cluster","cluster_label"), colnames(AIT.anndata$obs)))==0){
     isValid = FALSE
     messages = c(messages,"\nERROR: AIT.anndata$obs does not contain a column for clusters.")
   } else {
     messages = c(messages,":-) AIT.anndata$obs looks valid (additional warnings, if any, will be listed below).")
-    missing.schema.columns = setdiff(required.schema.columns,gsub("_label","",cn))
+    missing.schema.columns = setdiff(required.schema.columns,gsub("_label","", colnames(AIT.anndata$obs)))
     if (length(missing.schema.columns)>0){
       isWarning = TRUE
       val = paste0(missing.schema.columns,collapse=", ")
@@ -67,28 +69,25 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   }
   
   ## Check the gene metadata (var)  # NOTE: THIS WILL LIKELY NEED TO BE UPDATED
-  dat <- AIT.anndata$var
-  cn  <- colnames(dat)
-  if(class(dat)[1]!="data.frame"){
+  if(class(AIT.anndata$var)[1]!="data.frame"){
     isValid = FALSE
     messages = c(messages,"\nERROR: AIT.anndata$var is not a valid data frame.")
-  } else if (sum(is.element(c("highly_variable_genes"),cn))==0){  # Revisit if this can be a warning instead of an Error
+  } else if (sum(is.element(c("highly_variable_genes"), colnames(AIT.anndata$var)))==0){  # Revisit if this can be a warning instead of an Error
     isValid = FALSE
     messages = c(messages,"\nERROR: AIT.anndata$var does not contain highly_variable_genes, which is required for generating UMAPs and dendrograms.")
   } else {
     messages = c(messages,":-) AIT.anndata$var looks valid (additional warnings, if any, will be listed below).")
-    if (length(grep("nsembl",cn))==0){
+    if (length(grep("nsembl", colnames(AIT.anndata$var)))==0){
       isWarning = TRUE
       messages = c(messages,"\nWARNING: Ensembl IDs for genes are **REQUIRED** for the schema in AIT.anndata$var. This will not impact scrattch.mapping functionality, but will negatively impact interactions with cellxgene and other external tools.")
     }
-    if (length(grep("arker",cn))==0){  # This may need to be updated later
+    if (length(grep("arker", colnames(AIT.anndata$var)))==0){  # This may need to be updated later
       messages = c(messages,"Currently marker genes are not being stored in AIT.anndata$var. Storing marker genes here is not required.")
     }
   }
   
   ## Check for a 2D UMAP / latent space (obsm)  
-  dat <- AIT.anndata$obsm$umap
-  if((class(dim(dat))!="integer")|(class(dat)[1]=="data.frame")|(!is.element(class(dat[1,1]),c("integer","numeric","character")))){
+  if((class(dim(AIT.anndata$obsm$umap))!="integer")|(class(AIT.anndata$obsm$umap)[1]=="data.frame")|(!is.element(class(AIT.anndata$obsm$umap[1,1]),c("integer","numeric","character")))){
     isWarning = TRUE
     messages = c(messages,"\nWARNING: A UMAP is invalid or not provided in AIT.anndata$obsm$umap.")
   }
@@ -97,7 +96,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   ## Check the "uns" sections for each mode
   
   ## Check general uns categories
-  required.schema.columns = c("taxonomyName")  #  UPDATE THIS LIST AS THE SCHEMA UPDATES
+  required.schema.columns = c("title")  #  UPDATE THIS LIST AS THE SCHEMA UPDATES
   missing.schema.columns = setdiff(required.schema.columns,names(AIT.anndata$uns))
   if (length(missing.schema.columns)>0){
     isWarning = TRUE

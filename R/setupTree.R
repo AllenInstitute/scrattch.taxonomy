@@ -60,6 +60,9 @@ addDendrogramMarkers = function(AIT.anndata,
   if(mode == "standard"){ taxonomyModeDir = file.path(taxonomyDir) } else { taxonomyModeDir = file.path(taxonomyDir, mode) }
   if(!dir.exists(taxonomyModeDir)){ stop("Taxonomy version doesn't exist, please run `buildPatchseqTaxonomy()` then retry.") }
 
+  ##
+  if(is.null(AIT.anndata$X)){ stop("No data found in AIT.anndata$X. The full count matrix is required for determining marker genes.") }
+
   ## Filter and Subsample
   keep.samples = ((!AIT.anndata$uns$filter[[mode]]) & subsampleCells(AIT.anndata$obs[[celltypeColumn]], subsample)) ##  & is.element(cluster.vector, labels(dend))
 
@@ -82,7 +85,7 @@ addDendrogramMarkers = function(AIT.anndata,
   cl.df$cluster_label = cl.df[,celltypeColumn]
   rownames(cl.df) = 1:length(labels(dend)) 
   cl.label  = as.factor(setNames(cl.df$cluster_label, rownames(cl.df)))
-  select.cl = droplevels(as.factor(setNames(match(metadata[,celltypeColumn],cl.label), metadata$sample_id)))
+  select.cl = droplevels(as.factor(setNames(match(metadata[,celltypeColumn],cl.label), metadata$cell_id)))
   
   ## CHECK IF THIS IS NEEDED
   ## We might need to relabel the dendrogram from 1 to #clusters in order
@@ -167,8 +170,8 @@ addDendrogramMarkers = function(AIT.anndata,
                                 memb.ref, 
                                 as.matrix(norm.data))
     }))
-    memb.ref   = memb.ref[metadata$sample_id,]
-    map.df.ref = map.df.ref[metadata$sample_id,]
+    memb.ref   = memb.ref[metadata$cell_id,]
+    map.df.ref = map.df.ref[metadata$cell_id,]
     
     AIT.anndata$uns$memb[[mode]]$memb.ref = as.data.frame.matrix(memb.ref)
     AIT.anndata$uns$memb[[mode]]$map.df.ref = map.df.ref
@@ -178,7 +181,7 @@ addDendrogramMarkers = function(AIT.anndata,
   ##
   print("Save the dendrogram into .h5ad")
   AIT.anndata$uns$dend[[mode]] = toJSON(dend_to_json(reference$dend))
-  AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$taxonomyName, ".h5ad")))
+  AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
   
   ##
   return(AIT.anndata)

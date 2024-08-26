@@ -1,5 +1,5 @@
 #' @export
-buildMapMyCells = function(AIT_anndata,
+addMapMyCells = function(AIT_anndata,
                              hierarchy,
                              anndata_path=NULL,
                              force=FALSE,
@@ -20,7 +20,7 @@ buildMapMyCells = function(AIT_anndata,
       }
 
       if(is.null(anndata_path)){
-        anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$taxonomyName, ".h5ad"))
+        anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
       }
 
       if (is.null(temp_folder) || temp_folder == "") {
@@ -45,7 +45,6 @@ buildMapMyCells = function(AIT_anndata,
       AIT_anndata = save_query_markers_to_uns(AIT_anndata, query_markers_output_path) 
       
       AIT_anndata$write_h5ad(anndata_path)
-      return(AIT_anndata)
     },
     error = function(e) {
       errorMessage <- conditionMessage(e)
@@ -67,6 +66,7 @@ buildMapMyCells = function(AIT_anndata,
           file.remove(query_markers_output_path)
         }
       }
+      return(AIT_anndata)
     }
   )
 }

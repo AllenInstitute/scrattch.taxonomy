@@ -1,3 +1,12 @@
+#' Function to define AIT schema
+#'
+#' @return AIT schema
+#'
+#' @keywords internal
+.schemaAIT = function(){
+  data = data.frame("")
+}
+
 #' Function to update meta.data
 #'
 #' @param meta.data A data.frame with cell metadata
@@ -59,7 +68,7 @@
 #' @keywords internal
 .checkBuildTaxonomyParams <- function(counts, meta.data, feature.set, 
                                         umap.coords, taxonomyDir, taxonomyName, 
-                                        celltypeColumn, cluster_colors, dend){
+                                        celltypeColumn, cluster_colors, cluster_stats, dend){
   if(sum(is.element(paste0(celltypeColumn,c("","_label")), colnames(meta.data)))==0){stop("cluster column must be defined in the meta.data object")}
   if(is.null(feature.set)){stop("Compute variable features and supply feature.set")}
   if(is.null(umap.coords)){stop("Compute UMAP dimensions and supply umap.coords")}
@@ -101,6 +110,13 @@
     if(length(extra_labels)>0){
       warning(paste0("Metadata include cluster labels not found in dendrogram: ", paste(extra_labels, collapse=", "),
                      ". Cells from these clusters will be EXCLUDED from all taxonomy files."))
+    }
+  }
+
+  ## Check that cluster stats conforms to meta.data$cluster
+  if(!is.null(cluster_stats)){
+    if(!all(unique(meta.data$cluster) %in% cluster_stats$cluster)){
+      stop("clusters in provided cluster_stats must contain cover all of meta.data$cluster")
     }
   }
 

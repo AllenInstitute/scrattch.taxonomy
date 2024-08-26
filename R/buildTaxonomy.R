@@ -9,7 +9,9 @@
 #' @param taxonomyName The file name to assign for the Taxonomy h5ad.
 #' @param celltypeColumn Column name corresponding to where the clusters are located (default="cluster")
 #' @param cluster_colors An optional named character vector where the values correspond to colors and the names correspond to celltypes in celltypeColumn.  If this vector is incomplete, a warning is thrown and it is ignored. cluster_colors can also be provided in the metadata (see notes)
+#' @param cluster_stats A matrix of median gene expression by cluster. Cluster names must exactly match meta.data$cluster.
 #' @param dend Existing dendrogram associated with this taxonomy (e.g., one calculated elsewhere).  If NULL (default) a new dendrogram will be calculated based on the input `feature.set`
+#' @param reorder.dendrogram Should dendogram attempt to match a preset order? (Default = FALSE).  If TRUE, the dendrogram attempts to match the celltype factor order as closely as possible (if celltype is a character vector rather than a factor, this will sort clusters alphabetically, which is not ideal).
 #' 
 #' Notes: Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If celltypeColumn is anything other than cluster, then any existing "cluster" column will be overwritten by celltypeColumn.  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.
 #' 
@@ -47,13 +49,14 @@ buildTaxonomy = function(counts,
                                             taxonomyName, 
                                             celltypeColumn, 
                                             cluster_colors, 
+                                            cluster_stats,
                                             dend)
   meta.data = clean.params$meta.data; celltypeColumn = clean.params$celltypeColumn
 
   ## ----------
-  ## Run auto_annotate, this changes sample_id to sample_name.
+  ## Run auto_annotate, this changes cell_id to cell_id.
   meta.data = .formatMetadata(meta.data, cluster_colors)
-  meta.data$sample_id = colnames(counts)
+  meta.data$cell_id = colnames(counts)
   
   ## ----------
   ## Subsample nuclei per cluster, max of subsample cells per cluster
@@ -72,7 +75,7 @@ buildTaxonomy = function(counts,
 
   ## ----------
   ## Ensure meta.data is labeled with cell identifiers
-  rownames(meta.data) = meta.data$sample_id
+  rownames(meta.data) = meta.data$cell_id
 
   ## Gather clusters
   clustersUse = unique(meta.data$cluster_label)
@@ -84,6 +87,15 @@ buildTaxonomy = function(counts,
   print("===== Normalizing count matrix to log2(CPM) =====")
   tpm.matrix = as(scrattch.hicat::logCPM(counts), "dgCMatrix")
 
+  ## Compute cluster medians if needed
+  if(is.null(cluster_stats)){
+    ## Get cluster medians
+    cluster   = meta.data$cluster_label; names(cluster) = rownames(meta.data)
+    medianExpr = get_cl_medians(tpm.matrix, cluster) 
+  }else{
+    medianExpr = cluster_stats
+  }
+
   ## Convert dendogram to json if provided
   if(!is.null(dend)){
     dend = toJSON(dend_to_json(dend))
@@ -94,9 +106,6 @@ buildTaxonomy = function(counts,
     print("...using provided dendrogram.")
     # FOR FUTURE UPDATE: should check here whether dendrogram colors match what is in meta-data.
   } else {
-      ## Get cluster medians
-      cluster   = meta.data$cluster_label; names(cluster) = rownames(meta.data)
-      medianExpr = get_cl_medians(tpm.matrix, cluster) 
       ## Define the cluster info 
       unique.meta.data = meta.data %>% distinct(cluster_id, 
                                                 cluster_label, 
@@ -128,15 +137,15 @@ buildTaxonomy = function(counts,
 
   AIT.anndata = AnnData(
     X = Matrix::t(tpm.matrix), ## logCPM ensured to be in sparse column format
+    raw = list(
+      X = Matrix::t(counts),
+    ), ## Store counts matrix
     obs = meta.data,
     var = data.frame("gene" = rownames(counts), 
                      "highly_variable_genes" = rownames(counts) %in% feature.set, 
                      row.names=rownames(counts)),
-    layers = list(
-      counts = as(Matrix::t(counts), "dgCMatrix") ## Count matrix ensured to be in sparse column format
-    ),
     obsm = list(
-      X_umap = umap.coords ## A data frame with sample_id, and 2D coordinates for umap (or comparable) representation(s)
+      X_umap = umap.coords ## A data frame with cell_id, and 2D coordinates for umap (or comparable) representation(s)
     ),
     uns = list(
       dend        = list("standard" = toJSON(dend_to_json(dend))), ## JSON dendrogram
@@ -148,11 +157,11 @@ buildTaxonomy = function(counts,
       cellSet = colnames(counts),
       clustersUse = clustersUse,
       clusterInfo = clusterInfo,
-      taxonomyName = taxonomyName,
+      title = taxonomyName,
       taxonomyDir = file.path(normalizePath(taxonomyDir), leading_string="/") ## Normalize path in case where user doesn't provide absolute path.
     )
   )
-  AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$taxonomyName, ".h5ad")))
+  AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
   
   ## Return the anndata object
   return(AIT.anndata)
