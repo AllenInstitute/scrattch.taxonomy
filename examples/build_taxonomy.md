@@ -45,7 +45,7 @@ rownames(umap.coords) = colnames(taxonomy.counts)
 # NOTE: replace 'taxonomyDir' location below with desired output folder location
 taxonomyDir = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016/"
 
-## Build Shiny taxonomy 
+## Build Allen Insitute Taxonomy 
 AIT.anndata = buildTaxonomy(counts = taxonomy.counts,
                                 meta.data = taxonomy.anno,
                                 feature.set = binary.genes,
@@ -53,6 +53,11 @@ AIT.anndata = buildTaxonomy(counts = taxonomy.counts,
                                 taxonomyName = "Tasic2016", ## NEW!
                                 taxonomyDir = taxonomyDir,
                                 subsample=2000)
+
+## Create Shiny directory (AIBS-internal)
+createShiny(AIT.anndata,
+            shindyDir = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016/",
+            metadata_names = NULL)
 
 ## Add markers to dendrogram for Tree mapping
 AIT.anndata = addDendrogramMarkers(AIT.anndata = AIT.anndata)
@@ -66,12 +71,6 @@ In this tutorial we demonstrate how to setup a MapMyCells taxonomy using scrattc
 
 * Hierarchy of the taxonomy as a list, such as class_label, subclass_label, cluster_label
 * AIT.anndata, MolGen Shiny (scrattch) taxonomy
-
-#### Additional prerequisites:
-
-* Installation of the `tasic2016data` data package [from here](https://github.com/AllenInstitute/tasic2016data/), or replace with your own data set.
-
-#### Build taxonomy:
 
 ```R
 library(reticulate)
