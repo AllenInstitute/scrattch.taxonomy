@@ -28,7 +28,7 @@
   }
 
   ## Run auto_annotate
-  meta.data = scrattch.io::auto_annotate(meta.data)
+  meta.data = scrattch.io::auto_annotate(meta.data, "cell_id")
 
   ## Convert chars and factors to characters (moved to AFTER auto_annotate, so numbers can be assigned in correct order for factors)
   for (col in colnames(meta.data)){ 

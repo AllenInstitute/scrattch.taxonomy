@@ -29,6 +29,9 @@ loadTaxonomy = function(taxonomyDir,
         }
       }))
     }
+    if(("taxonomyName" %in% colnames(AIT.anndata$obs)) & (!"title" %in% colnames(AIT.anndata$obs))){
+      AIT.anndata$obs$title = anndata_file$obs$taxonomyName
+    }
     ## Ensure anndata is in scrattch.mapping format
     if(!checkTaxonomy(AIT.anndata,log.file.path)){
      stop(paste("Taxonomy has some breaking issues.  Please check checkTaxonomy_log.txt in", log.file.path, "for details"))

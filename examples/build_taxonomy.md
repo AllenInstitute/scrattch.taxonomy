@@ -45,13 +45,13 @@ rownames(umap.coords) = colnames(taxonomy.counts)
 # NOTE: replace 'taxonomyDir' location below with desired output folder location
 taxonomyDir = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016/"
 
-## Build Allen Insitute Taxonomy 
+## Build Allen Insitute Taxonomy, for large taxonomies you can pass in tpm and cluster_stats if pre-computed.
 AIT.anndata = buildTaxonomy(counts = taxonomy.counts,
                                 meta.data = taxonomy.anno,
                                 feature.set = binary.genes,
                                 umap.coords = umap.coords,
-                                taxonomyName = "Tasic2016", ## NEW!
                                 taxonomyDir = taxonomyDir,
+                                taxonomyTitle = "Tasic2016",
                                 subsample=2000)
 
 ## Create Shiny directory (AIBS-internal)

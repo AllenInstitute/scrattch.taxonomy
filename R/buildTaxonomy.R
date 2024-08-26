@@ -6,7 +6,7 @@
 #' @param umap.coords Dimensionality reduction coordiant data.frame with 2 columns. Rownames must be equal to colnames of counts.
 #' @param subsample The number of cells to retain per cluster (default = 2000)
 #' @param taxonomyDir The location to save Shiny objects, e.g. "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/NHP_BG_20220104/"
-#' @param taxonomyName The file name to assign for the Taxonomy h5ad.
+#' @param taxonomyTitle The file name to assign for the Taxonomy h5ad.
 #' @param celltypeColumn Column name corresponding to where the clusters are located (default="cluster")
 #' @param cluster_colors An optional named character vector where the values correspond to colors and the names correspond to celltypes in celltypeColumn.  If this vector is incomplete, a warning is thrown and it is ignored. cluster_colors can also be provided in the metadata (see notes)
 #' @param cluster_stats A matrix of median gene expression by cluster. Cluster names must exactly match meta.data$cluster.
@@ -31,9 +31,10 @@ buildTaxonomy = function(counts,
                           meta.data,
                           feature.set,
                           umap.coords,
+                          tpm = NULL,
                           subsample=2000,
                           taxonomyDir = getwd(),
-                          taxonomyName = "AI_taxonomy",
+                          taxonomyTitle = "AI_taxonomy",
                           celltypeColumn = "cluster",
                           cluster_colors = NULL,
                           cluster_stats = NULL,
@@ -46,7 +47,7 @@ buildTaxonomy = function(counts,
                                             feature.set, 
                                             umap.coords, 
                                             taxonomyDir, 
-                                            taxonomyName, 
+                                            taxonomyTitle, 
                                             celltypeColumn, 
                                             cluster_colors, 
                                             cluster_stats,
@@ -84,16 +85,23 @@ buildTaxonomy = function(counts,
   clusterInfo = as.data.frame(meta.data[match(clustersUse, meta.data$cluster_label),])
 
   ## Computing TPM matrix
-  print("===== Normalizing count matrix to log2(CPM) =====")
-  tpm.matrix = as(scrattch.hicat::logCPM(counts), "dgCMatrix")
+  if(is.null(tpm)){
+    print("===== Normalizing count matrix to log2(CPM) =====")
+    tpm = as(scrattch.bigcat::logCPM(counts), "dgCMatrix")
+  }else{
+    print("===== User provided TPM matrix =====")
+  }
 
   ## Compute cluster medians if needed
   if(is.null(cluster_stats)){
+    print("===== Computing median expr. at taxonomy leaves =====")
     ## Get cluster medians
     cluster   = meta.data$cluster_label; names(cluster) = rownames(meta.data)
-    medianExpr = get_cl_medians(tpm.matrix, cluster) 
+    medianExpr = scrattch.bigcat::get_cl_medians(tpm, cluster) 
   }else{
+    print("===== User provided median expr. at taxonomy leaves =====")
     medianExpr = cluster_stats
+    ## Sanity check user input
   }
 
   ## Convert dendogram to json if provided
@@ -134,11 +142,10 @@ buildTaxonomy = function(counts,
 
   ##
   print("===== Building taxonomy anndata =====")
-
   AIT.anndata = AnnData(
-    X = Matrix::t(tpm.matrix), ## logCPM ensured to be in sparse column format
+    X = Matrix::t(tpm), ## logCPM ensured to be in sparse column format
     raw = list(
-      X = Matrix::t(counts),
+      X = as(Matrix::t(counts), "dgCMatrix")
     ), ## Store counts matrix
     obs = meta.data,
     var = data.frame("gene" = rownames(counts), 
@@ -151,13 +158,13 @@ buildTaxonomy = function(counts,
       dend        = list("standard" = toJSON(dend_to_json(dend))), ## JSON dendrogram
       filter      = list("standard" = !(colnames(counts) %in% kpSub)), ## Filtered cells
       QC_markers  = list("standard" = list()), ## Standard will hold de.genes for dendrogram, we should rename this uns field.
-      stats   = list("standard" = list("medianmat" = medianExpr)),
+      stats   = list("standard" = list("medianExpr" = medianExpr)),
       hierarchical = list("standard" = list()),
       mode = "standard", ## Default mode to standard
       cellSet = colnames(counts),
       clustersUse = clustersUse,
       clusterInfo = clusterInfo,
-      title = taxonomyName,
+      title = taxonomyTitle,
       taxonomyDir = file.path(normalizePath(taxonomyDir), leading_string="/") ## Normalize path in case where user doesn't provide absolute path.
     )
   )

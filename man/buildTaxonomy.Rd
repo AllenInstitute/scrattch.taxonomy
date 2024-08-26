@@ -9,6 +9,7 @@ buildTaxonomy(
   meta.data,
   feature.set,
   umap.coords,
+  tpm = NULL,
   subsample = 2000,
   taxonomyDir = getwd(),
   taxonomyName = "AI_taxonomy",
