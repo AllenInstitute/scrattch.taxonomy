@@ -81,5 +81,5 @@ cell_type_mapper <- import("cell_type_mapper")
 hierarchy = list("broad_type_label", "primary_type_label")
 
 ## Build MapMyCells stats into AIT file for hierarchy mapping
-AIT.anndata = buildMapMyCells(AIT.anndata, hierarchy)
+AIT.anndata = addMapMyCells(AIT.anndata, hierarchy)
 ```
