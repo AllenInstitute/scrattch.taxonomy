@@ -19,7 +19,7 @@
 #'
 #' @export
 addMapMyCells = function(AIT_anndata,
-                             hierarchy,
+                             hierarchy=NULL,
                              anndata_path=NULL,
                              force=FALSE,
                              n_processors = 3,
@@ -48,14 +48,19 @@ addMapMyCells = function(AIT_anndata,
         dir.create(temp_folder)
       }
 
-      # 
+      taxonomy_hierarchy = AIT_anndata$uns$hierarchy
+      if (length(taxonomy_hierarchy) == 0) {
+        taxonomy_hierarchy = hierarchy
+      }
+
+      # get file path to the AIT taxonomy (h5ad)
       taxonomy_anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
       anndata_path = get_anndata_path(taxonomy_anndata_path)
 
       # compute stats and save them to anndata
       precomp_stats_output_path = user_precomp_stats_path
       if(is.null(precomp_stats_output_path)) {
-        precomp_stats_output_path = run_precomp_stats(anndata_path, n_processors, normalization, temp_folder, hierarchy)
+        precomp_stats_output_path = run_precomp_stats(anndata_path, n_processors, normalization, temp_folder, taxonomy_hierarchy)
       }
       AIT_anndata = save_precomp_stats_to_uns(anndata_path, precomp_stats_output_path)
 

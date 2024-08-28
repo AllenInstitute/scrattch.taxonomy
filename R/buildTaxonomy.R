@@ -8,6 +8,7 @@
 #' @param taxonomyDir The location to save Shiny objects, e.g. "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/NHP_BG_20220104/"
 #' @param taxonomyTitle The file name to assign for the Taxonomy h5ad.
 #' @param celltypeColumn Column name corresponding to where the clusters are located (default="cluster")
+#' @param hierarchy List of term_set_labels in the Taxonomy ordered from most gross to most fine.
 #' @param cluster_colors An optional named character vector where the values correspond to colors and the names correspond to celltypes in celltypeColumn.  If this vector is incomplete, a warning is thrown and it is ignored. cluster_colors can also be provided in the metadata (see notes)
 #' @param cluster_stats A matrix of median gene expression by cluster. Cluster names must exactly match meta.data$cluster.
 #' @param dend Existing dendrogram associated with this taxonomy (e.g., one calculated elsewhere).  If NULL (default) a new dendrogram will be calculated based on the input `feature.set`
@@ -36,6 +37,7 @@ buildTaxonomy = function(counts,
                           taxonomyDir = getwd(),
                           taxonomyTitle = "AI_taxonomy",
                           celltypeColumn = "cluster",
+                          hierarchy = list(),
                           cluster_colors = NULL,
                           cluster_stats = NULL,
                           dend = NULL,
@@ -165,6 +167,7 @@ buildTaxonomy = function(counts,
       clustersUse = clustersUse,
       clusterInfo = clusterInfo,
       title = taxonomyTitle,
+      hierarchy = hierarchy,
       taxonomyDir = file.path(normalizePath(taxonomyDir), leading_string="/") ## Normalize path in case where user doesn't provide absolute path.
     )
   )
