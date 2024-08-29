@@ -19,7 +19,7 @@
 #'
 #' @export
 addMapMyCells = function(AIT_anndata,
-                             hierarchy=NULL,
+                             hierarchy=list(),
                              anndata_path=NULL,
                              force=FALSE,
                              n_processors = 3,
@@ -48,9 +48,9 @@ addMapMyCells = function(AIT_anndata,
         dir.create(temp_folder)
       }
 
-      taxonomy_hierarchy = AIT_anndata$uns$hierarchy
+      taxonomy_hierarchy = hierarchy
       if (length(taxonomy_hierarchy) == 0) {
-        taxonomy_hierarchy = hierarchy
+        taxonomy_hierarchy = AIT_anndata$uns$hierarchy
       }
 
       # get file path to the AIT taxonomy (h5ad)
@@ -257,12 +257,4 @@ get_anndata_path = function(anndata_path) {
     AIT_anndata$write_h5ad(anndata_path)
   }
   return(anndata_path)
-}
-
-#' Lists all the function parameters and their descriptions. 
-#' @keywords internal
-list_function_params = function() {
-  command <- "python -m cell_type_mapper.cli.precompute_stats_scrattch --help"
-  output <- system(command, intern = TRUE) 
-  cat(output, sep = "\n") 
 }
