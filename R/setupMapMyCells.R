@@ -55,7 +55,7 @@ addMapMyCells = function(AIT_anndata,
 
       # get file path to the AIT taxonomy (h5ad)
       taxonomy_anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
-      anndata_path = get_anndata_path(taxonomy_anndata_path)
+      anndata_path = get_anndata_path(taxonomy_anndata_path, temp_folder)
 
       # compute stats and save them to anndata
       precomp_stats_output_path = user_precomp_stats_path
@@ -247,7 +247,7 @@ save_query_markers_to_uns = function(AIT_anndata, query_markers_output_path) {
 #' @return Local file path to the AIT reference taxonomy h5ad file.
 #'
 #' @keywords internal
-get_anndata_path = function(anndata_path) {
+get_anndata_path = function(anndata_path, temp_folder) {
   # Check if anndata path exists; if does not, write it out to temp - show WARNING
   if (is.null(anndata_path) || !file.exists(anndata_path)) {
     print(paste0(paste("WARNING: INVALID FILE PATH, ERROR in AIT.anndata$uns taxonomyDir and taxonomyName:", anndata_path),
