@@ -19,7 +19,7 @@ auto_annotate(
 \arguments{
 \item{anno}{an existing annotation data frame}
 
-\item{sample_identifier}{the name of the column that contains the sample names. default = "sample_name"}
+\item{sample_identifier}{the name of the column that contains the sample names. default = "cell_id"}
 
 \item{scale_num}{should color scaling of numeric values be "predicted" (default and highly recommended;
 will return either "linear" or "log10" depending on scaling), "linear","log10","log2", or "zscore".}

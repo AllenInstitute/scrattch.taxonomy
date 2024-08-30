@@ -12,7 +12,7 @@ buildTaxonomy(
   tpm = NULL,
   subsample = 2000,
   taxonomyDir = getwd(),
-  taxonomyName = "AI_taxonomy",
+  taxonomyTitle = "AI_taxonomy",
   celltypeColumn = "cluster",
   cluster_colors = NULL,
   cluster_stats = NULL,
@@ -33,7 +33,7 @@ buildTaxonomy(
 
 \item{taxonomyDir}{The location to save Shiny objects, e.g. "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/NHP_BG_20220104/"}
 
-\item{taxonomyName}{The file name to assign for the Taxonomy h5ad.}
+\item{taxonomyTitle}{The file name to assign for the Taxonomy h5ad.}
 
 \item{celltypeColumn}{Column name corresponding to where the clusters are located (default="cluster")}
 

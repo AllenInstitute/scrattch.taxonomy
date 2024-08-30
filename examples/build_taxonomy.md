@@ -46,7 +46,8 @@ rownames(umap.coords) = colnames(taxonomy.counts)
 taxonomyDir = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016/"
 
 ## Build Allen Insitute Taxonomy, for large taxonomies you can pass in tpm and cluster_stats if pre-computed.
-AIT.anndata = buildTaxonomy(counts = taxonomy.counts,
+AIT.anndata = buildTaxonomy(counts = as(taxonomy.counts, "dgCMatrix"),
+                                tpm = NULL,
                                 meta.data = taxonomy.anno,
                                 feature.set = binary.genes,
                                 umap.coords = umap.coords,

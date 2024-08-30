@@ -158,7 +158,7 @@ buildTaxonomy = function(counts,
       dend        = list("standard" = toJSON(dend_to_json(dend))), ## JSON dendrogram
       filter      = list("standard" = !(colnames(counts) %in% kpSub)), ## Filtered cells
       QC_markers  = list("standard" = list()), ## Standard will hold de.genes for dendrogram, we should rename this uns field.
-      stats   = list("standard" = list("medianExpr" = medianExpr)),
+      stats   = list("standard" = list("medianExpr" = medianExpr, "features" = rownames(medianExpr), "clusters" = colnames(medianExpr))), ## Median expression by cluster
       hierarchical = list("standard" = list()),
       mode = "standard", ## Default mode to standard
       cellSet = colnames(counts),
