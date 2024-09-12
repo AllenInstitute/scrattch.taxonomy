@@ -84,6 +84,10 @@ RUN R -e 'install.packages("scrattch.taxonomy_0.5.12.tar.gz", repos=NULL, type="
 COPY scrattch.mapping_0.55.5.tar.gz ./scrattch.mapping_0.55.5.tar.gz
 RUN R -e 'install.packages("scrattch.mapping_0.55.5.tar.gz", repos=NULL, type="source")'
 
+## scrattch-patchseq install from local source
+COPY scrattch.patchseq_0.1.tar.gz ./scrattch.patchseq_0.1.tar.gz
+RUN R -e 'install.packages("scrattch.patchseq_0.1.tar.gz", repos=NULL, type="source")'
+
 ## 
 #COPY matrixStats_1.1.0.tar.gz ./matrixStats_1.1.0.tar.gz
 #RUN R -e 'install.packages("matrixStats_1.1.0.tar.gz", repos=NULL, type="source")'
