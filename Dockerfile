@@ -60,6 +60,7 @@ RUN R -e 'remotes::install_github("AllenInstitute/CCN")'
 RUN R -e 'remotes::install_github("AllenInstitute/patchseqtools")' 
 RUN R -e 'remotes::install_github("AllenInstitute/tasic2016data")'
 RUN R -e 'remotes::install_github("AllenInstitute/hodge2019data")'
+RUN R -e 'remotes::install_github("AllenInstitute/scrattch.io")' 
 RUN R -e 'remotes::install_github("AllenInstitute/scrattch.vis")' 
 RUN R -e 'remotes::install_github("AllenInstitute/scrattch.hicat")' 
 RUN R -e 'remotes::install_github("AllenInstitute/scrattch.bigcat")'
@@ -89,8 +90,6 @@ COPY scrattch.patchseq_0.1.tar.gz ./scrattch.patchseq_0.1.tar.gz
 RUN R -e 'install.packages("scrattch.patchseq_0.1.tar.gz", repos=NULL, type="source")'
 
 ## 
-#COPY matrixStats_1.1.0.tar.gz ./matrixStats_1.1.0.tar.gz
-#RUN R -e 'install.packages("matrixStats_1.1.0.tar.gz", repos=NULL, type="source")'
 RUN R -e 'install.packages("https://cran.r-project.org/src/contrib/Archive/matrixStats/matrixStats_1.1.0.tar.gz", repos=NULL, type="source")'
 
 ## Clean up

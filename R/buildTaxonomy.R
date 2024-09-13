@@ -17,7 +17,6 @@
 #' Notes: Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If celltypeColumn is anything other than cluster, then any existing "cluster" column will be overwritten by celltypeColumn.  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.
 #' 
 #' @import scrattch.hicat 
-#' @import scrattch.io
 #' @import feather
 #' @import tibble
 #' @import dplyr
@@ -58,8 +57,8 @@ buildTaxonomy = function(counts,
 
   ## ----------
   ## Run auto_annotate, this changes cell_id to cell_id.
-  meta.data = .formatMetadata(meta.data, cluster_colors)
   meta.data$cell_id = colnames(counts)
+  meta.data = .formatMetadata(meta.data, cluster_colors)
   
   ## ----------
   ## Subsample nuclei per cluster, max of subsample cells per cluster
@@ -147,7 +146,8 @@ buildTaxonomy = function(counts,
   AIT.anndata = AnnData(
     X = Matrix::t(tpm), ## logCPM ensured to be in sparse column format
     raw = list(
-      X = as(Matrix::t(counts), "dgCMatrix")
+      X = as(Matrix::t(counts), "dgCMatrix"),
+      var = data.frame("gene" = rownames(counts))
     ), ## Store counts matrix
     obs = meta.data,
     var = data.frame("gene" = rownames(counts), 

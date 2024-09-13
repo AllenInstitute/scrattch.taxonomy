@@ -14,6 +14,7 @@ buildTaxonomy(
   taxonomyDir = getwd(),
   taxonomyTitle = "AI_taxonomy",
   celltypeColumn = "cluster",
+  hierarchy = list(),
   cluster_colors = NULL,
   cluster_stats = NULL,
   dend = NULL,
@@ -36,6 +37,8 @@ buildTaxonomy(
 \item{taxonomyTitle}{The file name to assign for the Taxonomy h5ad.}
 
 \item{celltypeColumn}{Column name corresponding to where the clusters are located (default="cluster")}
+
+\item{hierarchy}{List of term_set_labels in the Taxonomy ordered from most gross to most fine.}
 
 \item{cluster_colors}{An optional named character vector where the values correspond to colors and the names correspond to celltypes in celltypeColumn.  If this vector is incomplete, a warning is thrown and it is ignored. cluster_colors can also be provided in the metadata (see notes)}
 

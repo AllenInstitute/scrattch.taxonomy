@@ -57,7 +57,7 @@ AIT.anndata = buildTaxonomy(counts = as(taxonomy.counts, "dgCMatrix"),
 
 ## Create Shiny directory (AIBS-internal)
 createShiny(AIT.anndata,
-            shindyDir = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016/",
+            shinyDir = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016/",
             metadata_names = NULL)
 
 ## Add markers to dendrogram for Tree mapping
