@@ -21,6 +21,10 @@ createShiny = function(AIT.anndata,
                         shinyDir,
                         metadata_names = NULL){
 
+  ## Create shinyDir if needed
+  if(!file.exists(shinyDir))
+    dir.create(shinyDir)
+  
   ## Pull filtering / subsampling for current mode
   kpSub = !AIT.anndata$uns$filter[[AIT.anndata$uns$mode]]
 
@@ -46,14 +50,14 @@ createShiny = function(AIT.anndata,
   counts.tibble = as_tibble(counts)
   counts.tibble = cbind(gene, counts.tibble)
   counts.tibble = as_tibble(counts.tibble)
-  write_feather(counts.tibble, file.path(shinyDir, "counts.feather"))
+  feather::write_feather(counts.tibble, file.path(shinyDir, "counts.feather"))
 
   ## Data_t feather
   print("===== Building data_t.feather =====")
   data.tibble = as_tibble(tpm.matrix)
   data.tibble = cbind(gene, data.tibble)
   data.tibble = as_tibble(data.tibble)
-  write_feather(data.tibble, file.path(shinyDir, "data_t.feather"))
+  feather::write_feather(data.tibble, file.path(shinyDir, "data_t.feather"))
   
   ## Data feather
   print("===== Building data.feather =====")
@@ -61,7 +65,7 @@ createShiny = function(AIT.anndata,
   norm.data.t = as_tibble(norm.data.t)
   norm.data.t = cbind(sample_id, norm.data.t)
   norm.data.t = as_tibble(norm.data.t)
-  write_feather(norm.data.t, file.path(shinyDir, "data.feather"))
+  feather::write_feather(norm.data.t, file.path(shinyDir, "data.feather"))
   
   ## Output tree
   dend = json_to_dend(AIT.anndata$uns$dend[["standard"]])
@@ -80,14 +84,14 @@ createShiny = function(AIT.anndata,
     desc <- desc[!is.na(desc$base),]  # Remove missing values
     anno_desc <- desc
   }
-  write_feather(anno_desc, file.path(shinyDir,"desc.feather"))
+  feather::write_feather(anno_desc, file.path(shinyDir,"desc.feather"))
 
   ## Minor reformatting of metadata file, then write metadata file
   meta.data$cluster = meta.data$cluster_label; 
   colnames(meta.data)[colnames(meta.data)=="sample_name"] <- "sample_name_old" # Rename "sample_name" to avoid shiny crashing
   if(!is.element("sample_id", colnames(meta.data))){ meta.data$sample_id = meta.data$sample_name_old } ## Sanity check for sample_id
   meta.data$cluster_id <- as.numeric(factor(meta.data$cluster_label,levels=labels(dend))) # Reorder cluster ids to match dendrogram
-  write_feather(meta.data, file.path(shinyDir,"anno.feather"))
+  feather::write_feather(meta.data, file.path(shinyDir,"anno.feather"))
 
   ## Write the UMAP coordinates.  
   print("===== Building umap/tsne feathers (precalculated) =====")
@@ -112,7 +116,7 @@ createShiny = function(AIT.anndata,
     cluster = all_clusters[i]
     cluster_samples = which(meta.data$cluster_label == cluster)
     cluster_data    = tpm.matrix[,cluster_samples,drop=F]
-    cluster_counts  = counts[,colnames(cluster_data),drop=F]
+    cluster_counts  = counts[,cluster_samples,drop=F]
     count_gt0[, i]  = Matrix::rowSums(cluster_counts > 0)
     count_gt1[, i]  = Matrix::rowSums(cluster_counts > 1)
     sums[, i]       = Matrix::rowSums(cluster_counts)
@@ -120,7 +124,9 @@ createShiny = function(AIT.anndata,
   }
 
   ##
-  colnames(count_gt0) = colnames(count_gt1) = colnames(sums) = colnames(medianmat) = all_clusters ## allClust
+  all_cl_label <- meta.data$cluster_id[match(all_clusters,meta.data$cluster_label)]
+  all_cl_label <- paste0("cluster_",all_cl_label) # to get format in 'cluster_[cluster_id]'
+  colnames(count_gt0) = colnames(count_gt1) = colnames(sums) = colnames(medianmat) = all_cl_label # all_clusters ## allClust
   count_gt0 = cbind(gene = gene, as.data.frame(count_gt0))
   count_gt1 = cbind(gene = gene, as.data.frame(count_gt1))
   sums = cbind(gene = gene, as.data.frame(sums))
@@ -133,9 +139,9 @@ createShiny = function(AIT.anndata,
               summarise(n_cells = n())
 
   ##
-  write_feather(count_gt0, file.path(shinyDir,"count_gt0.feather"))
-  write_feather(count_gt1, file.path(shinyDir,"count_gt1.feather"))
-  write_feather(count_n,   file.path(shinyDir,"count_n.feather"))
-  write_feather(medianmat, file.path(shinyDir,"medians.feather"))
-  write_feather(sums,      file.path(shinyDir,"sums.feather"))
+  feather::write_feather(count_gt0, file.path(shinyDir,"count_gt0.feather"))
+  feather::write_feather(count_gt1, file.path(shinyDir,"count_gt1.feather"))
+  feather::write_feather(count_n,   file.path(shinyDir,"count_n.feather"))
+  feather::write_feather(medianmat, file.path(shinyDir,"medians.feather"))
+  feather::write_feather(sums,      file.path(shinyDir,"sums.feather"))
 }
