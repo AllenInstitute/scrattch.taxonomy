@@ -53,19 +53,19 @@ addMapMyCells = function(AIT_anndata,
       # compute stats and save them to anndata
       precomp_stats_output_path = user_precomp_stats_path
       if(is.null(precomp_stats_output_path)) {
-        precomp_stats_output_path = run_precomp_stats(anndata_path, n_processors, normalization, temp_folder, taxonomy_hierarchy)
+        precomp_stats_output_path = run_precomp_stats(taxonomy_anndata_path, n_processors, normalization, temp_folder, taxonomy_hierarchy)
       }
-      AIT_anndata = save_precomp_stats_to_uns(anndata_path, precomp_stats_output_path)
+      AIT_anndata = save_precomp_stats_to_uns(taxonomy_anndata_path, precomp_stats_output_path)
 
       # compute query markers and save them to anndata
       query_markers_output_path = user_query_markers_path
       if(is.null(query_markers_output_path)) {
         ref_markers_file_path = run_reference_markers(precomp_stats_output_path, n_processors, temp_folder) 
-        query_markers_output_path = run_query_markers(anndata_path, ref_markers_file_path, n_processors, temp_folder) 
+        query_markers_output_path = run_query_markers(taxonomy_anndata_path, ref_markers_file_path, n_processors, temp_folder) 
       }
       AIT_anndata = save_query_markers_to_uns(AIT_anndata, query_markers_output_path) 
       
-      AIT_anndata$write_h5ad(anndata_path)
+      AIT_anndata$write_h5ad(taxonomy_anndata_path)
     },
     error = function(e) {
       errorMessage <- conditionMessage(e)
@@ -85,6 +85,11 @@ addMapMyCells = function(AIT_anndata,
         if(is.null(user_query_markers_path)) {
           file.remove(ref_markers_file_path)
           file.remove(query_markers_output_path)
+        }
+        if (is.null(AIT_anndata_path) && 
+            is.null(AIT_anndata$uns$taxonomyDir) && 
+            is.null(AIT_anndata$uns$title)) {
+          file.remove(taxonomy_anndata_path)
         }
       }
       return(AIT_anndata)
