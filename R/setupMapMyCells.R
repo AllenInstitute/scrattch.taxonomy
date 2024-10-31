@@ -2,7 +2,7 @@
 #'
 #' @param AIT_anndata A reference taxonomy anndata object.
 #' @param hierarchy List of term_set_labels in the reference taxonomy ordered from most gross to most fine.
-#' @param anndata_path Local file path of the AIT reference taxonomy (h5ad file).
+#' @param AIT_anndata_path Local file path of the AIT reference taxonomy (h5ad file).
 #' @param force Boolean value indicating whether to overwrite the AIT reference taxonomy's hierarchical file for a given mode.
 #' @param n_processors Number of independent worker processes to spin up.
 #' @param normalization Normalization of the h5ad files; must be either 'raw' or 'log2CPM'.
@@ -20,7 +20,7 @@
 #' @export
 addMapMyCells = function(AIT_anndata,
                              hierarchy=list(),
-                             anndata_path=NULL,
+                             AIT_anndata_path=NULL,
                              force=FALSE,
                              n_processors = 3,
                              normalization = "log2CPM",
@@ -38,24 +38,17 @@ addMapMyCells = function(AIT_anndata,
         "' already exists, choose a new mode name or use force=TRUE to overwrite."))
       }
 
-      if(is.null(anndata_path)){
-        anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
-      }
-
       if (is.null(temp_folder) || temp_folder == "") {
         temp_folder <- paste0("temp_folder_", format(Sys.time(), "%Y%m%d-%H%M%S"))
         temp_folder <- file.path(getwd(), temp_folder)
         dir.create(temp_folder)
       }
 
-      taxonomy_hierarchy = hierarchy
-      if (length(taxonomy_hierarchy) == 0) {
-        taxonomy_hierarchy = AIT_anndata$uns$hierarchy
-      }
+      # get an ordered list of taxonomy's hierarchy levels.
+      taxonomy_hierarchy = get_hierarchy(AIT_anndata, hierarchy)
 
       # get file path to the AIT taxonomy (h5ad)
-      taxonomy_anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
-      anndata_path = get_anndata_path(taxonomy_anndata_path, temp_folder)
+      taxonomy_anndata_path = get_anndata_path(AIT_anndata, AIT_anndata_path, temp_folder)
 
       # compute stats and save them to anndata
       precomp_stats_output_path = user_precomp_stats_path
@@ -243,18 +236,45 @@ save_query_markers_to_uns = function(AIT_anndata, query_markers_output_path) {
 }
 
 #' This function saves the AIT reference taxonomy to a temp folder as h5ad, if the provided file path is invalid.
+#' @param AIT_anndata AIT reference taxonomy object.
 #' @param anndata_path Local file path of the AIT reference taxonomy (h5ad file).
+#' @param temp_folder Temporary directory for writing out temporary files (the code will clean these up after itself).
 #' @return Local file path to the AIT reference taxonomy h5ad file.
 #'
 #' @keywords internal
-get_anndata_path = function(anndata_path, temp_folder) {
-  # Check if anndata path exists; if does not, write it out to temp - show WARNING
-  if (is.null(anndata_path) || !file.exists(anndata_path)) {
-    print(paste0(paste("WARNING: INVALID FILE PATH, ERROR in AIT.anndata$uns taxonomyDir and taxonomyName:", anndata_path),
-          ". Writing the AIT.anndata to temperary location, SAVE anndata or FIX path to OPTIMIZE this step."))
-    anndata_filename <- paste0(paste0("temp_anndata_", format(Sys.time(), "%Y%m%d-%H%M%S")), ".h5ad")
-    anndata_path <- file.path(temp_folder, anndata_filename)
-    AIT_anndata$write_h5ad(anndata_path)
+get_anndata_path = function(AIT_anndata, anndata_path, temp_folder) {
+  if (is.null(anndata_path) || !file.exists(anndata_path)){
+    # Use AIT path stored in AIT.anndata$uns, if not null.
+    if (!is.null(AIT_anndata$uns$taxonomyDir) && !is.null(AIT_anndata$uns$title)){
+      anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
+    }
+    # Check if anndata path exists; if does not, write it out to temp - show WARNING.
+    if (is.null(anndata_path) || !file.exists(anndata_path)) {
+      print(paste0(paste("WARNING: INVALID FILE PATH, ERROR in AIT.anndata$uns taxonomyDir and taxonomyName:", anndata_path),
+            ". Writing the AIT.anndata to temperary location, SAVE anndata or FIX path to OPTIMIZE this step."))
+      anndata_filename <- paste0(paste0("temp_anndata_", format(Sys.time(), "%Y%m%d-%H%M%S")), ".h5ad")
+      anndata_path <- file.path(temp_folder, anndata_filename)
+      AIT_anndata$write_h5ad(anndata_path)
+    }
   }
   return(anndata_path)
+}
+
+#' This function looks for a valid hierarchy list.
+#' @param AIT_anndata AIT reference taxonomy object.
+#' @param hierarchy List of term_set_labels in the reference taxonomy ordered from most gross to most fine.
+#' @return Local file path to the AIT reference taxonomy h5ad file.
+#'
+#' @keywords internal
+get_hierarchy = function(AIT_anndata, hierarchy) {
+  if (length(hierarchy) == 0) {
+    hierarchy = AIT_anndata$uns$hierarchy
+  }
+  else {
+    AIT_anndata$uns$hierarchy = hierarchy 
+  }
+  if (is.null(hierarchy) || length(hierarchy) == 0) {
+    stop(paste("Hierarchy does NOT exist in AIT.anndata$uns$hierarchy, please pass hierarchy list as a function parameter 'hierarchy=list()'."))
+  }
+  return(hierarchy)
 }
