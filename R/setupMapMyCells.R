@@ -55,7 +55,7 @@ addMapMyCells = function(AIT_anndata,
       if(is.null(precomp_stats_output_path)) {
         precomp_stats_output_path = run_precomp_stats(taxonomy_anndata_path, n_processors, normalization, temp_folder, taxonomy_hierarchy)
       }
-      AIT_anndata = save_precomp_stats_to_uns(taxonomy_anndata_path, precomp_stats_output_path)
+      AIT_anndata = save_precomp_stats_to_uns(taxonomy_anndata_path, precomp_stats_output_path, AIT_anndata$uns$mode)
 
       # compute query markers and save them to anndata
       query_markers_output_path = user_query_markers_path
@@ -141,7 +141,7 @@ run_precomp_stats = function(anndata_path, n_processors, normalization, temp_fol
 #' @return AIT reference taxonomy with the precomupte stats saved in uns -> hierarchical.
 #'
 #' @keywords internal
-save_precomp_stats_to_uns = function(anndata_path, precomp_stats_output_path) {
+save_precomp_stats_to_uns = function(anndata_path, precomp_stats_output_path, mode) {
   # save precomp stats to anndata h5ad file using cell_type_mapper's precomputed_stats_to_uns
   temp_precomp_stats_name = tools::file_path_sans_ext(basename(precomp_stats_output_path))
   cell_type_mapper$utils$output_utils$precomputed_stats_to_uns(
@@ -154,6 +154,7 @@ save_precomp_stats_to_uns = function(anndata_path, precomp_stats_output_path) {
   taxonomy_dir_path <- dirname(anndata_path)
   anndata_file_name <- basename(anndata_path)
   AIT_anndata = loadTaxonomy(taxonomyDir = taxonomy_dir_path, anndata_file=anndata_file_name)
+  AIT_anndata$uns$mode = mode
 
   ## take the precomputed_stats from uns and save to uns$hierarchical$mode
   precomp_stats_json = AIT_anndata$uns[[temp_precomp_stats_name]]

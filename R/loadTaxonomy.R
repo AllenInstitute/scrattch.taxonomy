@@ -42,6 +42,8 @@ loadTaxonomy = function(taxonomyDir,
 
   ## Set scrattch.mapping to default standard mapping mode
   AIT.anndata$uns$mode = "standard"
+  AIT.anndata$uns$taxonomyDir = taxonomyDir
+  AIT.anndata$uns$title = anndata_file
 
   ## Return
   return(AIT.anndata)
