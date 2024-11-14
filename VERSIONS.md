@@ -1,3 +1,15 @@
+## scrattch.taxonomy 0.5.13
+
+Supporting changes for scrattch.mapping updates to hierarchical and Seurat mapping
+
+### Major changes
+* Update docker to downgrade Seurat and SeuratObject packages to older versions
+* Building the hierarchical mapping statistics so it can be correctly stored for multiple modes  
+
+### Minor changes
+Bug fix allowing users to provide their own dendrogram
+
+
 ## scrattch.taxonomy 0.2
 
 ## Major changes

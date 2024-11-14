@@ -28,19 +28,19 @@
 #'
 #' @export
 buildTaxonomy = function(counts,
-                          meta.data,
-                          feature.set,
-                          umap.coords,
-                          tpm = NULL,
-                          subsample=2000,
-                          taxonomyDir = getwd(),
-                          taxonomyTitle = "AI_taxonomy",
-                          celltypeColumn = "cluster",
-                          hierarchy = list(),
-                          cluster_colors = NULL,
-                          cluster_stats = NULL,
-                          dend = NULL,
-                          reorder.dendrogram = FALSE){
+                         meta.data,
+                         feature.set,
+                         umap.coords,
+                         tpm = NULL,
+                         subsample=2000,
+                         taxonomyDir = getwd(),
+                         taxonomyTitle = "AI_taxonomy",
+                         celltypeColumn = "cluster",
+                         hierarchy = list(),
+                         cluster_colors = NULL,
+                         cluster_stats = NULL,
+                         dend = NULL,
+                         reorder.dendrogram = FALSE){
 
   ## Sanity check and cleaning of parameters
   clean.params = .checkBuildTaxonomyParams(counts, 
@@ -65,7 +65,7 @@ buildTaxonomy = function(counts,
   kpClusters <- rep(TRUE,length(meta.data$cluster_label))
   
   if(!is.null(dend))
-    kpClusters <- is.element(meta.data$cluster, labels(dend)) # exclude missing clusters, if any
+    kpClusters <- is.element(meta.data$cluster_label, labels(dend)) # exclude missing clusters, if any
 
   if((subsample > 0) & (subsample < Inf)){
       print("===== Subsampling cells =====")
@@ -105,40 +105,35 @@ buildTaxonomy = function(counts,
     ## Sanity check user input
   }
 
-  ## Convert dendogram to json if provided
-  if(!is.null(dend)){
-    dend = toJSON(dend_to_json(dend))
-  }else{
-      ## Build the dendrogram
+  ##  Build the dendrogram
   print("===== Building dendrogram =====")
   if(!is.null(dend)){
     print("...using provided dendrogram.")
     # FOR FUTURE UPDATE: should check here whether dendrogram colors match what is in meta-data.
   } else {
-      ## Define the cluster info 
-      unique.meta.data = meta.data %>% distinct(cluster_id, 
-                                                cluster_label, 
-                                                cluster_color)
-      rownames(unique.meta.data) = unique.meta.data$cluster_label
-      ## Dendrogram parameters and gene sets
-      use.color = setNames(unique.meta.data$cluster_color, unique.meta.data$cluster_label)[colnames(medianExpr)]
-      if(reorder.dendrogram){
-        l.rank = setNames(meta.data$cluster_id[match(unique.meta.data$cluster_label, meta.data$cluster_label)], unique.meta.data$cluster_label)
-        l.rank = sort(l.rank)
-      }else{ l.rank    = NULL }
-      ## Build the dendrogram
-      invisible(capture.output({  # Avoid printing lots of numbers to the screen
-        dend.result = build_dend(
-          cl.dat  = medianExpr[feature.set,],
-          cl.cor  = NULL,
-          l.color = use.color,
-          l.rank  = l.rank, 
-          nboot   = 1,
-          ncores  = 1)
-      }))
-      dend = dend.result$dend
-      print("...dendrogram built.")
-    }
+    ## Define the cluster info 
+    unique.meta.data = meta.data %>% distinct(cluster_id, 
+                                              cluster_label, 
+                                              cluster_color)
+    rownames(unique.meta.data) = unique.meta.data$cluster_label
+    ## Dendrogram parameters and gene sets
+    use.color = setNames(unique.meta.data$cluster_color, unique.meta.data$cluster_label)[colnames(medianExpr)]
+    if(reorder.dendrogram){
+      l.rank = setNames(meta.data$cluster_id[match(unique.meta.data$cluster_label, meta.data$cluster_label)], unique.meta.data$cluster_label)
+      l.rank = sort(l.rank)
+    }else{ l.rank    = NULL }
+    ## Build the dendrogram
+    invisible(capture.output({  # Avoid printing lots of numbers to the screen
+      dend.result = build_dend(
+        cl.dat  = medianExpr[feature.set,],
+        cl.cor  = NULL,
+        l.color = use.color,
+        l.rank  = l.rank, 
+        nboot   = 1,
+        ncores  = 1)
+    }))
+    dend = dend.result$dend
+    print("...dendrogram built.")
   }
 
   ##
