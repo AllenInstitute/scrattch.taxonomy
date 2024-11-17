@@ -78,16 +78,16 @@ RUN pip install -e ./cell_type_mapper
 RUN pip install anndata==0.8.0 numpy==1.26.4 
 
 ## scrattch-taxonomy install from local source
-COPY scrattch.taxonomy_0.5.13.tar.gz ./scrattch.taxonomy_0.5.13.tar.gz
-RUN R -e 'install.packages("scrattch.taxonomy_0.5.13.tar.gz", repos=NULL, type="source")'
+COPY scrattch.taxonomy_0.5.14.tar.gz ./scrattch.taxonomy_0.5.14.tar.gz
+RUN R -e 'install.packages("scrattch.taxonomy_0.5.14.tar.gz", repos=NULL, type="source")'
 
 ## scrattch-mapping install from local source
-COPY scrattch.mapping_0.55.5.tar.gz ./scrattch.mapping_0.55.5.tar.gz
-RUN R -e 'install.packages("scrattch.mapping_0.55.5.tar.gz", repos=NULL, type="source")'
+COPY scrattch.mapping_0.55.6.tar.gz ./scrattch.mapping_0.55.6.tar.gz
+RUN R -e 'install.packages("scrattch.mapping_0.55.6.tar.gz", repos=NULL, type="source")'
 
 ## scrattch-patchseq install from local source
-COPY scrattch.patchseq_0.1.tar.gz ./scrattch.patchseq_0.1.tar.gz
-RUN R -e 'install.packages("scrattch.patchseq_0.1.tar.gz", repos=NULL, type="source")'
+COPY scrattch.patchseq_0.1.1.tar.gz ./scrattch.patchseq_0.1.1.tar.gz
+RUN R -e 'install.packages("scrattch.patchseq_0.1.1.tar.gz", repos=NULL, type="source")'
 
 ## 
 RUN R -e 'install.packages("https://cran.r-project.org/src/contrib/Archive/matrixStats/matrixStats_1.1.0.tar.gz", repos=NULL, type="source")'

@@ -150,6 +150,23 @@ subsampleCells <- function(cluster.names, subSamp=25, seed=5){
   return(kpSamp)
 }
 
+
+#' Function to set mapping mode
+#'
+#' @param AIT.anndata A vector of cluster names in the reference taxonomy.
+#' @param mode Number of cells to keep per cluster.
+#'
+#' @return AIT anndata with mode set for mapping
+#' 
+#' @export
+mappingMode <- function(AIT.anndata, mode){
+  # Copied from scrattch.mapping
+  if(!mode %in% names(AIT.anndata$uns$filter)){ stop(paste0(mode, " is invalid. Choose from: ", names(AIT.anndata$uns$filter))) }
+  AIT.anndata$uns$mode = mode
+  return(AIT.anndata)
+}
+
+
 #' Convert R dendrogram to json
 #'
 #' @param dend R dendrogram object
@@ -730,7 +747,7 @@ build_dend <- function(cl.dat, cl.cor=NULL, l.rank=NULL, l.color=NULL, nboot=100
 #' 
 #' @return a matrix of genes (rows) x clusters (columns) with medians for each cluster
 #'
-#' @keywords external
+#' @export
 get_cl_medians <- function(mat, cl)
 {
   library(Matrix)
@@ -749,3 +766,104 @@ get_cl_medians <- function(mat, cl)
   
   return(cl.med)
 }
+
+
+#' Convert a matrix of raw counts to a matrix of Counts per Million values
+#' 
+#' The input can be a base R matrix or a sparse matrix from the Matrix package.
+#' 
+#' This function expects that columns correspond to samples, and rows to genes, but can also take the transpose if specified by cells.as.rows=TRUE.
+#' 
+#' @param counts a matrix, dgCMatrix, or dgTMatrix of count values.
+#' @param sf vector of numeric values representing the total number of reads. If count matrix includes all genes, value calulated by default (sf=NULL) will be accurate; however, if count matrix represents only a small fraction of genes, we recommend also providing this value.
+#' @param denom Denominator that all counts will be scaled to. The default (1 million) is commonly used, but 10000 is also common for sparser droplet-based sequencing methods.
+#' @param cells.as.rows Set to FALSE (default) if rows are genes and columns are cells or TRUE if rows are cells and columns are genes.
+#' 
+#' 
+#' @return a matrix, dgCMatrix, or dgTMatrix of CPM values (matching input)
+#' 
+#' @export 
+cpm <- function (counts, 
+                 sf = NULL, 
+                 denom = 1e+06, 
+                 cells.as.rows=FALSE) 
+{
+  if(cells.as.rows){
+    # Cells as rows, genes as columns
+    if((intersect(class(counts),c("dgTMatrix","dgCMatrix"))>0)|(is.matrix(counts))) {
+      # Calculate total counts per cell (now per row)
+      if (is.null(sf)) {
+        sf <- Matrix::rowSums(counts)
+      }
+      sf = sf/denom
+      
+      # Calculate CPM for each gene in each cell
+      cpm = sweep(counts, 1, sf, "/", check.margin = FALSE)
+      
+      ## FUTURE UPDATE: make more memory efficient for dgCMatrix and dgTMatrix classes like below
+      
+      return(cpm)
+    } 
+    else {
+      stop(paste("cpm function for", class(counts)[1], "not supported"))
+    }
+  } 
+  else { 
+    # Cells as columns, genes as rows
+    if (is.null(sf)) {
+      sf <- Matrix::colSums(counts)
+    }
+    sf = sf/denom
+    if (is.matrix(counts)) {
+      return(sweep(counts, 2, sf, "/", check.margin = FALSE))
+    }
+    else if (class(counts) == "dgCMatrix") {
+      sep <- counts@p
+      sep <- sep[-1] - sep[-length(sep)]
+      j <- S4Vectors::Rle(1:length(sep), sep)
+      counts@x <- counts@x/sf[as.integer(j)]
+    }
+    else if (class(counts) == "dgTMatrix") {
+      j = counts@j
+      counts@x = counts@x/sf[j + 1]
+    }
+    else {
+      stop(paste("cpm function for", class(counts)[1], "not supported"))
+    }
+    return(counts)
+  }
+}
+
+
+#' Convert a matrix of raw counts to a matrix of log2(Counts per Million + 1) values
+#' 
+#' The input can be a base R matrix or a sparse matrix from the Matrix package.
+#' 
+#' This function expects that columns correspond to samples, and rows to genes by default, but can also take the transpose if specified by cells.as.rows=TRUE.  By default the offset is 1, but to calculate just log2(counts per Million) set offset to 0.
+#' 
+#' @param counts A matrix, dgCMatrix, or dgTMatrix of count values
+#' @param offset The constant offset to add to each cpm value prior to taking log2 (default = 1)
+#' @param sf vector of numeric values representing the total number of reads. If count matrix includes all genes, value calulated by default (sf=NULL) will be accurate; however, if count matrix represents only a small fraction of genes, we recommend also providing this value.
+#' @param denom Denominator that all counts will be scaled to. The default (1 million) is commonly used, but 10000 is also common for sparser droplet-based sequencing methods.
+#' @param cells.as.rows Set to FALSE (default) if rows are genes and columns are cells or TRUE if rows are cells and columns are genes.
+#' 
+#' @return a matrix, dgCMatrix, or dgTMatrix of log2(CPM + 1) values (matching input)
+#' 
+#' @export 
+logCPM <- function (counts, 
+                    offset = 1, 
+                    sf = NULL, 
+                    denom = 1e+06, 
+                    cells.as.rows=FALSE,
+                    ...) 
+{
+  norm.dat <- cpm(counts, sf=sf, denom=denom, cells.as.rows=cells.as.rows)
+  if (is.matrix(norm.dat)) {
+    norm.dat <- log2(norm.dat + offset)
+  }
+  else {
+    norm.dat@x <- log2(norm.dat@x + offset)
+  }
+  norm.dat
+}
+

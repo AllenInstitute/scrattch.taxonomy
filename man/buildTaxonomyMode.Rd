@@ -21,7 +21,6 @@ $QC_markers[\link{mode.name}]
 ...$classBr,
 ...$subclassF,
 ...$allMarkers
-...$de_genes
 $memb[\link{mode.name}]
 ...$memb.ref,
 ...$map.df.ref}

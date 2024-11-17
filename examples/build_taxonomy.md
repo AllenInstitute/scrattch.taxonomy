@@ -1,6 +1,6 @@
 # Tutorial: Building a Shiny taxonomy 
 
-In this tutorial we demonstrate how to setup a Shiny taxonomy using scrattch.taxonomy for running mapping algorithms against with scrattch.mapping and for viewing on (internal Allen Institute) MolGen Shiny tools. 
+In this tutorial we demonstrate how to setup a Shiny taxonomy using scrattch.taxonomy for running mapping algorithms against with scrattch.mapping and for viewing on (internal Allen Institute) MolGen Shiny tools. It uses prepackaged data from [Tasic et al 2016](https://www.nature.com/articles/nn.4216)
 
 #### Required inputs:
 
@@ -15,20 +15,31 @@ In this tutorial we demonstrate how to setup a Shiny taxonomy using scrattch.tax
 
 #### Build taxonomy:
 
+By default the taxonomy will now be set up for all four mapping algorithms
+
 ```R
 ## Load scrattch.taxonomy
 library(scrattch.taxonomy)
+library(reticulate)
+cell_type_mapper <- import("cell_type_mapper")
 
 ## Load in example count data and annotations (or replace with your own)
 library(tasic2016data)
 taxonomy.counts = tasic_2016_counts
-taxonomy.anno = tasic_2016_anno
-
-## Ensure count matrix and annotations are in the same order.
-taxonomy.anno = taxonomy.anno[match(colnames(taxonomy.counts), taxonomy.anno$sample_name),]
+taxonomy.anno   = tasic_2016_anno
+taxonomy.anno   = taxonomy.anno[match(colnames(taxonomy.counts), taxonomy.anno$sample_name),]
+keep            = taxonomy.anno$broad_type!="Unclassified"
+taxonomy.counts = taxonomy.counts[,keep]
+taxonomy.anno   = taxonomy.anno[keep,]
 
 ## Ensure 'cluster' field exists, as required by scrattch.taxonomy.
-taxonomy.anno$cluster = taxonomy.anno$broad_type
+## -- Note that this is called "cluster" here, but will be called "cluster_label" everywhere else
+taxonomy.anno$cluster = taxonomy.anno$primary_type_label
+
+## Provide hierarchy of the taxonomy
+## -- This will be used for all mapping algorithms unless otherwise specified
+## -- This MUST be from broadest to most specific types, and NOT vice versa
+hierarchy = list("broad_type_label", "cluster_label")
 
 ## Compute top 1000 binary marker genes for clusters (or use a pre-existing vector)
 binary.genes = top_binary_genes(taxonomy.counts, taxonomy.anno$cluster, 1000)
@@ -42,44 +53,22 @@ rownames(taxonomy.anno) = taxonomy.anno$sample_name
 rownames(umap.coords) = colnames(taxonomy.counts)
 
 ## This is where our taxonomy will be created
-# NOTE: replace 'taxonomyDir' location below with desired output folder location
-taxonomyDir = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016/"
+## -- NOTE: replace 'taxonomyDir' location below with desired output folder location
+taxonomyDir = getwd()
 
 ## Build Allen Insitute Taxonomy, for large taxonomies you can pass in tpm and cluster_stats if pre-computed.
 AIT.anndata = buildTaxonomy(counts = as(taxonomy.counts, "dgCMatrix"),
-                                tpm = NULL,
-                                meta.data = taxonomy.anno,
-                                feature.set = binary.genes,
-                                umap.coords = umap.coords,
-                                taxonomyDir = taxonomyDir,
-                                taxonomyTitle = "Tasic2016",
-                                subsample=2000)
+                            tpm = NULL,
+                            meta.data = taxonomy.anno,
+                            feature.set = binary.genes,
+                            umap.coords = umap.coords,
+                            taxonomyDir = taxonomyDir,
+                            taxonomyTitle = "Tasic2016",
+                            hierarchy = hierarchy,
+                            subsample=200)
 
 ## Create Shiny directory (AIBS-internal)
 createShiny(AIT.anndata,
-            shinyDir = "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/tasic_2016/",
+            shinyDir = getwd(),  # Replace location with desired location for shiny directory output
             metadata_names = NULL)
-
-## Add markers to dendrogram for Tree mapping
-AIT.anndata = addDendrogramMarkers(AIT.anndata = AIT.anndata)
-```
-
-# Setup MapMyCells taxonomy
-
-In this tutorial we demonstrate how to setup a MapMyCells taxonomy using scrattch.taxonomy for running HANN mapping algorithm against with scrattch.mapping.
-
-#### Required inputs:
-
-* Hierarchy of the taxonomy as a list, such as class_label, subclass_label, cluster_label
-* AIT.anndata, MolGen Shiny (scrattch) taxonomy
-
-```R
-library(reticulate)
-cell_type_mapper <- import("cell_type_mapper")
-
-## Provide hierarchy of the taxonomy
-hierarchy = list("broad_type_label", "primary_type_label")
-
-## Build MapMyCells stats into AIT file for hierarchy mapping
-AIT.anndata = addMapMyCells(AIT.anndata, hierarchy)
 ```

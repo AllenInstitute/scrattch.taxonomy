@@ -1,3 +1,16 @@
+## scrattch.taxonomy 0.5.14
+
+Upgrades to streamline process
+
+### Major changes
+* Updated example
+* Pull code for setting up tree and heirarchical mapping into buildTaxonomy
+
+### Minor changes
+Bug fixes
+
+--
+
 ## scrattch.taxonomy 0.5.13
 
 Supporting changes for scrattch.mapping updates to hierarchical and Seurat mapping
@@ -9,6 +22,7 @@ Supporting changes for scrattch.mapping updates to hierarchical and Seurat mappi
 ### Minor changes
 Bug fix allowing users to provide their own dendrogram
 
+--
 
 ## scrattch.taxonomy 0.2
 

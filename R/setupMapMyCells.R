@@ -1,7 +1,7 @@
 #' This function builds files needed for hierarchical mapping and stores them in the uns$hierarchical of AIT (Shiny) taxonomy.
 #'
 #' @param AIT_anndata A reference taxonomy anndata object.
-#' @param hierarchy List of term_set_labels in the reference taxonomy ordered from most gross to most fine.
+#' @param hierarchy List of term_set_labels in the reference taxonomy ordered from most gross to most fine. Will default to list included in AIT_anndata, if any.
 #' @param anndata_path Local file path of the AIT reference taxonomy (h5ad file).
 #' @param force Boolean value indicating whether to overwrite the AIT reference taxonomy's hierarchical file for a given mode.
 #' @param n_processors Number of independent worker processes to spin up.
@@ -19,7 +19,7 @@
 #'
 #' @export
 addMapMyCells = function(AIT_anndata,
-                         hierarchy=list(),
+                         hierarchy=AIT.anndata$uns$hierarchy,
                          anndata_path=NULL,
                          force=FALSE,
                          n_processors = 3,
@@ -37,6 +37,10 @@ addMapMyCells = function(AIT_anndata,
       if ((length(AIT_anndata$uns$hierarchical[[mode]]) > 0) && force==FALSE) {
         stop(paste0(paste0("ERROR: mode provided '", mode), 
         "' already exists, choose a new mode name or use force=TRUE to overwrite."))
+      }
+      
+      if((length(hierarchy)==0)|(sum(class(hierarchy)=="list")<1)){
+        stop("hierarchy must be a list of term_set_labels in the reference taxonomy ordered from most gross to most fine included in AIT_anndata or provided separately.")
       }
 
       if(is.null(anndata_path)){
@@ -59,7 +63,7 @@ addMapMyCells = function(AIT_anndata,
       anndata_path = get_anndata_path(taxonomy_anndata_path, temp_folder)
       
       # (NEW!) write a subsetted h5ad file to the temp_folder. This will allow proper subsetting of the compute stats and speed it up.
-      if(AIT_anndata$uns$mode=="standard"){
+      if(sum(AIT.anndata$uns$filter[[mode]])==0){
         anndata_calc_path = anndata_path
         AIT_anndata_calc  = AIT_anndata
       } else {
@@ -72,7 +76,7 @@ addMapMyCells = function(AIT_anndata,
         AIT_anndata_calc$write_h5ad(anndata_calc_path)
         if(n_processors>1){
           n_processors = 1
-          warning("WARNING: current implementation requires n_processors=1 if mode is not 'standard'.")
+          warning("WARNING: current implementation requires n_processors=1 if any filtering occurs.")
         }
       }
 
@@ -120,7 +124,7 @@ addMapMyCells = function(AIT_anndata,
           file.remove(query_markers_output_path)
         }
       }
-      if(AIT_anndata$uns$mode!="standard"){
+      if(file.exists(mode_dir)){
         # (NEW!) removes the mode temp directory
         unlink(mode_dir, recursive = TRUE)
       }
