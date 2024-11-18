@@ -6,7 +6,7 @@
 #' @param subsample The number of cells to retain per cluster (default = 100)
 #' @param num.markers The maximum number of markers to calculate per pairwise differential calculation per direction (default = 20)
 #' @param de.param Differential expression (DE) parameters for genes and clusters used to define marker genes.  By default the values are set to the 10x nuclei defaults from scrattch.hicat, except with min.cells=2 (see notes below).
-#' @param calculate.de.genes Default=TRUE. If set to false, the function will search for "de_genes" in the anndata object for the specified mode and use those instead of calculating new ones.
+#' @param calculate.de.genes Default=TRUE. If set to false, the function will search for "de_genes" in a file called "de_genes.RData" in the folder taxonomyDir, and will use those if available.
 #' @param save.shiny.output Should standard output files be generated and saved to the directory (default=TRUE).  These are not required for tree mapping, but are required for building a patch-seq shiny instance.  This is only tested in a UNIX environment.  See notes.
 #' @param mc.cores Number of cores to use for running this function to speed things up.  Default = 1.  Values>1 are only supported in an UNIX environment and require `foreach` and `doParallel` R libraries.
 #' @param bs.num Number of bootstrap runs for creating the dendrogram (default of 100)
@@ -52,7 +52,8 @@ addDendrogramMarkers = function(AIT.anndata,
                                 low.th=0.1,
                                 overwriteMarkers = TRUE,
                                 taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir)){
-
+  suppressWarnings({ # wrapping the whole function in suppressWarnings to avoid having this printed a zillion times: 'useNames = NA is deprecated. Instead, specify either useNames = TRUE or useNames = FALSE.'
+  
   ## We should already know this? Clean up in future.
   if(!is.element(celltypeColumn, colnames(AIT.anndata$obs))){ stop(paste(celltypeColumn, "is not a column in the metadata data frame.")) }
 
@@ -94,6 +95,7 @@ addDendrogramMarkers = function(AIT.anndata,
   ## Compute markers
   print("Define marker genes and gene scores for the tree")
   if((sum(!is.na(get_nodes_attr(dend, "markers"))) == 0) | (overwriteMarkers == TRUE)){
+    de_genes_file <- file.path(taxonomyDir,"de_genes.RData")
     if(!is.element("de_genes", names(AIT.anndata$uns$QC_markers[[mode]])) | calculate.de.genes){
       print("=== NOTE: This step can be very slow (several minute to many hours).")
       print("      To speed up the calculation (or if it crashes) try decreasing the value of subsample.")
@@ -103,9 +105,11 @@ addDendrogramMarkers = function(AIT.anndata,
                                 de.param = de.param, 
                                 de.genes = NULL)$de.genes
 
-      AIT.anndata$uns$QC_markers[[mode]][["de_genes"]] = de.genes
+      #AIT.anndata$uns$QC_markers[[mode]][["de_genes"]] = de.genes  # Do not save to anndata, as it makes files MUCH slower to access
+      save(de.genes, file=de_genes_file)
     } else {
-      de.genes = AIT.anndata$uns$QC_markers[[mode]][["de_genes"]]
+      load(de_genes_file)
+      #de.genes = AIT.anndata$uns$QC_markers[[mode]][["de_genes"]]  # Do not save to anndata, as it makes files MUCH slower to access
     }
 
     ## Check number of markers for each leaf
@@ -185,4 +189,7 @@ addDendrogramMarkers = function(AIT.anndata,
   
   ##
   return(AIT.anndata)
+  
+}) # End suppressWarnings
+
 }

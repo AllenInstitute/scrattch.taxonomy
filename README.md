@@ -10,32 +10,20 @@ You can find a detail description of all scrattch.taxonomy functions here: ![Doc
 
 Update notes are here: ![Versions](https://github.com/AllenInstitute/scrattch.taxonomy/blob/main/VERSIONS.md)
 
-## Docker
-
-We have setup a docker environemnt for scrattch.taxonomy and scrattch.mapping that contains all the required dependencies and the current version of all scrattch packages. This docker is accessible through docker hub via: `njjai/scrattch_mapping:0.6.6`.
-
-#### HPC usage:
-
-##### Non-interactive
-`singularity exec --cleanenv docker://njjai/scrattch_mapping:0.6.6 Rscript YOUR_CODE.R`
-
-##### Interactive
-`singularity shell --cleanenv docker://njjai/scrattch_mapping:0.6.6`
-
-
 ## Installation
+
+### Using docker (recommended)
+We have setup a docker environemnt for scrattch.taxonomy, scrattch.mapping, and scrattch.patchseq that contains all the required dependencies and the current version of all scrattch packages. **See [the readme](https://github.com/AllenInstitute/scrattch/blob/master/README.md#using-docker) for [the parent scrattch package](https://github.com/AllenInstitute/scrattch) for the most up-to-date docker information.**
+
+### Directly from GitHub (strongly discouraged)
 
 While we advise using the provided docker, you can also install scrattch.taxonomy directly from GitHub as follows:
 
 ```
-# Quickly, but without the vignettes:
 devtools::install_github("AllenInstitute/scrattch.taxonomy")
-
-# More slowly, but with the vignettes:
-devtools::install_github("AllenInstitute/scrattch.taxonomy", build_vignettes=TRUE, force=TRUE)
 ```
 
-This strategy **might not work outside the docker** due to complicated dependencies. Also note that `doMC` may need to be installed manually from the download link at https://r-forge.r-project.org/R/?group_id=947 if you use Windows. Vignettes are provided below.
+This strategy **might not work** due to complicated dependencies. Also note that `doMC` may need to be installed manually from [HERE](https://r-forge.r-project.org/R/?group_id=947) if you use Windows. Vignettes are provided below.
 
 ## Usage examples
 

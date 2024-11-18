@@ -18,7 +18,10 @@ buildTaxonomy(
   cluster_colors = NULL,
   cluster_stats = NULL,
   dend = NULL,
-  reorder.dendrogram = FALSE
+  reorder.dendrogram = FALSE,
+  add.dendrogram.markers = TRUE,
+  addMapMyCells = TRUE,
+  ...
 )
 }
 \arguments{
@@ -38,7 +41,7 @@ buildTaxonomy(
 
 \item{celltypeColumn}{Column name corresponding to where the clusters are located (default="cluster")}
 
-\item{hierarchy}{List of term_set_labels in the Taxonomy ordered from most gross to most fine.}
+\item{hierarchy}{List of term_set_labels in the Taxonomy ordered from most gross to most fine (e.g., subclass, supertype, neighborhood, class).}
 
 \item{cluster_colors}{An optional named character vector where the values correspond to colors and the names correspond to celltypes in celltypeColumn.  If this vector is incomplete, a warning is thrown and it is ignored. cluster_colors can also be provided in the metadata (see notes)}
 
@@ -46,7 +49,13 @@ buildTaxonomy(
 
 \item{dend}{Existing dendrogram associated with this taxonomy (e.g., one calculated elsewhere).  If NULL (default) a new dendrogram will be calculated based on the input \code{feature.set}}
 
-\item{reorder.dendrogram}{Should dendogram attempt to match a preset order? (Default = FALSE).  If TRUE, the dendrogram attempts to match the celltype factor order as closely as possible (if celltype is a character vector rather than a factor, this will sort clusters alphabetically, which is not ideal).
+\item{reorder.dendrogram}{Should dendogram attempt to match a preset order? (Default = FALSE).  If TRUE, the dendrogram attempts to match the celltype factor order as closely as possible (if celltype is a character vector rather than a factor, this will sort clusters alphabetically, which is not ideal).}
+
+\item{add.dendrogram.markers}{If TRUE (default), will also add dendrogram markers to prep the taxonomy for tree mapping}
+
+\item{addMapMyCells}{If TRUE (default), will also prep this taxonomy for hierarchical mapping}
+
+\item{...}{Additional variables to be passed to \code{addDendrogramMarkers}
 
 Notes: Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If celltypeColumn is anything other than cluster, then any existing "cluster" column will be overwritten by celltypeColumn.  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.}
 }

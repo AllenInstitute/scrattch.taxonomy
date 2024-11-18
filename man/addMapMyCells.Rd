@@ -6,7 +6,7 @@
 \usage{
 addMapMyCells(
   AIT_anndata,
-  hierarchy = list(),
+  hierarchy = AIT.anndata$uns$hierarchy,
   anndata_path = NULL,
   force = FALSE,
   n_processors = 3,
@@ -19,7 +19,7 @@ addMapMyCells(
 \arguments{
 \item{AIT_anndata}{A reference taxonomy anndata object.}
 
-\item{hierarchy}{List of term_set_labels in the reference taxonomy ordered from most gross to most fine.}
+\item{hierarchy}{List of term_set_labels in the reference taxonomy ordered from most gross to most fine. Will default to list included in AIT_anndata, if any.}
 
 \item{anndata_path}{Local file path of the AIT reference taxonomy (h5ad file).}
 

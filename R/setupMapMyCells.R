@@ -1,8 +1,8 @@
 #' This function builds files needed for hierarchical mapping and stores them in the uns$hierarchical of AIT (Shiny) taxonomy.
 #'
 #' @param AIT_anndata A reference taxonomy anndata object.
-#' @param hierarchy List of term_set_labels in the reference taxonomy ordered from most gross to most fine.
-#' @param AIT_anndata_path Local file path of the AIT reference taxonomy (h5ad file).
+#' @param hierarchy List of term_set_labels in the reference taxonomy ordered from most gross to most fine. Will default to list included in AIT_anndata, if any.
+#' @param anndata_path Local file path of the AIT reference taxonomy (h5ad file).
 #' @param force Boolean value indicating whether to overwrite the AIT reference taxonomy's hierarchical file for a given mode.
 #' @param n_processors Number of independent worker processes to spin up.
 #' @param normalization Normalization of the h5ad files; must be either 'raw' or 'log2CPM'.
@@ -19,23 +19,29 @@
 #'
 #' @export
 addMapMyCells = function(AIT_anndata,
-                             hierarchy=list(),
-                             AIT_anndata_path=NULL,
-                             force=FALSE,
-                             n_processors = 3,
-                             normalization = "log2CPM",
-                             tmp_dir = NULL,
-                             user_precomp_stats_path=NULL,
-                             user_query_markers_path=NULL){
+                         hierarchy=AIT.anndata$uns$hierarchy,
+                         anndata_path=NULL,
+                         force=FALSE,
+                         n_processors = 3,
+                         normalization = "log2CPM",
+                         tmp_dir = NULL,
+                         user_precomp_stats_path=NULL,
+                         user_query_markers_path=NULL){
+
   tryCatch(
     {
       # move to zzz try catch
       cell_type_mapper <- import("cell_type_mapper")
       temp_folder = tmp_dir
+      mode = AIT_anndata$uns$mode
 
-      if ((length(AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]]) > 0) && force==FALSE) {
-        stop(paste0(paste0("ERROR: mode provided '", AIT_anndata$uns$mode), 
+      if ((length(AIT_anndata$uns$hierarchical[[mode]]) > 0) && force==FALSE) {
+        stop(paste0(paste0("ERROR: mode provided '", mode), 
         "' already exists, choose a new mode name or use force=TRUE to overwrite."))
+      }
+      
+      if((length(hierarchy)==0)|(sum(class(hierarchy)=="list")<1)){
+        stop("hierarchy must be a list of term_set_labels in the reference taxonomy ordered from most gross to most fine included in AIT_anndata or provided separately.")
       }
 
       if (is.null(temp_folder) || temp_folder == "") {
@@ -48,9 +54,28 @@ addMapMyCells = function(AIT_anndata,
       taxonomy_hierarchy = get_hierarchy(AIT_anndata, hierarchy)
 
       # get file path to the AIT taxonomy (h5ad)
-      taxonomy_anndata_path = get_anndata_path(AIT_anndata, AIT_anndata_path, temp_folder)
+      taxonomy_anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
+      anndata_path = get_anndata_path(taxonomy_anndata_path, temp_folder)
+      
+      # (NEW!) write a subsetted h5ad file to the temp_folder. This will allow proper subsetting of the compute stats and speed it up.
+      if(sum(AIT.anndata$uns$filter[[mode]])==0){
+        anndata_calc_path = anndata_path
+        AIT_anndata_calc  = AIT_anndata
+      } else {
+        mode_dir <- file.path(AIT_anndata$uns$taxonomyDir, "temp")
+        anndata_calc_path <- file.path(mode_dir, paste0(AIT_anndata$uns$title, ".h5ad"))
+        dir.create(mode_dir)
+        keep <- !(AIT_anndata$uns$filter[[mode]])
+        AIT_anndata_calc <- AIT_anndata[keep,]
+        AIT_anndata_calc$uns$taxonomyDir <- mode_dir
+        AIT_anndata_calc$write_h5ad(anndata_calc_path)
+        if(n_processors>1){
+          n_processors = 1
+          warning("WARNING: current implementation requires n_processors=1 if any filtering occurs.")
+        }
+      }
 
-      # compute stats and save them to anndata
+      # compute stats and save them to anndata.
       precomp_stats_output_path = user_precomp_stats_path
       if(is.null(precomp_stats_output_path)) {
         precomp_stats_output_path = run_precomp_stats(taxonomy_anndata_path, n_processors, normalization, temp_folder, taxonomy_hierarchy)
@@ -60,12 +85,19 @@ addMapMyCells = function(AIT_anndata,
       # compute query markers and save them to anndata
       query_markers_output_path = user_query_markers_path
       if(is.null(query_markers_output_path)) {
+        print("run_reference_markers")
         ref_markers_file_path = run_reference_markers(precomp_stats_output_path, n_processors, temp_folder) 
-        query_markers_output_path = run_query_markers(taxonomy_anndata_path, ref_markers_file_path, n_processors, temp_folder) 
+        print("run_query_markers")
+        query_markers_output_path = run_query_markers(anndata_calc_path, ref_markers_file_path, n_processors, temp_folder) 
       }
-      AIT_anndata = save_query_markers_to_uns(AIT_anndata, query_markers_output_path) 
+      AIT_anndata_calc = save_query_markers_to_uns(AIT_anndata_calc, query_markers_output_path) # Move back to original file
       
-      AIT_anndata$write_h5ad(taxonomy_anndata_path)
+      # (NEW!) Move stats from calculation anndata to actual anndata
+      AIT_anndata$uns$hierarchical[[mode]][["precomp_stats"]] <- AIT_anndata_calc$uns$hierarchical[[mode]][["precomp_stats"]]
+      AIT_anndata$uns$hierarchical[[mode]][["query_markers"]] <- AIT_anndata_calc$uns$hierarchical[[mode]][["query_markers"]]
+      
+      # Overwrite correct anndata with added query markers
+      AIT_anndata$write_h5ad(anndata_path)
     },
     error = function(e) {
       errorMessage <- conditionMessage(e)
@@ -91,6 +123,10 @@ addMapMyCells = function(AIT_anndata,
             is.null(AIT_anndata$uns$title)) {
           file.remove(taxonomy_anndata_path)
         }
+      }
+      if(file.exists(mode_dir)){
+        # (NEW!) removes the mode temp directory
+        unlink(mode_dir, recursive = TRUE)
       }
       return(AIT_anndata)
     }
@@ -137,8 +173,9 @@ run_precomp_stats = function(anndata_path, n_processors, normalization, temp_fol
 #'
 #' @param anndata_path Local file path of the AIT reference taxonomy (h5ad file).
 #' @param precomp_stats_output_path Local file path to the generated or user provided precomputed_stats.h5 file.
+#' @param mode By default, set to existing mode, but may be necessary to force a mode other than standard
 #'
-#' @return AIT reference taxonomy with the precomupte stats saved in uns -> hierarchical.
+#' @return AIT reference taxonomy with the precompute stats saved in uns -> hierarchical.
 #'
 #' @keywords internal
 save_precomp_stats_to_uns = function(anndata_path, precomp_stats_output_path, mode) {

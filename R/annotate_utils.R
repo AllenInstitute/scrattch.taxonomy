@@ -239,9 +239,9 @@ auto_annotate <- function(anno, sample_identifier = "cell_id", scale_num = "pred
   
   ## Determine which columns are not already formatted?
   cn <- colnames(anno)
-  convertColumns <- cn[(!grepl("_label", cn)) & (!grepl("_id", cn)) & (!grepl("_color", cn))]
+  convertColumns <- cn[(!grepl("_label$", cn)) & (!grepl("_id$", cn)) & (!grepl("_color$", cn))]
   convertColumns <- setdiff(convertColumns, sample_identifier)
-  convertColumns <- setdiff(convertColumns,gsub("_label","",cn[grepl("_label",cn)])) # Avoid column duplication error
+  convertColumns <- setdiff(convertColumns,gsub("_label$","",cn[grepl("_label$",cn)])) # Avoid column duplication error
 
   ## Automatically annotate the columns
   for (cc in convertColumns) {

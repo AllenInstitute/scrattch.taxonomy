@@ -2,7 +2,7 @@
 title: "Go to examples"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{2. Map patch-seq data and output directory}
+  %\VignetteIndexEntry{Go to examples}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc} 
 ---
