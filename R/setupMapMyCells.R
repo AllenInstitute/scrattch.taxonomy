@@ -27,6 +27,7 @@ addMapMyCells = function(AIT_anndata,
                          tmp_dir = NULL,
                          user_precomp_stats_path=NULL,
                          user_query_markers_path=NULL){
+
   tryCatch(
     {
       # move to zzz try catch
@@ -43,20 +44,14 @@ addMapMyCells = function(AIT_anndata,
         stop("hierarchy must be a list of term_set_labels in the reference taxonomy ordered from most gross to most fine included in AIT_anndata or provided separately.")
       }
 
-      if(is.null(anndata_path)){
-        anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
-      }
-
       if (is.null(temp_folder) || temp_folder == "") {
         temp_folder <- paste0("temp_folder_", format(Sys.time(), "%Y%m%d-%H%M%S"))
         temp_folder <- file.path(getwd(), temp_folder)
         dir.create(temp_folder)
       }
 
-      taxonomy_hierarchy = hierarchy
-      if (length(taxonomy_hierarchy) == 0) {
-        taxonomy_hierarchy = AIT_anndata$uns$hierarchy
-      }
+      # get an ordered list of taxonomy's hierarchy levels.
+      taxonomy_hierarchy = get_hierarchy(AIT_anndata, hierarchy)
 
       # get file path to the AIT taxonomy (h5ad)
       taxonomy_anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
@@ -83,9 +78,9 @@ addMapMyCells = function(AIT_anndata,
       # compute stats and save them to anndata.
       precomp_stats_output_path = user_precomp_stats_path
       if(is.null(precomp_stats_output_path)) {
-        precomp_stats_output_path = run_precomp_stats(anndata_calc_path, n_processors, normalization, temp_folder, taxonomy_hierarchy)
+        precomp_stats_output_path = run_precomp_stats(taxonomy_anndata_path, n_processors, normalization, temp_folder, taxonomy_hierarchy)
       }
-      AIT_anndata_calc = save_precomp_stats_to_uns(anndata_calc_path, precomp_stats_output_path, mode)
+      AIT_anndata = save_precomp_stats_to_uns(taxonomy_anndata_path, precomp_stats_output_path, AIT_anndata$uns$mode)
 
       # compute query markers and save them to anndata
       query_markers_output_path = user_query_markers_path
@@ -122,6 +117,11 @@ addMapMyCells = function(AIT_anndata,
         if(is.null(user_query_markers_path)) {
           file.remove(ref_markers_file_path)
           file.remove(query_markers_output_path)
+        }
+        if (is.null(AIT_anndata_path) && 
+            is.null(AIT_anndata$uns$taxonomyDir) && 
+            is.null(AIT_anndata$uns$title)) {
+          file.remove(taxonomy_anndata_path)
         }
       }
       if(file.exists(mode_dir)){
@@ -178,7 +178,7 @@ run_precomp_stats = function(anndata_path, n_processors, normalization, temp_fol
 #' @return AIT reference taxonomy with the precompute stats saved in uns -> hierarchical.
 #'
 #' @keywords internal
-save_precomp_stats_to_uns = function(anndata_path, precomp_stats_output_path, mode=AIT_anndata$uns$mode) {
+save_precomp_stats_to_uns = function(anndata_path, precomp_stats_output_path, mode) {
   # save precomp stats to anndata h5ad file using cell_type_mapper's precomputed_stats_to_uns
   temp_precomp_stats_name = tools::file_path_sans_ext(basename(precomp_stats_output_path))
   cell_type_mapper$utils$output_utils$precomputed_stats_to_uns(
@@ -279,18 +279,45 @@ save_query_markers_to_uns = function(AIT_anndata, query_markers_output_path) {
 }
 
 #' This function saves the AIT reference taxonomy to a temp folder as h5ad, if the provided file path is invalid.
+#' @param AIT_anndata AIT reference taxonomy object.
 #' @param anndata_path Local file path of the AIT reference taxonomy (h5ad file).
+#' @param temp_folder Temporary directory for writing out temporary files (the code will clean these up after itself).
 #' @return Local file path to the AIT reference taxonomy h5ad file.
 #'
 #' @keywords internal
-get_anndata_path = function(anndata_path, temp_folder) {
-  # Check if anndata path exists; if does not, write it out to temp - show WARNING
-  if (is.null(anndata_path) || !file.exists(anndata_path)) {
-    print(paste0(paste("WARNING: INVALID FILE PATH, ERROR in AIT.anndata$uns taxonomyDir and taxonomyName:", anndata_path),
-          ". Writing the AIT.anndata to temperary location, SAVE anndata or FIX path to OPTIMIZE this step."))
-    anndata_filename <- paste0(paste0("temp_anndata_", format(Sys.time(), "%Y%m%d-%H%M%S")), ".h5ad")
-    anndata_path <- file.path(temp_folder, anndata_filename)
-    AIT_anndata$write_h5ad(anndata_path)
+get_anndata_path = function(AIT_anndata, anndata_path, temp_folder) {
+  if (is.null(anndata_path) || !file.exists(anndata_path)){
+    # Use AIT path stored in AIT.anndata$uns, if not null.
+    if (!is.null(AIT_anndata$uns$taxonomyDir) && !is.null(AIT_anndata$uns$title)){
+      anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
+    }
+    # Check if anndata path exists; if does not, write it out to temp - show WARNING.
+    if (is.null(anndata_path) || !file.exists(anndata_path)) {
+      print(paste0(paste("WARNING: INVALID FILE PATH, ERROR in AIT.anndata$uns taxonomyDir and taxonomyName:", anndata_path),
+            ". Writing the AIT.anndata to temperary location, SAVE anndata or FIX path to OPTIMIZE this step."))
+      anndata_filename <- paste0(paste0("temp_anndata_", format(Sys.time(), "%Y%m%d-%H%M%S")), ".h5ad")
+      anndata_path <- file.path(temp_folder, anndata_filename)
+      AIT_anndata$write_h5ad(anndata_path)
+    }
   }
   return(anndata_path)
+}
+
+#' This function looks for a valid hierarchy list.
+#' @param AIT_anndata AIT reference taxonomy object.
+#' @param hierarchy List of term_set_labels in the reference taxonomy ordered from most gross to most fine.
+#' @return Local file path to the AIT reference taxonomy h5ad file.
+#'
+#' @keywords internal
+get_hierarchy = function(AIT_anndata, hierarchy) {
+  if (length(hierarchy) == 0) {
+    hierarchy = AIT_anndata$uns$hierarchy
+  }
+  else {
+    AIT_anndata$uns$hierarchy = hierarchy 
+  }
+  if (is.null(hierarchy) || length(hierarchy) == 0) {
+    stop(paste("Hierarchy does NOT exist in AIT.anndata$uns$hierarchy, please pass hierarchy list as a function parameter 'hierarchy=list()'."))
+  }
+  return(hierarchy)
 }
