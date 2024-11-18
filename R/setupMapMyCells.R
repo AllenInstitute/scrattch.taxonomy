@@ -30,13 +30,11 @@ addMapMyCells = function(AIT_anndata,
 
   tryCatch(
     {
-      # move to zzz try catch
+      ## move to zzz try catch
       cell_type_mapper <- import("cell_type_mapper")
-      temp_folder = tmp_dir
-      mode = AIT_anndata$uns$mode
 
-      if ((length(AIT_anndata$uns$hierarchical[[mode]]) > 0) && force==FALSE) {
-        stop(paste0(paste0("ERROR: mode provided '", mode), 
+      if ((length(AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]]) > 0) && force==FALSE) {
+        stop(paste0(paste0("ERROR: mode provided '", AIT_anndata$uns$mode), 
         "' already exists, choose a new mode name or use force=TRUE to overwrite."))
       }
       
@@ -44,10 +42,10 @@ addMapMyCells = function(AIT_anndata,
         stop("hierarchy must be a list of term_set_labels in the reference taxonomy ordered from most gross to most fine included in AIT_anndata or provided separately.")
       }
 
-      if (is.null(temp_folder) || temp_folder == "") {
-        temp_folder <- paste0("temp_folder_", format(Sys.time(), "%Y%m%d-%H%M%S"))
-        temp_folder <- file.path(getwd(), temp_folder)
-        dir.create(temp_folder)
+      if (is.null(tmp_dir) || tmp_dir == "") {
+        tmp_dir <- paste0("tmp_dir_", format(Sys.time(), "%Y%m%d-%H%M%S"))
+        tmp_dir <- file.path(getwd(), tmp_dir)
+        dir.create(tmp_dir)
       }
 
       # get an ordered list of taxonomy's hierarchy levels.
@@ -55,17 +53,17 @@ addMapMyCells = function(AIT_anndata,
 
       # get file path to the AIT taxonomy (h5ad)
       taxonomy_anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
-      anndata_path = get_anndata_path(taxonomy_anndata_path, temp_folder)
+      anndata_path = get_anndata_path(taxonomy_anndata_path, tmp_dir)
       
-      # (NEW!) write a subsetted h5ad file to the temp_folder. This will allow proper subsetting of the compute stats and speed it up.
-      if(sum(AIT.anndata$uns$filter[[mode]])==0){
+      # (NEW!) write a subsetted h5ad file to the tmp_dir. This will allow proper subsetting of the compute stats and speed it up.
+      if(sum(AIT.anndata$uns$filter[[AIT_anndata$uns$mode]])==0){
         anndata_calc_path = anndata_path
         AIT_anndata_calc  = AIT_anndata
       } else {
         mode_dir <- file.path(AIT_anndata$uns$taxonomyDir, "temp")
         anndata_calc_path <- file.path(mode_dir, paste0(AIT_anndata$uns$title, ".h5ad"))
         dir.create(mode_dir)
-        keep <- !(AIT_anndata$uns$filter[[mode]])
+        keep <- !(AIT_anndata$uns$filter[[AIT_anndata$uns$mode]])
         AIT_anndata_calc <- AIT_anndata[keep,]
         AIT_anndata_calc$uns$taxonomyDir <- mode_dir
         AIT_anndata_calc$write_h5ad(anndata_calc_path)
@@ -78,7 +76,7 @@ addMapMyCells = function(AIT_anndata,
       # compute stats and save them to anndata.
       precomp_stats_output_path = user_precomp_stats_path
       if(is.null(precomp_stats_output_path)) {
-        precomp_stats_output_path = run_precomp_stats(taxonomy_anndata_path, n_processors, normalization, temp_folder, taxonomy_hierarchy)
+        precomp_stats_output_path = run_precomp_stats(taxonomy_anndata_path, n_processors, normalization, tmp_dir, taxonomy_hierarchy)
       }
       AIT_anndata = save_precomp_stats_to_uns(taxonomy_anndata_path, precomp_stats_output_path, AIT_anndata$uns$mode)
 
@@ -86,15 +84,15 @@ addMapMyCells = function(AIT_anndata,
       query_markers_output_path = user_query_markers_path
       if(is.null(query_markers_output_path)) {
         print("run_reference_markers")
-        ref_markers_file_path = run_reference_markers(precomp_stats_output_path, n_processors, temp_folder) 
+        ref_markers_file_path = run_reference_markers(precomp_stats_output_path, n_processors, tmp_dir) 
         print("run_query_markers")
-        query_markers_output_path = run_query_markers(anndata_calc_path, ref_markers_file_path, n_processors, temp_folder) 
+        query_markers_output_path = run_query_markers(anndata_calc_path, ref_markers_file_path, n_processors, tmp_dir) 
       }
       AIT_anndata_calc = save_query_markers_to_uns(AIT_anndata_calc, query_markers_output_path) # Move back to original file
       
       # (NEW!) Move stats from calculation anndata to actual anndata
-      AIT_anndata$uns$hierarchical[[mode]][["precomp_stats"]] <- AIT_anndata_calc$uns$hierarchical[[mode]][["precomp_stats"]]
-      AIT_anndata$uns$hierarchical[[mode]][["query_markers"]] <- AIT_anndata_calc$uns$hierarchical[[mode]][["query_markers"]]
+      AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]][["precomp_stats"]] <- AIT_anndata_calc$uns$hierarchical[[AIT_anndata$uns$mode]][["precomp_stats"]]
+      AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]][["query_markers"]] <- AIT_anndata_calc$uns$hierarchical[[AIT_anndata$uns$mode]][["query_markers"]]
       
       # Overwrite correct anndata with added query markers
       AIT_anndata$write_h5ad(anndata_path)
@@ -106,8 +104,8 @@ addMapMyCells = function(AIT_anndata,
     finally = {
       # remove the temp folder is it was code generated
       if (is.null(tmp_dir) || tmp_dir == "") {
-        print(paste("Deleting temp folder", temp_folder))
-        unlink(temp_folder, recursive = TRUE)
+        print(paste("Deleting temp folder", tmp_dir))
+        unlink(tmp_dir, recursive = TRUE)
       }
       else {
         # remove the files is they were code generated
@@ -139,24 +137,24 @@ addMapMyCells = function(AIT_anndata,
 #' @param anndata_path Local file path of the AIT reference taxonomy (h5ad file).
 #' @param n_processors Number of independent worker processes to spin up.
 #' @param normalization Normalization of the h5ad files; must be either 'raw' or 'log2CPM'.
-#' @param temp_folder Temporary directory for writing out the hierarchical files (the code will clean these up after itself).
+#' @param tmp_dir Temporary directory for writing out the hierarchical files (the code will clean these up after itself).
 #' @param hierarchy List of term_set_labels in the reference taxonomy ordered from most gross to most fine.
 #'
 #' @return File path to the precompute stats file.
 #'
 #' @keywords internal
-run_precomp_stats = function(anndata_path, n_processors, normalization, temp_folder, hierarchy) {
+run_precomp_stats = function(anndata_path, n_processors, normalization, tmp_dir, hierarchy) {
 
   ##
   temp_precomp_stats_name = paste0("precomp_stats_", format(Sys.time(), "%Y%m%d-%H%M%S"))
   precomp_stats_filename <- paste0(temp_precomp_stats_name, ".h5")
-  precomp_stats_output_path <- file.path(temp_folder, precomp_stats_filename)
+  precomp_stats_output_path <- file.path(tmp_dir, precomp_stats_filename)
 
   precomp_stats_config <- list(
       'h5ad_path' = anndata_path,
       'n_processors' = n_processors,
       'normalization' = normalization,
-      'tmp_dir' = temp_folder,
+      'tmp_dir' = tmp_dir,
       'output_path' = precomp_stats_output_path,
       'hierarchy' = hierarchy
   )
@@ -207,17 +205,17 @@ save_precomp_stats_to_uns = function(anndata_path, precomp_stats_output_path, mo
 #'
 #' @param precomp_stats_output_path Local file path to the generated or user provided precomputed_stats.h5 file.
 #' @param n_processors Number of independent worker processes to spin up.
-#' @param temp_folder Temporary directory for writing out the hierarchical files (the code will clean these up after itself).
+#' @param tmp_dir Temporary directory for writing out the hierarchical files (the code will clean these up after itself).
 #'
 #' @return File path of the reference marker file.
 #'
 #' @keywords internal
-run_reference_markers = function(precomp_stats_output_path, n_processors, temp_folder) {
+run_reference_markers = function(precomp_stats_output_path, n_processors, tmp_dir) {
   ref_markers_config <- list(
       'n_processors' = n_processors,
       'precomputed_path_list' = list(precomp_stats_output_path),
-      'output_dir' = temp_folder,
-      'tmp_dir' = temp_folder
+      'output_dir' = tmp_dir,
+      'tmp_dir' = tmp_dir
   )
 
   ref_markers_runner = cell_type_mapper$cli$reference_markers$ReferenceMarkerRunner(
@@ -225,7 +223,7 @@ run_reference_markers = function(precomp_stats_output_path, n_processors, temp_f
       input_data=ref_markers_config)
   ref_markers_runner$run()
 
-  ref_markers_file_path = file.path(temp_folder, "reference_markers.h5")
+  ref_markers_file_path = file.path(tmp_dir, "reference_markers.h5")
   return(ref_markers_file_path)
 }
 
@@ -234,21 +232,21 @@ run_reference_markers = function(precomp_stats_output_path, n_processors, temp_f
 #' @param anndata_path Local file path of the AIT reference taxonomy (h5ad file).
 #' @param ref_markers_file_path Local file path to the generated reference_marker.h5 file.
 #' @param n_processors Number of independent worker processes to spin up.
-#' @param temp_folder Temporary directory for writing out the hierarchical files (the code will clean these up after itself).
+#' @param tmp_dir Temporary directory for writing out the hierarchical files (the code will clean these up after itself).
 #'
 #' @return File path of the query markers file.
 #'
 #' @keywords internal
-run_query_markers = function(anndata_path, ref_markers_file_path, n_processors, temp_folder) {
+run_query_markers = function(anndata_path, ref_markers_file_path, n_processors, tmp_dir) {
   query_markers_filename = paste0(paste0("query_markers_", format(Sys.time(), "%Y%m%d-%H%M%S")), ".json")
-  query_markers_output_path = file.path(temp_folder, query_markers_filename)
+  query_markers_output_path = file.path(tmp_dir, query_markers_filename)
 
   query_markers_config <- list(
       'query_path' = anndata_path,
       'reference_marker_path_list' = list(ref_markers_file_path),
       'n_processors' = n_processors,
       'output_path' = query_markers_output_path,
-      'tmp_dir' = temp_folder
+      'tmp_dir' = tmp_dir
   )
 
   query_markers_runner = cell_type_mapper$cli$query_markers$QueryMarkerRunner(
@@ -281,11 +279,11 @@ save_query_markers_to_uns = function(AIT_anndata, query_markers_output_path) {
 #' This function saves the AIT reference taxonomy to a temp folder as h5ad, if the provided file path is invalid.
 #' @param AIT_anndata AIT reference taxonomy object.
 #' @param anndata_path Local file path of the AIT reference taxonomy (h5ad file).
-#' @param temp_folder Temporary directory for writing out temporary files (the code will clean these up after itself).
+#' @param tmp_dir Temporary directory for writing out temporary files (the code will clean these up after itself).
 #' @return Local file path to the AIT reference taxonomy h5ad file.
 #'
 #' @keywords internal
-get_anndata_path = function(AIT_anndata, anndata_path, temp_folder) {
+get_anndata_path = function(AIT_anndata, anndata_path, tmp_dir) {
   if (is.null(anndata_path) || !file.exists(anndata_path)){
     # Use AIT path stored in AIT.anndata$uns, if not null.
     if (!is.null(AIT_anndata$uns$taxonomyDir) && !is.null(AIT_anndata$uns$title)){
@@ -296,7 +294,7 @@ get_anndata_path = function(AIT_anndata, anndata_path, temp_folder) {
       print(paste0(paste("WARNING: INVALID FILE PATH, ERROR in AIT.anndata$uns taxonomyDir and taxonomyName:", anndata_path),
             ". Writing the AIT.anndata to temperary location, SAVE anndata or FIX path to OPTIMIZE this step."))
       anndata_filename <- paste0(paste0("temp_anndata_", format(Sys.time(), "%Y%m%d-%H%M%S")), ".h5ad")
-      anndata_path <- file.path(temp_folder, anndata_filename)
+      anndata_path <- file.path(tmp_dir, anndata_filename)
       AIT_anndata$write_h5ad(anndata_path)
     }
   }
