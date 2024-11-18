@@ -87,9 +87,9 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   }
   
   ## Check for a 2D UMAP / latent space (obsm)  
-  if((class(dim(AIT.anndata$obsm$umap))!="integer")|(class(AIT.anndata$obsm$umap)[1]=="data.frame")|(!is.element(class(AIT.anndata$obsm$umap[1,1]),c("integer","numeric","character")))){
+  if((class(dim(AIT.anndata$obsm$X_umap))!="integer")|(class(AIT.anndata$obsm$X_umap)[1]=="data.frame")|(!is.element(class(AIT.anndata$obsm$X_umap[1,1]),c("integer","numeric","character")))){
     isWarning = TRUE
-    messages = c(messages,"\nWARNING: A UMAP is invalid or not provided in AIT.anndata$obsm$umap.")
+    messages = c(messages,"\nWARNING: A UMAP is invalid or not provided in AIT.anndata$obsm$X_umap.")
   }
   
   #########################################

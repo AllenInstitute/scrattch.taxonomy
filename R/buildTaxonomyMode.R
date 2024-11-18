@@ -26,7 +26,6 @@
 #' ...$classBr,  
 #' ...$subclassF,  
 #' ...$allMarkers  
-#' ...$de_genes  
 #' $memb[[mode.name]]  
 #' ...$memb.ref,  
 #' ...$map.df.ref  

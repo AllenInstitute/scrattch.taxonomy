@@ -1,6 +1,6 @@
 Package: scrattch.taxonomy
 Title: Generalized Allen Institute taxonomy building.
-Version: 0.5.12
+Version: 0.5.14
 Authors@R: 
     person(given = "Nelson",
            family = "Johansen",
