@@ -63,11 +63,11 @@ addMapMyCells = function(AIT_anndata,
       anndata_path = get_anndata_path(taxonomy_anndata_path, temp_folder)
       
       # (NEW!) write a subsetted h5ad file to the temp_folder. This will allow proper subsetting of the compute stats and speed it up.
-      if(sum(AIT.anndata$uns$filter[[mode]])==0){
+      mode_dir <- file.path(AIT_anndata$uns$taxonomyDir, "temp")
+      if(sum(AIT_anndata$uns$filter[[mode]])==0){
         anndata_calc_path = anndata_path
         AIT_anndata_calc  = AIT_anndata
       } else {
-        mode_dir <- file.path(AIT_anndata$uns$taxonomyDir, "temp")
         anndata_calc_path <- file.path(mode_dir, paste0(AIT_anndata$uns$title, ".h5ad"))
         dir.create(mode_dir)
         keep <- !(AIT_anndata$uns$filter[[mode]])
@@ -124,7 +124,7 @@ addMapMyCells = function(AIT_anndata,
           file.remove(query_markers_output_path)
         }
       }
-      if(file.exists(mode_dir)){
+      if(exists("mode_dir")) if(file.exists(mode_dir)){
         # (NEW!) removes the mode temp directory
         unlink(mode_dir, recursive = TRUE)
       }

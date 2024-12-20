@@ -153,7 +153,8 @@ buildTaxonomy = function(counts,
     ), ## Store counts matrix
     obs = meta.data,
     var = data.frame("gene" = rownames(counts), 
-                     "highly_variable_genes" = rownames(counts) %in% feature.set, 
+                     "highly_variable_genes" = rownames(counts) %in% feature.set,          # retain original name for back-compatibility
+                     "highly_variable_genes_standard" = rownames(counts) %in% feature.set, # copy to "_standard" for standard mode
                      row.names=rownames(counts)),
     obsm = list(
       X_umap = umap.coords ## A data frame with cell_id, and 2D coordinates for umap (or comparable) representation(s)
