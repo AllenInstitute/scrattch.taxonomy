@@ -65,7 +65,7 @@ AIT.anndata = buildTaxonomy(counts = as(taxonomy.counts, "dgCMatrix"),
                             taxonomyDir = taxonomyDir,
                             taxonomyTitle = "Tasic2016",
                             hierarchy = hierarchy,
-                            subsample=200)
+                            subsample = 200)
 
 ## Create Shiny directory (AIBS-internal)
 createShiny(AIT.anndata,

@@ -1,4 +1,19 @@
-## scrattch.taxonomy 0.5.14
+## scrattch.taxonomy v0.7.1
+
+Updates to improve correlation mapping
+
+### Major changes
+* New function `updateHighlyVariableGenes` to update genes used in mapping
+
+### Minor changes
+* Synchronized versions between scrattch.taxonomy, scrattch.mapping, an scrattch.patchseq
+* Set mode-specific variable genes for "standard"
+* Minor (but breaking) bug fix for AIT.anndata <---> AIT_anndata
+* Updated documentation
+
+--
+
+## scrattch.taxonomy v0.5.14
 
 Upgrades to streamline process
 
@@ -11,7 +26,7 @@ Bug fixes
 
 --
 
-## scrattch.taxonomy 0.5.13
+## scrattch.taxonomy v0.5.13
 
 Supporting changes for scrattch.mapping updates to hierarchical and Seurat mapping
 
@@ -24,7 +39,7 @@ Bug fix allowing users to provide their own dendrogram
 
 --
 
-## scrattch.taxonomy 0.2
+## scrattch.taxonomy v0.2
 
 ## Major changes
 

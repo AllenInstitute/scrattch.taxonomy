@@ -7,6 +7,44 @@
   data = data.frame("")
 }
 
+
+#' Function to update high variable genes for the current mode
+#'
+#' @param AIT.anndata A reference taxonomy anndata object.
+#' @param variable.genes Set of variable genes used for correlation and Seurat mapping (and various other things). By default sets the new variable genes to match what is in AIT.anndata$var$highly_variable_genes, or returns the input starting AIT.anndata if it doesn't exist
+#' @param mode Which mode to update variable genes for (defaults to current mode)
+#'
+#' @return an  AIT.anndata object with the updated high variable genes for the mode
+#'
+#' @export
+updateHighlyVariableGenes = function(AIT.anndata,
+                                     variable.genes=NULL,
+                                     mode = AIT.anndata$uns$mode){
+  
+  if(is.null(variable.genes)){
+    if(is.null(AIT.anndata$var$highly_variable_genes)){
+       print("Returning the starting object since AIT.anndata$var$highly_variable_genes is unspecified.")
+     } else {
+       print("Setting the mode-specific variable genes as the global variable genes since variable.genes=NULL.")
+       AIT.anndata$var[,paste0("highly_variable_genes_",mode)] = AIT.anndata$var$highly_variable_genes
+     }
+    return(AIT.anndata)
+  } else if (is.logical(variable.genes)) {
+    if (length(variable.genes)!=dim(AIT.anndata)[2]) stop("If variable.genes is logical it must be the same length as the total number of genes in AIT.anndata.")
+    variable.genes.vector = variable.genes
+  } else if (is.character(variable.genes)){
+    variable.genes <- intersect(variable.genes,AIT.anndata$var_names)
+    if (length(variable.genes)<=2) stop("More than 2 valid gene names must be provided in variable.genes.")
+    variable.genes.vector <- is.element(AIT.anndata$var_names,variable.genes)
+  } else {
+    stop("variable.genes must be a character or logical vector.")
+  }
+  AIT.anndata$var[,paste0("highly_variable_genes_",mode)] = variable.genes.vector
+  
+  AIT.anndata
+}
+
+
 #' Function to update meta.data
 #'
 #' @param meta.data A data.frame with cell metadata
