@@ -5,6 +5,7 @@
 #' @param counts A count matrix in sparse format: dgCMatrix.
 #' @param highly_variable_genes Set of feature defined as highly variable genes.
 #' @param marker_genes Set of feature defined as marker genes.
+#' @param ensemble_id A vector of ensemble ids corresponding to the gene symbols in counts.
 #' @param cluster_stats A matrix of median gene expression by cluster. Cluster names must exactly match meta.data$cluster.
 #' @param embeddings Dimensionality reduction coordiant data.frame with 2 columns. Rownames must be equal to colnames of counts.
 #' @param dend Existing dendrogram associated with this taxonomy (e.g., one calculated elsewhere).  If NULL (default) a new dendrogram will be calculated based on the input `feature.set`
@@ -40,6 +41,7 @@ buildTaxonomy = function(meta.data,
                          ## var
                          highly_variable_genes = NULL, ## named list
                          marker_genes = NULL, ## named list
+                         ensembl_id = NULL,
                          ## varm
                          cluster_stats = NULL,
                          ## obsm
@@ -165,6 +167,18 @@ buildTaxonomy = function(meta.data,
   if(!is.null(marker_genes)){
     for(feature_set in names(marker_genes)){
       AIT.anndata$var[[feature_set]] = rownames(AIT.anndata$var) %in% marker_genes[[feature_set]]
+    }
+  }
+
+  ## Add ensemble_id into AIT object
+  if(!is.null(ensembl_id)){
+    AIT.anndata$var$ensembl_id = ensembl_id
+  }
+
+  ## Add embeddings
+  if(!is.null(embeddings)){
+    for(embedding in names(embeddings)){
+      AIT.anndata$obsm[[embedding]] = embeddings[[embedding]]
     }
   }
 
