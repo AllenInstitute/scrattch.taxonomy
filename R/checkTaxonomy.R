@@ -25,7 +25,6 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   
   #########################################
   ## Check the expression data 
-  ## Notes: I don't think its possible for $X or $raw$X to be a data.frame given anndata restrictions I removed the test.
   
   ## Check the raw data in anndata.raw.X
   if(!is.null(AIT.anndata$raw[["X"]])){
@@ -52,7 +51,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   ## Check the metadata (obs)
   
   ## Check that the sample metadata (obs) all exist.
-  required.schema.columns = ._get_required_schema_elements(schema, "obs")
+  required.schema.columns = ._get_schema_elements(schema, "obs")
   if(sum(is.element(required.schema.columns, colnames(AIT.anndata$obs))) < length(required.schema.columns)){
     missing.schema.columns = setdiff(required.schema.columns, colnames(AIT.anndata$obs))
     if(length(missing.schema.columns) > 0){
@@ -68,15 +67,25 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   tovalidate.schema.columns = setdiff(required.schema.columns, missing.schema.columns)
   for(element in tovalidate.schema.columns){
     column_def = ._get_schema_def(element)
-    validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages)
+    validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid)
     messages = validation[["messages"]]; isValid = validation[["isValid"]]
+  }
+
+  ## Now we will check any RECOMMENDED schema elements that are present in obs
+  recommended.schema.columns = ._get_schema_elements(schema, "obs", "RECOMMENDED")
+  for(element in tovalidate.schema.columns){
+    if(is.element(elemenet, names(AIT.anndata$uns))){
+      column_def = ._get_schema_def(element)
+      validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid)
+      messages = validation[["messages"]]; isValid = validation[["isValid"]]
+    }
   }
 
   #########################################
   ## Check the metadata (uns)
 
   ## Check the unstructured metadata (uns)
-  required.schema.columns = ._get_required_schema_elements(schema, "uns")
+  required.schema.columns = ._get_schema_elements(schema, "uns")
   if(sum(is.element(required.schema.columns, names(AIT.anndata$uns))) < length(required.schema.columns)){
     missing.schema.columns = setdiff(required.schema.columns, names(AIT.anndata$uns))
     if(length(missing.schema.columns) > 0){
@@ -92,8 +101,18 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   tovalidate.schema.columns = setdiff(required.schema.columns, missing.schema.columns)
   for(element in tovalidate.schema.columns){
     column_def = ._get_schema_def(element)
-    validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages)
+    validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid)
     messages = validation[["messages"]]; isValid = validation[["isValid"]]
+  }
+
+  ## Now we will check any RECOMMENDED schema elements that are present in uns
+  recommended.schema.columns = ._get_schema_elements(schema, "uns", "RECOMMENDED")
+  for(element in tovalidate.schema.columns){
+    if(is.element(elemenet, names(AIT.anndata$uns))){
+      column_def = ._get_schema_def(element)
+      validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid)
+      messages = validation[["messages"]]; isValid = validation[["isValid"]]
+    }
   }
 
   #########################################
@@ -187,7 +206,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 #' @return
 #'
 #' @keywords internal
-._get_required_schema_elements = function(schema, component, type="MUST"){
+._get_schema_elements = function(schema, component, type="MUST"){
     required_schema = schema %>% 
                         filter(Component == component) %>%
                         filter(Required == type) %>%
@@ -206,7 +225,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 #' @return
 #'
 #' @keywords internal
-._validate_schema_element = function(column, column_def, messages){
+._validate_schema_element = function(column, column_def, messages, isValid){
 
   ###########################################################
   ## First we will validate invidual columns type matches expectation from schema
@@ -270,18 +289,20 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 #' @keywords internal
 ._validate_ait_modes = function(AIT.anndata, messages, isValid, isWarning){
   
-  ## Now check the modes
+  ## Gather all modes
   modes <- names(AIT.anndata$uns$filter)
+
+  ## Check modes
   if (length(modes)==0){
     isValid = FALSE
-    messages = c(messages,"\nERROR: taxonomy modes with filters are not found. Scrattch.taxonomy requires at least a standard mode with all cells included.  Likely this h5ad is an earlier version of scrattch.taxonomy format and should be remade. No additional parts of AIT.anndata$uns will be tested for validation.")
+    messages = c(messages,"\nERROR: taxonomy modes with filters are not found. Allen Institute Taxonomy requires atleast a standard mode with all cells included which should have been created with `buildTaxonomy`.  Likely this h5ad is an earlier version of Allen Institute Taxonomy (AIT) format and should be remade.")
   } else {
     if(!is.element(AIT.anndata$uns$mode, modes)){
         isWarning = TRUE
         messages = c(messages,"\nWARNING: The current taxonomy mode is not one of the modes with available filters. Run mappingMode to change.")
     }
     for (mode in modes){
-      messages = c(messages,paste("\n====== Reviewing AIT.anndata$uns for mode",mode,"=====."))
+      messages = c(messages,paste("\n====== Reviewing AIT.anndata$uns for mode", mode, "=====."))
       
       ## Check the dendrogram is correct and can be loaded in from json format
       tryCatch({
@@ -292,7 +313,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
           messages = c(messages,"\nERROR: the dendrogram", dat, "is not correct please rebuild taxonomy or check with creator.")
         },
         finally={
-          messages = c(messages,paste0(":-) AIT.anndata$uns$filter looks correct for mode ",mode,"."))
+          messages = c(messages,paste0(":-) AIT.anndata$uns$dend looks correct for mode ", mode, "."))
       })    
       
       ## Check the filter AIT.anndata$uns$filter[[mode]]
@@ -301,30 +322,14 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
         isValid = FALSE
         messages = c(messages,"\nERROR: the AIT.anndata$uns$filter for mode",mode,"does not exist.")
       } else if(class(dat[1])!="logical"){
-        isWarning = TRUE
-        messages = c(messages,"\nWARNING: the AIT.anndata$uns$filter for mode",mode,"is not a logical vector. This will likely cause problems for other scrattch functions.")  # Maybe needs to be an error
+        isValid = FALSE
+        messages = c(messages,"\nERROR: the AIT.anndata$uns$filter for mode",mode,"is not a logical vector. This will likely cause problems for other scrattch functions.")  # Maybe needs to be an error
       } else if (sum(!dat)==0){
         isWarning = TRUE
-        messages = c(messages,"\nWARNING: the filter for mode",mode,"excludes all of the data!")
+        messages = c(messages,"\nWARNING: the filter for mode", mode, "excludes all of the data!")
       } else {
         messages = c(messages, paste0(":-) AIT.anndata$uns$filter looks correct for mode ",mode,"."))
       }
-      
-      ## QC_markers has been removed from the AIT object in favor of computing on the fly what is required for patchseq.
-      # ## Check the QC_markers AIT.anndata$uns$filter[[mode]]
-      # dat <- AIT.anndata$uns$QC_markers[[mode]]
-      # if(is.null(dat)){
-      #   messages = c(messages,paste0("No QC_markers are calculated for mode ",mode,"."))
-      # } else{
-      #   required.inputs = c("allMarkers", "classBr", "countsQC", "cpmQC", "markers", "qc_genes", "qc_samples", "subclassF")  
-      #   missing.inputs = setdiff(required.inputs,names(dat))
-      #   if (length(missing.inputs)>0){
-      #     val = paste0(missing.inputs,collapse=", ")
-      #     messages = c(messages,paste0("\nThe following AIT.anndata$uns$QC_markers variables are missing: ",val,". IF THIS MODE IS INTENDED FOR TREE MAPPING, please run buildPatchseqTaxonomy() function with mode set as ",mode," to calculate these values."))
-      #   } else {
-      #     messages = c(messages,paste0(":-) QC_markers are calculated and look correct for mode ",mode,"."))
-      #   }
-      # }
     }
   }
   return(list("messages"= messages, "isValid" = isValid, "isWarning" = isWarning))
@@ -345,4 +350,20 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 #   messages = c(messages,"\nWARNING: the folder",dat,"should have a UNIX file structure not a Windows file structure.")
 # } else {
 #   messages = c(messages,paste(":-) AIT.anndata$uns$taxonomyDir looks correct:",dat))
+# }
+
+## QC_markers has been removed from the AIT object in favor of computing on the fly what is required for patchseq.
+# ## Check the QC_markers AIT.anndata$uns$filter[[mode]]
+# dat <- AIT.anndata$uns$QC_markers[[mode]]
+# if(is.null(dat)){
+#   messages = c(messages,paste0("No QC_markers are calculated for mode ",mode,"."))
+# } else{
+#   required.inputs = c("allMarkers", "classBr", "countsQC", "cpmQC", "markers", "qc_genes", "qc_samples", "subclassF")  
+#   missing.inputs = setdiff(required.inputs,names(dat))
+#   if (length(missing.inputs)>0){
+#     val = paste0(missing.inputs,collapse=", ")
+#     messages = c(messages,paste0("\nThe following AIT.anndata$uns$QC_markers variables are missing: ",val,". IF THIS MODE IS INTENDED FOR TREE MAPPING, please run buildPatchseqTaxonomy() function with mode set as ",mode," to calculate these values."))
+#   } else {
+#     messages = c(messages,paste0(":-) QC_markers are calculated and look correct for mode ",mode,"."))
+#   }
 # }
