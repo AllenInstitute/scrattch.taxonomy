@@ -118,49 +118,26 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   #########################################
   ## Check the metadata (var)
 
-  ## Check the gene metadata (var)  # NOTE: THIS WILL LIKELY NEED TO BE UPDATED
-  if(sum(is.element(c("highly_variable_genes"), colnames(AIT.anndata$var)))==0){  # Revisit if this can be a warning instead of an Error
-    isValid = FALSE
-    messages = c(messages,"\nERROR: AIT.anndata$var does not contain highly_variable_genes, which is required for generating UMAPs and dendrograms.")
-  } else {
-    messages = c(messages,":-) AIT.anndata$var looks valid (additional warnings, if any, will be listed below).")
-    if (length(grep("nsembl", colnames(AIT.anndata$var)))==0){
-      isWarning = TRUE
-      messages = c(messages,"\nWARNING: Ensembl IDs for genes are **REQUIRED** for the schema in AIT.anndata$var. This will not impact scrattch.mapping functionality, but will negatively impact interactions with cellxgene and other external tools.")
-    }
-    if (length(grep("arker", colnames(AIT.anndata$var)))==0){  # This may need to be updated later
-      messages = c(messages,"Currently marker genes are not being stored in AIT.anndata$var. Storing marker genes here is not required.")
-    }
-  }
+  # ## Check the gene metadata (var)  # NOTE: THIS WILL LIKELY NEED TO BE UPDATED
+  # if(sum(is.element(c("highly_variable_genes"), colnames(AIT.anndata$var)))==0){  # Revisit if this can be a warning instead of an Error
+  #   isValid = FALSE
+  #   messages = c(messages,"\nERROR: AIT.anndata$var does not contain highly_variable_genes, which is required for generating UMAPs and dendrograms.")
+  # } else {
+  #   messages = c(messages,":-) AIT.anndata$var looks valid (additional warnings, if any, will be listed below).")
+  #   if (length(grep("nsembl", colnames(AIT.anndata$var)))==0){
+  #     isWarning = TRUE
+  #     messages = c(messages,"\nWARNING: Ensembl IDs for genes are **REQUIRED** for the schema in AIT.anndata$var. This will not impact scrattch.mapping functionality, but will negatively impact interactions with cellxgene and other external tools.")
+  #   }
+  #   if (length(grep("arker", colnames(AIT.anndata$var)))==0){  # This may need to be updated later
+  #     messages = c(messages,"Currently marker genes are not being stored in AIT.anndata$var. Storing marker genes here is not required.")
+  #   }
+  # }
   
   #########################################
   ## Check the embeddings X_[embedding]
 
-  ## Check for a 2D UMAP / latent space (obsm)
-  embeddings = names(AIT.anndata$obsm)
-
-  if(length(embeddings) > 0){
-
-    ## Check the naming scheme for embeddings which should follow "X_[embedding]"
-    if(sum(grepl("X_",embeddings))==0){
-      isValid = FALSE
-      messages = c(messages,"\nERROR: An embedding is provided but not in the correct format of 'X_[embedding]'")
-    } else {
-      messages = c(messages,":-) AIT.anndata$obsm contains correctly named embeddings (additional warnings, if any, will be listed below).")
-    }
-
-    ## Now check that each embeddings
-    if((class(dim(AIT.anndata$obsm$X_umap)) != "integer") | 
-        (class(AIT.anndata$obsm$X_umap)[1]=="data.frame") |
-        (!is.element(class(AIT.anndata$obsm$X_umap[1,1]), c("integer","numeric","character")))){
-      isWarning = TRUE
-      messages = c(messages,"\nWARNING: A UMAP is invalid or not provided in AIT.anndata$obsm$X_umap.")
-    }
-
-  }else{
-    isValid = FALSE
-    messages = c(messages,"\nERROR: No embeddings are provided in AIT.anndata$obsm.")
-  }
+  validation = ._validated_embeddings(AIT.anndata, messages, isValid, isWarning)
+  messages = validation[["messages"]]; isValid = validation[["isValid"]]; isWarning = validation[["isWarning"]]
 
   #########################################
   ## Check the modes
@@ -332,6 +309,35 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
       }
     }
   }
+  return(list("messages"= messages, "isValid" = isValid, "isWarning" = isWarning))
+}
+
+._validated_embeddings = function(AIT.anndata, messages, isValid, isWarning){
+  
+  ## Check for a 2D UMAP / latent space (obsm)
+  embeddings = names(AIT.anndata$obsm)
+
+  if(length(embeddings) > 0){
+    for(embedding in embeddings){
+      
+      ## Check the naming scheme for embeddings which should follow "X_[embedding]"
+      if(!grepl("^X_", embedding)){
+        isValid = FALSE
+        messages = c(messages,"\nERROR: An embedding is provided but not in the correct format of 'X_[embedding]'")
+      } else {
+        messages = c(messages,":-) AIT.anndata$obsm contains correctly named embeddings (additional warnings, if any, will be listed below).")
+      }
+
+      ## Now check that each embedding is what we would expect
+      if((class(dim(AIT.anndata$obsm[[embedding]])) != "integer") | 
+          (class(AIT.anndata$obsm[[embedding]])[1]=="data.frame") |
+          (!is.element(class(AIT.anndata$obsm[[embedding]][1,1]), c("integer","numeric","character")))){
+        isWarning = TRUE
+        messages = c(messages, paste0("\nWARNING: An embedding: ", embedding, " is invalid."))
+      }
+    }
+  }
+
   return(list("messages"= messages, "isValid" = isValid, "isWarning" = isWarning))
 }
 
