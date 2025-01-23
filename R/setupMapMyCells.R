@@ -38,26 +38,21 @@ addMapMyCells = function(AIT_anndata,
         "' already exists, choose a new mode name or use force=TRUE to overwrite."))
       }
       
-      if((length(hierarchy)==0)|(sum(class(hierarchy)=="list")<1)){
-        stop("hierarchy must be a list of term_set_labels in the reference taxonomy ordered from most gross to most fine included in AIT_anndata or provided separately.")
-      }
+      # get an ordered list of taxonomy's hierarchy levels.
+      taxonomy_hierarchy = get_hierarchy(AIT_anndata, hierarchy)
 
       if (is.null(tmp_dir) || tmp_dir == "") {
         tmp_dir <- paste0("tmp_dir_", format(Sys.time(), "%Y%m%d-%H%M%S"))
         tmp_dir <- file.path(getwd(), tmp_dir)
         dir.create(tmp_dir)
-      }
-
-      # get an ordered list of taxonomy's hierarchy levels.
-      taxonomy_hierarchy = get_hierarchy(AIT_anndata, hierarchy)
+      }      
 
       # get file path to the AIT taxonomy (h5ad)
-      taxonomy_anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
-      anndata_path = get_anndata_path(taxonomy_anndata_path, tmp_dir)
+      taxonomy_anndata_path = get_anndata_path(AIT_anndata, anndata_path, tmp_dir)
       
       # (NEW!) write a subsetted h5ad file to the tmp_dir. This will allow proper subsetting of the compute stats and speed it up.
       if(sum(AIT_anndata$uns$filter[[AIT_anndata$uns$mode]])==0){
-        anndata_calc_path = anndata_path
+        anndata_calc_path = taxonomy_anndata_path
         AIT_anndata_calc  = AIT_anndata
       } else {
         mode_dir <- file.path(AIT_anndata$uns$taxonomyDir, "temp")
@@ -76,9 +71,9 @@ addMapMyCells = function(AIT_anndata,
       # compute stats and save them to anndata.
       precomp_stats_output_path = user_precomp_stats_path
       if(is.null(precomp_stats_output_path)) {
-        precomp_stats_output_path = run_precomp_stats(taxonomy_anndata_path, n_processors, normalization, tmp_dir, taxonomy_hierarchy)
+        precomp_stats_output_path = run_precomp_stats(anndata_calc_path, n_processors, normalization, tmp_dir, taxonomy_hierarchy)
       }
-      AIT_anndata = save_precomp_stats_to_uns(taxonomy_anndata_path, precomp_stats_output_path, AIT_anndata$uns$mode)
+      AIT_anndata_calc = save_precomp_stats_to_uns(anndata_calc_path, precomp_stats_output_path, AIT_anndata$uns$mode)
 
       # compute query markers and save them to anndata
       query_markers_output_path = user_query_markers_path
@@ -91,6 +86,7 @@ addMapMyCells = function(AIT_anndata,
       AIT_anndata_calc = save_query_markers_to_uns(AIT_anndata_calc, query_markers_output_path) # Move back to original file
       
       # (NEW!) Move stats from calculation anndata to actual anndata
+      AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]] <- list()
       AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]][["precomp_stats"]] <- AIT_anndata_calc$uns$mapmycells[[AIT_anndata$uns$mode]][["precomp_stats"]]
       AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]][["query_markers"]] <- AIT_anndata_calc$uns$mapmycells[[AIT_anndata$uns$mode]][["query_markers"]]
       
@@ -116,7 +112,7 @@ addMapMyCells = function(AIT_anndata,
           file.remove(ref_markers_file_path)
           file.remove(query_markers_output_path)
         }
-        if (is.null(AIT_anndata_path) && 
+        if ((is.null(anndata_path) || !file.exists(anndata_path)) && 
             is.null(AIT_anndata$uns$taxonomyDir) && 
             is.null(AIT_anndata$uns$title)) {
           file.remove(taxonomy_anndata_path)
@@ -287,7 +283,10 @@ get_anndata_path = function(AIT_anndata, anndata_path, tmp_dir) {
   if (is.null(anndata_path) || !file.exists(anndata_path)){
     # Use AIT path stored in AIT.anndata$uns, if not null.
     if (!is.null(AIT_anndata$uns$taxonomyDir) && !is.null(AIT_anndata$uns$title)){
-      anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
+      # Check if the file name already ends with .h5ad, if not, append it
+      anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, 
+                               ifelse(!grepl("\\.h5ad$", AIT_anndata$uns$title), ".h5ad", "")))
+
     }
     # Check if anndata path exists; if does not, write it out to temp - show WARNING.
     if (is.null(anndata_path) || !file.exists(anndata_path)) {
@@ -308,13 +307,13 @@ get_anndata_path = function(AIT_anndata, anndata_path, tmp_dir) {
 #'
 #' @keywords internal
 get_hierarchy = function(AIT_anndata, hierarchy) {
-  if (length(hierarchy) == 0) {
+  if ((sum(class(hierarchy)=="list")<1) | (length(hierarchy) == 0)) {
     hierarchy = AIT_anndata$uns$hierarchy
   }
   else {
     AIT_anndata$uns$hierarchy = hierarchy 
   }
-  if (is.null(hierarchy) || length(hierarchy) == 0) {
+  if ((sum(class(hierarchy)=="list")<1) | (length(hierarchy) == 0)) {
     stop(paste("Hierarchy does NOT exist in AIT.anndata$uns$hierarchy, please pass hierarchy list as a function parameter 'hierarchy=list()'."))
   }
   return(hierarchy)
