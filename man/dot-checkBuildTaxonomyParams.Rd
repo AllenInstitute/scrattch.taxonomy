@@ -6,14 +6,15 @@
 \usage{
 .checkBuildTaxonomyParams(
   counts,
+  normalized.expr,
   meta.data,
-  feature.set,
-  umap.coords,
-  taxonomyDir,
-  taxonomyName,
-  celltypeColumn,
-  cluster_colors,
+  highly_variable_genes,
+  marker_genes,
+  embeddings,
+  hierarchy,
   cluster_stats,
+  taxonomyDir,
+  title,
   dend
 )
 }
@@ -22,11 +23,9 @@
 
 \item{meta.data}{A data.frame with cell metadata}
 
-\item{feature.set}{A list of variable features}
+\item{celltypeColumn}{The column name in meta.data that contains the cell type information}
 
 \item{umap.coords}{A matrix of UMAP coordinates}
-
-\item{celltypeColumn}{The column name in meta.data that contains the cell type information}
 }
 \value{
 Stops the function if any of the parameters are not as expected

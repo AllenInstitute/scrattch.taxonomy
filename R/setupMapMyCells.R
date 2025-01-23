@@ -19,7 +19,7 @@
 #'
 #' @export
 addMapMyCells = function(AIT_anndata,
-                         hierarchy=AIT.anndata$uns$hierarchy,
+                         hierarchy=AIT_anndata$uns$hierarchy,
                          anndata_path=NULL,
                          force=FALSE,
                          n_processors = 3,
@@ -33,7 +33,7 @@ addMapMyCells = function(AIT_anndata,
       ## move to zzz try catch
       cell_type_mapper <- import("cell_type_mapper")
 
-      if ((length(AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]]) > 0) && force==FALSE) {
+      if ((length(AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]]) > 0) && force==FALSE) {
         stop(paste0(paste0("ERROR: mode provided '", AIT_anndata$uns$mode), 
         "' already exists, choose a new mode name or use force=TRUE to overwrite."))
       }
@@ -56,7 +56,7 @@ addMapMyCells = function(AIT_anndata,
       anndata_path = get_anndata_path(taxonomy_anndata_path, tmp_dir)
       
       # (NEW!) write a subsetted h5ad file to the tmp_dir. This will allow proper subsetting of the compute stats and speed it up.
-      if(sum(AIT.anndata$uns$filter[[AIT_anndata$uns$mode]])==0){
+      if(sum(AIT_anndata$uns$filter[[AIT_anndata$uns$mode]])==0){
         anndata_calc_path = anndata_path
         AIT_anndata_calc  = AIT_anndata
       } else {
@@ -91,8 +91,8 @@ addMapMyCells = function(AIT_anndata,
       AIT_anndata_calc = save_query_markers_to_uns(AIT_anndata_calc, query_markers_output_path) # Move back to original file
       
       # (NEW!) Move stats from calculation anndata to actual anndata
-      AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]][["precomp_stats"]] <- AIT_anndata_calc$uns$hierarchical[[AIT_anndata$uns$mode]][["precomp_stats"]]
-      AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]][["query_markers"]] <- AIT_anndata_calc$uns$hierarchical[[AIT_anndata$uns$mode]][["query_markers"]]
+      AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]][["precomp_stats"]] <- AIT_anndata_calc$uns$mapmycells[[AIT_anndata$uns$mode]][["precomp_stats"]]
+      AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]][["query_markers"]] <- AIT_anndata_calc$uns$mapmycells[[AIT_anndata$uns$mode]][["query_markers"]]
       
       # Overwrite correct anndata with added query markers
       AIT_anndata$write_h5ad(anndata_path)
@@ -109,7 +109,7 @@ addMapMyCells = function(AIT_anndata,
       }
       else {
         # remove the files is they were code generated
-        if(is.null(user_precomp_stats_path)) {
+        if(is.null(user_precomp_stats_path) && !is.null(precomp_stats_output_path)) {
           file.remove(precomp_stats_output_path)
         }
         if(is.null(user_query_markers_path)) {
@@ -193,8 +193,8 @@ save_precomp_stats_to_uns = function(anndata_path, precomp_stats_output_path, mo
 
   ## take the precomputed_stats from uns and save to uns$hierarchical$mode
   precomp_stats_json = AIT_anndata$uns[[temp_precomp_stats_name]]
-  AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]] <- list()
-  AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]][["precomp_stats"]] <- precomp_stats_json
+  AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]] <- list()
+  AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]][["precomp_stats"]] <- precomp_stats_json
   AIT_anndata$uns[[temp_precomp_stats_name]] <- NULL
 
   return(AIT_anndata)
@@ -271,7 +271,7 @@ save_query_markers_to_uns = function(AIT_anndata, query_markers_output_path) {
   serialized_query_markers = cell_type_mapper$utils$utils$clean_for_uns_serialization(query_markers_data)
   
   ## save serialized query_markers to uns$hierarchical$mode
-  AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]][["query_markers"]] <- serialized_query_markers
+  AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]][["query_markers"]] <- serialized_query_markers
 
   return(AIT_anndata)
 }

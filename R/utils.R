@@ -60,63 +60,61 @@
 #' @param counts A count matrix (cells x genes)
 #' @param meta.data A data.frame with cell metadata
 #' @param celltypeColumn The column name in meta.data that contains the cell type information
-#' @param feature.set A list of variable features
 #' @param umap.coords A matrix of UMAP coordinates
 #' 
 #' @return Stops the function if any of the parameters are not as expected
 #'
 #' @keywords internal
-.checkBuildTaxonomyParams <- function(counts, meta.data, feature.set, 
-                                        umap.coords, taxonomyDir, taxonomyName, 
-                                        celltypeColumn, cluster_colors, cluster_stats, dend){
-  if(sum(is.element(paste0(celltypeColumn,c("","_label")), colnames(meta.data)))==0){stop("cluster column must be defined in the meta.data object")}
-  if(is.null(feature.set)){stop("Compute variable features and supply feature.set")}
-  if(is.null(umap.coords)){stop("Compute UMAP dimensions and supply umap.coords")}
+.checkBuildTaxonomyParams <- function(counts, 
+                                      normalized.expr,
+                                      meta.data, 
+                                      highly_variable_genes,
+                                      marker_genes,
+                                      embeddings, 
+                                      hierarchy,
+                                      cluster_stats,
+                                      taxonomyDir, 
+                                      title, 
+                                      dend){
+  if(sum(is.element(hierarchy[[-1]], colnames(meta.data)))==0){stop("cluster column must be defined in the meta.data object")}
   if(!all(colnames(counts) == rownames(meta.data))){stop("Colnames of `counts` and rownames of `meta.data` do not match.")}
   if(!is.data.frame(meta.data)){stop("meta.data must be a data.frame, convert using as.data.frame(meta.data)")}
-  if("sample" %in% colnames(meta.data)){stop("meta.data column name 'sample' is reserved and cannot be used, please remove or rename.")}
 
-  ## Rename celltypeColumn to "cluster" if needed
-  celltypeColumn <- gsub("_label","",celltypeColumn)
-  if(celltypeColumn!="cluster"){
-    inCol     <- paste0(celltypeColumn,c("","_label","_id","_color"))
-    outCol    <- paste0("cluster",c("","_label","_id","_color"))
-    meta.data <- meta.data[,setdiff(colnames(meta.data),outCol)]
-    for (i in 1:4) if(is.element(inCol[i],colnames(meta.data))) {
-      colnames(meta.data) <- gsub(inCol[i],outCol[i],colnames(meta.data))
-    }
-  }
-  if(sum(is.element(c("cluster","cluster_label"),colnames(meta.data)))>1){stop("Only a single cluster column can be provided (e.g., cluster or cluster_label but not both).")}
-  
-  ## Capture the cluster colors from the metadata if provided and if possible
-  if(sum(is.element("cluster_color", colnames(meta.data))) == 1){
-    if(length(meta.data$cluster_label)>0){
-      cluster_colors <- setNames(meta.data$cluster_color, meta.data$cluster_label)
-      cluster_colors <- cluster_colors[unique(names(cluster_colors))]
-      meta.data$cluster <- meta.data$cluster_label
-      meta.data <- meta.data[,setdiff(colnames(meta.data),paste0("cluster",c("_label","_id","_color")))]
-    }else {
-      warning("Cannot match cluster_label and cluster_color in meta.data, so cluster_color will be ignored.")
+  ## Sanity checks on data matrices
+  if(!is.null(counts)){
+    if(!is(counts, 'sparseMatrix')){stop("`counts` must be a sparse matrix.")}
+    if(!is.null(normalized.expr)){
+      if(!is(normalized.expr, 'sparseMatrix')){stop("`normalized.expr` must be a sparse matrix.")}
+      if(!all(rownames(counts) == rownames(normalized.expr))){stop("Rownames of `counts` and `normalized.expr` do not match.")}
     }
   }
 
   ## Now check the dendrogram clusters and formatting, if dendrogram is provided
   if(!is.null(dend)){
+    ## Check that dend is of class dendrogram
     if(!is.element("dendrogram",class(dend))){stop("If provided, dend must be of R class dendrogram.")}
-    clusters=unique(meta.data$cluster)
-    extra_labels <- setdiff(labels(dend), clusters)
+
+    ## Check that dend and meta.data match in labels
+    extra_labels <- setdiff(labels(dend), unique(meta.data$celltypeColumn))
     if(length(extra_labels)>0){stop(paste("Dendrogram has labels not included in metadata:",paste(extra_labels,collapse=", ")))}
-    extra_labels <- setdiff(clusters, labels(dend))
+
+    ## Check that meta.data and dend match in labels
+    extra_labels <- setdiff(unique(meta.data$celltypeColumn), labels(dend))
     if(length(extra_labels)>0){
-      warning(paste0("Metadata include cluster labels not found in dendrogram: ", paste(extra_labels, collapse=", "),
-                     ". Cells from these clusters will be EXCLUDED from all taxonomy files."))
+      warning(paste0("Metadata include cluster labels not found in dendrogram: ", paste(extra_labels, collapse=", ")))
     }
   }
 
-  ## Check that cluster stats conforms to meta.data$cluster
+  ## Check that cluster stats conforms to meta.data$celltypeColumn
   if(!is.null(cluster_stats)){
-    if(!all(unique(meta.data$cluster) %in% cluster_stats$cluster)){
-      stop("clusters in provided cluster_stats must contain cover all of meta.data$cluster")
+    print("===== Checking cluster_stats =====")
+    if(!is.null(counts)){
+      if(!all(rownames(cluster_stats) %in% rownames(counts))){
+        stop("Cluster stats must have the same columns as the normalized expression matrix.")
+      }
+    }
+    if(!all(unique(meta.data[[celltypeColumn]]) %in% colnames(cluster_stats))){
+      stop("Cluster stats must have the same set of cell types as meta.data[[celltypeColumn]].")
     }
   }
 
@@ -124,8 +122,35 @@
   taxonomyDir <- file.path(taxonomyDir) # Convert from windows to unix or vice versa
   dir.create(taxonomyDir, showWarnings = FALSE)
 
-  ##
-  return(list(meta.data=meta.data, celltypeColumn=celltypeColumn))
+  ## Validate the schema
+  # .schemaValidate(meta.data)
+
+}
+
+#' Function to subsample cells from a taxonomy
+#'
+#' @param meta.data A data.frame with cell metadata
+#' @param cell_ids A vector of cell ids to subsample from
+#' @param dend A dendrogram object to use for subsampling
+#' @param subsample The number of cells to retain per cluster (default = 2000)
+#' 
+#' @return boolean vector for subsampling
+#'
+#' @keywords internal
+subsample_taxonomy = function(cluster.names, cell_ids, dend, subsample=2000){
+  
+  if(!is.null(dend))
+    kpClusters <- is.element(cluster.names, labels(dend)) # exclude missing clusters, if any
+
+  if((subsample > 0) & (subsample < Inf)){
+      print("===== Subsampling cells =====")
+      kpSub = cell_ids[subsampleCells(cluster.names, subsample)]
+  }else{
+      print("===== No subsampling of cells =====")
+      kpSub = cell_ids
+  }
+
+  return(kpSub)
 }
 
 #' Function to subsample cells

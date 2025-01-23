@@ -9,7 +9,7 @@ run_precomp_stats(
   anndata_path,
   n_processors,
   normalization,
-  temp_folder,
+  tmp_dir,
   hierarchy
 )
 }
@@ -20,7 +20,7 @@ run_precomp_stats(
 
 \item{normalization}{Normalization of the h5ad files; must be either 'raw' or 'log2CPM'.}
 
-\item{temp_folder}{Temporary directory for writing out the hierarchical files (the code will clean these up after itself).}
+\item{tmp_dir}{Temporary directory for writing out the hierarchical files (the code will clean these up after itself).}
 
 \item{hierarchy}{List of term_set_labels in the reference taxonomy ordered from most gross to most fine.}
 }

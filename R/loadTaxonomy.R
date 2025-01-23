@@ -20,22 +20,22 @@ loadTaxonomy = function(taxonomyDir,
     ## Default mode is always standard
     AIT.anndata$uns$mode = "standard"
     ##
-    for(mode in names(AIT.anndata$uns$dend)){
-      invisible(capture.output({
-        if(grepl("dend.RData", AIT.anndata$uns$dend[[mode]])){
-          print("Loading an older AIT .h5ad version. Converting dendrogram to JSON format for mapping.")
-          dend = readRDS(AIT.anndata$uns$dend[[mode]])
-          AIT.anndata$uns$dend[[mode]] = toJSON(dend_to_json(dend))
-        }
-      }))
-    }
+    # for(mode in names(AIT.anndata$uns$dend)){
+    #   invisible(capture.output({
+    #     if(grepl("dend.RData", AIT.anndata$uns$dend[[mode]])){
+    #       print("Loading an older AIT .h5ad version. Converting dendrogram to JSON format for mapping.")
+    #       dend = readRDS(AIT.anndata$uns$dend[[mode]])
+    #       AIT.anndata$uns$dend[[mode]] = toJSON(dend_to_json(dend))
+    #     }
+    #   }))
+    # }
     if(("taxonomyName" %in% colnames(AIT.anndata$obs)) & (!"title" %in% colnames(AIT.anndata$obs))){
       AIT.anndata$obs$title = anndata_file$obs$taxonomyName
     }
     ## Ensure anndata is in scrattch.mapping format
-    if(!checkTaxonomy(AIT.anndata,log.file.path)){
-     stop(paste("Taxonomy has some breaking issues.  Please check checkTaxonomy_log.txt in", log.file.path, "for details"))
-    }
+    # if(!checkTaxonomy(AIT.anndata,log.file.path)){
+    #  stop(paste("Taxonomy has some breaking issues.  Please check checkTaxonomy_log.txt in", log.file.path, "for details"))
+    # }
   }else{
     stop("Required files to load Allen Institute taxonomy are missing.")
   }

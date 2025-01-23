@@ -32,17 +32,13 @@ keep            = taxonomy.anno$broad_type!="Unclassified"
 taxonomy.counts = taxonomy.counts[,keep]
 taxonomy.anno   = taxonomy.anno[keep,]
 
-## Ensure 'cluster' field exists, as required by scrattch.taxonomy.
-## -- Note that this is called "cluster" here, but will be called "cluster_label" everywhere else
-taxonomy.anno$cluster = taxonomy.anno$primary_type_label
-
 ## Provide hierarchy of the taxonomy
 ## -- This will be used for all mapping algorithms unless otherwise specified
 ## -- This MUST be from broadest to most specific types, and NOT vice versa
-hierarchy = list("broad_type_label", "cluster_label")
+hierarchy = list("broad_type", "primary_type_label")
 
 ## Compute top 1000 binary marker genes for clusters (or use a pre-existing vector)
-binary.genes = top_binary_genes(taxonomy.counts, taxonomy.anno$cluster, 1000)
+binary.genes = top_binary_genes(taxonomy.counts, taxonomy.anno$primary_type_label, 1000)
 
 ## Compute UMAP coordinates (or use precomputed coordinates)
 pcs  <- prcomp(logCPM(taxonomy.counts)[binary.genes,], scale = TRUE)$rotation
@@ -52,20 +48,21 @@ umap.coords = umap(pcs[,1:30])$layout
 rownames(taxonomy.anno) = taxonomy.anno$sample_name
 rownames(umap.coords) = colnames(taxonomy.counts)
 
-## This is where our taxonomy will be created
-## -- NOTE: replace 'taxonomyDir' location below with desired output folder location
-taxonomyDir = getwd()
-
 ## Build Allen Insitute Taxonomy, for large taxonomies you can pass in tpm and cluster_stats if pre-computed.
-AIT.anndata = buildTaxonomy(counts = as(taxonomy.counts, "dgCMatrix"),
-                            tpm = NULL,
-                            meta.data = taxonomy.anno,
-                            feature.set = binary.genes,
-                            umap.coords = umap.coords,
-                            taxonomyDir = taxonomyDir,
-                            taxonomyTitle = "Tasic2016",
+AIT.anndata = buildTaxonomy(meta.data = taxonomy.anno,
+                            title = "Tasic2016",
+                            counts = as(taxonomy.counts, "dgCMatrix"),
+                            normalized.expr = NULL,
+                            highly_variable_genes = NULL,
+                            marker_genes = list("marker_genes_binary" = binary.genes),
+                            cluster_stats = NULL, ## Pre-computed cluster stats
+                            embeddings = list("X_umap" = umap.coords),
+                            ##
+                            dend = NULL, ## Pre-computed dendrogram
+                            taxonomyDir = getwd(), ## This is where our taxonomy will be created
                             hierarchy = hierarchy,
-                            subsample=200)
+                            ##
+                            subsample=2000)
 
 ## Create Shiny directory (AIBS-internal)
 createShiny(AIT.anndata,

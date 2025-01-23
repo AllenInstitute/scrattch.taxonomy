@@ -5,14 +5,14 @@
 \title{Generates reference_marker.h5 file. The reference markers are, for every pair of leaf nodes in the cell type taxonomy tree,
 every gene that could conceivably be a marker gene for discriminating between those two cell types.}
 \usage{
-run_reference_markers(precomp_stats_output_path, n_processors, temp_folder)
+run_reference_markers(precomp_stats_output_path, n_processors, tmp_dir)
 }
 \arguments{
 \item{precomp_stats_output_path}{Local file path to the generated or user provided precomputed_stats.h5 file.}
 
 \item{n_processors}{Number of independent worker processes to spin up.}
 
-\item{temp_folder}{Temporary directory for writing out the hierarchical files (the code will clean these up after itself).}
+\item{tmp_dir}{Temporary directory for writing out the hierarchical files (the code will clean these up after itself).}
 }
 \value{
 File path of the reference marker file.

@@ -4,10 +4,14 @@
 \alias{get_anndata_path}
 \title{This function saves the AIT reference taxonomy to a temp folder as h5ad, if the provided file path is invalid.}
 \usage{
-get_anndata_path(anndata_path, temp_folder)
+get_anndata_path(AIT_anndata, anndata_path, tmp_dir)
 }
 \arguments{
+\item{AIT_anndata}{AIT reference taxonomy object.}
+
 \item{anndata_path}{Local file path of the AIT reference taxonomy (h5ad file).}
+
+\item{tmp_dir}{Temporary directory for writing out temporary files (the code will clean these up after itself).}
 }
 \value{
 Local file path to the AIT reference taxonomy h5ad file.

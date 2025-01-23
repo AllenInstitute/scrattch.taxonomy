@@ -145,3 +145,13 @@ createShiny = function(AIT.anndata,
   feather::write_feather(medianmat, file.path(shinyDir,"medians.feather"))
   feather::write_feather(sums,      file.path(shinyDir,"sums.feather"))
 }
+
+
+
+  # ## ----------
+  # ## Run auto_annotate, this changes cell_id to cell_id.
+  # meta.data$cell_id = colnames(counts)
+  # meta.data = .formatMetadata(meta.data, cluster_colors)
+
+  #   ## Gather clusters
+  # clustersUse = unique(meta.data$cluster_label)
