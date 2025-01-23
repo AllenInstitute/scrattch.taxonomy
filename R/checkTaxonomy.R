@@ -117,24 +117,13 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 
   #########################################
   ## Check the metadata (var)
+  ## highly_variable_genes[_name], marker_genes[_name], ensembl_id all of which are RECOMMENDED
 
-  # ## Check the gene metadata (var)  # NOTE: THIS WILL LIKELY NEED TO BE UPDATED
-  # if(sum(is.element(c("highly_variable_genes"), colnames(AIT.anndata$var)))==0){  # Revisit if this can be a warning instead of an Error
-  #   isValid = FALSE
-  #   messages = c(messages,"\nERROR: AIT.anndata$var does not contain highly_variable_genes, which is required for generating UMAPs and dendrograms.")
-  # } else {
-  #   messages = c(messages,":-) AIT.anndata$var looks valid (additional warnings, if any, will be listed below).")
-  #   if (length(grep("nsembl", colnames(AIT.anndata$var)))==0){
-  #     isWarning = TRUE
-  #     messages = c(messages,"\nWARNING: Ensembl IDs for genes are **REQUIRED** for the schema in AIT.anndata$var. This will not impact scrattch.mapping functionality, but will negatively impact interactions with cellxgene and other external tools.")
-  #   }
-  #   if (length(grep("arker", colnames(AIT.anndata$var)))==0){  # This may need to be updated later
-  #     messages = c(messages,"Currently marker genes are not being stored in AIT.anndata$var. Storing marker genes here is not required.")
-  #   }
-  # }
-  
+  validation = .validate_var_elements(AIT.anndata, messages, isValid, isWarning)
+  messages = validation[["messages"]]; isValid = validation[["isValid"]]; isWarning = validation[["isWarning"]]
+
   #########################################
-  ## Check the embeddings X_[embedding]
+  ## Check the embeddings X_[embedding] which are RECOMMENDED
 
   validation = ._validated_embeddings(AIT.anndata, messages, isValid, isWarning)
   messages = validation[["messages"]]; isValid = validation[["isValid"]]; isWarning = validation[["isWarning"]]
@@ -152,7 +141,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   write(messages,file.path(log.file.path,"checkTaxonomy_log.txt"))
   if(!isValid) {
     warning("AIT.anndata is not in Allen Institute Taxonomy format as described at https://github.com/AllenInstitute/AllenInstituteTaxonomy/tree/main/schema. See checkTaxonomy_log.txt for details.")
-    ## Should we print the messages to the console as well?
+    ## @Jeremy Should we print the messages to the console as well?
   } else if(isWarning) {
     warning("AIT.anndata is in Allen Institute Taxonomy format, BUT some warnings were seen. See checkTaxonomy_log.txt for details.")
   } else {
@@ -312,8 +301,18 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   return(list("messages"= messages, "isValid" = isValid, "isWarning" = isWarning))
 }
 
+#' This function will validate the embeddings in an AIT file
+#'
+#' @param AIT.anndata The AIT anndata object to validate.
+#' @param messages The current messages to append to.
+#' @param isValid The current isValid status.
+#' @param isWarning The current isWarning status.
+#'
+#' @return
+#'
+#' @keywords internal
 ._validated_embeddings = function(AIT.anndata, messages, isValid, isWarning){
-  
+
   ## Check for a 2D UMAP / latent space (obsm)
   embeddings = names(AIT.anndata$obsm)
 
@@ -341,6 +340,62 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   return(list("messages"= messages, "isValid" = isValid, "isWarning" = isWarning))
 }
 
+#' This function will validate the var in an AIT file
+#'
+#' @param AIT.anndata The AIT anndata object to validate.
+#' @param messages The current messages to append to.
+#' @param isValid The current isValid status.
+#' @param isWarning The current isWarning status.
+#'
+#' @return
+#'
+#' @keywords internal
+.validate_var_elements = function(AIT.anndata, messages, isValid, isWarning){
+  ## Check the highly_variable_genes
+  if(sum(is.element(c("highly_variable_genes"), colnames(AIT.anndata$var)))==0){
+    isWarning = TRUE
+    messages = c(messages,"\nWARNING: AIT.anndata$var does not contain highly_variable_genes[_name], which is recommended for generating UMAPs and dendrograms.")
+  }else{
+    var_gene_columns = colnames(AIT.anndata$var)[grepl("highly_variable_genes", colnames(AIT.anndata$var))]
+    for(var_gene_column in var_gene_columns){
+      column = AIT.anndata$var[[var_gene_column]]
+      if(!all(column %in% c(TRUE, FALSE))){ 
+        isValid = FALSE
+        messages = c(messages, paste0("The anndata.var element: ", var_gene_column, " must be boolean.\n"))
+      }else{
+        messages = c(messages,":-) AIT.anndata$var contains highly_variable_genes (additional warnings, if any, will be listed below).")
+      }
+    }
+  }
+
+  ## Check the marker_genes
+  if(sum(is.element(c("marker_genes"), colnames(AIT.anndata$var)))==0){
+    isWarning = TRUE
+    messages = c(messages,"\nWARNING: AIT.anndata$var does not contain marker_genes[_name], which is recommended for generating UMAPs and dendrograms.")
+  }else{
+    marker_gene_columns = colnames(AIT.anndata$var)[grepl("marker_genes", colnames(AIT.anndata$var))]
+    for(marker_gene_column in marker_gene_columns){
+      column = AIT.anndata$var[[marker_gene_column]]
+      if(!all(column %in% c(TRUE, FALSE))){ 
+        isValid = FALSE
+        messages = c(messages, paste0("The anndata.var element: ", marker_gene_column, " must be boolean.\n"))
+      }else{
+        messages = c(messages,":-) AIT.anndata$var contains marker_genes (additional warnings, if any, will be listed below).")
+      }
+    }
+  }
+  
+  ## Check the ensembl_id
+  if(sum(is.element(c("ensembl_id"), colnames(AIT.anndata$var)))==0){
+    isWarning = TRUE
+    messages = c(messages,"\nWARNING: AIT.anndata$var does not contain ensembl_id, which is recommended for generating UMAPs and dendrograms.")
+  }else{
+    ## Validate ensembl_id???
+    messages = c(messages,":-) AIT.anndata$var contains ensembl_id (additional warnings, if any, will be listed below).")
+  }
+
+  return(list("messages"= messages, "isValid" = isValid, "isWarning" = isWarning))
+}
 
 ## Not in the schema and well handled elsewhere (loadTaxonomy)
 ## Check taxonomy directory (AIT.anndata$uns$taxonomyDir)
