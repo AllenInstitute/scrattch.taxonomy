@@ -12,7 +12,7 @@ loadTaxonomy = function(taxonomyDir,
                         log.file.path=getwd(),
                         force=FALSE){
   ## Make sure the taxonomy path is an absolute path
-  taxonomyDir = normalizePath(file_path, winslash = "/")
+  taxonomyDir = normalizePath(taxonomyDir, winslash = "/")
   ## Load from directory name input 
   if(file.exists(file.path(taxonomyDir, anndata_file))){
     print("Loading reference taxonomy into memory from .h5ad")
