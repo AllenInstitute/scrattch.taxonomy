@@ -150,6 +150,7 @@ buildTaxonomy = function(meta.data,
       mode = "standard", ## Default mode to standard
       cellSet = rownames(meta.data),
       clusterInfo = clusterInfo,
+      clusterStatsColumns = list("standard" = colnames(cluster_stats)),
       title = title,
       hierarchy = list(hierarchy),
       taxonomyDir = file.path(normalizePath(taxonomyDir), leading_string="/") ## Normalize path in case where user doesn't provide absolute path.
@@ -211,9 +212,7 @@ buildTaxonomy = function(meta.data,
       warning("hierarchy must be a list of term_set_labels in the reference taxonomy ordered from most gross to most fine included in AIT_anndata or provided separately. Since this is NOT the case, addMapMyCells is being skipped")
     } else{
       print("===== Adding MapMyCells (hierarchical mapping) functionality =====")
-      print(AIT.anndata)
       AIT.anndata = mappingMode(AIT.anndata, mode="standard")
-      print(AIT.anndata)
       AIT.anndata = addMapMyCells(AIT.anndata, hierarchy, force=TRUE)
     }
   }
