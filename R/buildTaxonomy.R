@@ -71,13 +71,16 @@ buildTaxonomy = function(meta.data,
                                             title, 
                                             dend)
 
+  ## Pull the finest level cell type column
+  celltypeColumn = names(hierarchy)[[-1]]
+
   ## ----------
   ## Subsample nuclei per cluster, max of subsample cells per cluster
-  kpSub = subsample_taxonomy(meta.data[[hierarchy[[-1]]]], rownames(meta.data), dend, subsample)
+  kpSub = subsample_taxonomy(meta.data[[celltypeColumn]], rownames(meta.data), dend, subsample)
 
   ## Define clusterInfo, which is used to convert cell types to subclass / neighborhood / class
-  clusterInfo = meta.data %>% distinct(.data[[hierarchy[[-1]]]], .keep_all = TRUE)
-  rownames(clusterInfo) = clusterInfo[[hierarchy[[-1]]]]
+  clusterInfo = meta.data %>% distinct(.data[[celltypeColumn]], .keep_all = TRUE)
+  rownames(clusterInfo) = clusterInfo[[celltypeColumn]]
 
   ## Computing TPM matrix if count matrix exists
   if(!is.null(counts) & is.null(normalized.expr)){
@@ -92,7 +95,7 @@ buildTaxonomy = function(meta.data,
     if(is.null(cluster_stats)){
       print("===== Computing median expr. at taxonomy leaves =====")
       ## Get cluster medians
-      cluster   = meta.data[[hierarchy[[-1]]]]; names(cluster) = rownames(meta.data)
+      cluster   = meta.data[[celltypeColumn]]; names(cluster) = rownames(meta.data)
       cluster_stats = scrattch.bigcat::get_cl_medians(normalized.expr, cluster)
     }
   }
@@ -104,9 +107,9 @@ buildTaxonomy = function(meta.data,
     # FOR FUTURE UPDATE: should check here whether dendrogram colors match what is in meta-data.
   } else {
     ## Dendrogram parameters and gene sets
-    # use.color = setNames(clusterInfo$cluster_color, clusterInfo[[hierarchy[[-1]]]])[colnames(cluster_stats)] @Jeremy please handle this.
+    # use.color = setNames(clusterInfo$cluster_color, clusterInfo[[celltypeColumn]])[colnames(cluster_stats)] @Jeremy please handle this.
     if(reorder.dendrogram){
-      l.rank = setNames(meta.data[[hierarchy[[-1]]]][match(clusterInfo[[hierarchy[[-1]]]], meta.data[[hierarchy[[-1]]]])], clusterInfo[[hierarchy[[-1]]]])
+      l.rank = setNames(meta.data[[celltypeColumn]][match(clusterInfo[[celltypeColumn]], meta.data[[celltypeColumn]])], clusterInfo[[celltypeColumn]])
       l.rank = sort(l.rank)
     }else{ l.rank    = NULL }
     ## Figure out feature set to use 
@@ -196,7 +199,7 @@ buildTaxonomy = function(meta.data,
     if(is.character(hierarchy)) hierarchy <- as.list(hierarchy)
     AIT.anndata = addDendrogramMarkers(AIT.anndata, 
                                         mode="standard", 
-                                        celltypeColumn = hierarchy[[-1]],
+                                        celltypeColumn = celltypeColumn,
                                         taxonomyDir=AIT.anndata$uns$taxonomyDir,
                                         ...)
     # The reference probability matrix for the subsetted taxonomy is defined and outputted in this function as well
@@ -205,6 +208,7 @@ buildTaxonomy = function(meta.data,
     # ...$map.df.ref
   }
   
+  ## NOTE: REMOVE CHECKS OF HEIRARCHY AND DO ELSEWEHRE
   ## Add MapMyCells (hierarchical mapping) functionality, if requested
   if(addMapMyCells) {
     if(is.character(hierarchy)) hierarchy <- as.list(hierarchy)
@@ -213,7 +217,7 @@ buildTaxonomy = function(meta.data,
     } else{
       print("===== Adding MapMyCells (hierarchical mapping) functionality =====")
       AIT.anndata = mappingMode(AIT.anndata, mode="standard")
-      AIT.anndata = addMapMyCells(AIT.anndata, hierarchy, force=TRUE)
+      AIT.anndata = addMapMyCells(AIT.anndata, names(hierarchy), force=TRUE)
     }
   }
 

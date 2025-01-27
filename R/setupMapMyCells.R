@@ -39,7 +39,7 @@ addMapMyCells = function(AIT_anndata,
       }
       
       # get an ordered list of taxonomy's hierarchy levels.
-      taxonomy_hierarchy = get_hierarchy(AIT_anndata, hierarchy)
+      taxonomy_hierarchy = get_hierarchy(AIT_anndata, names(hierarchy))
 
       if (is.null(tmp_dir) || tmp_dir == "") {
         tmp_dir <- paste0("tmp_dir_", format(Sys.time(), "%Y%m%d-%H%M%S"))

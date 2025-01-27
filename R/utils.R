@@ -76,7 +76,7 @@
                                       taxonomyDir, 
                                       title, 
                                       dend){
-  if(sum(is.element(hierarchy[[-1]], colnames(meta.data)))==0){stop("cluster column must be defined in the meta.data object")}
+  if(sum(is.element(names(hierarchy)[[-1]], colnames(meta.data)))==0){stop("cluster column must be defined in the meta.data object")}
   if(!all(colnames(counts) == rownames(meta.data))){stop("Colnames of `counts` and rownames of `meta.data` do not match.")}
   if(!is.data.frame(meta.data)){stop("meta.data must be a data.frame, convert using as.data.frame(meta.data)")}
 
