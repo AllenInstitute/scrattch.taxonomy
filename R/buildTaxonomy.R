@@ -152,7 +152,7 @@ buildTaxonomy = function(meta.data,
       clusterInfo = clusterInfo,
       clusterStatsColumns = list("standard" = colnames(cluster_stats)),
       title = title,
-      hierarchy = list(hierarchy),
+      hierarchy = hierarchy,
       taxonomyDir = file.path(normalizePath(taxonomyDir), leading_string="/") ## Normalize path in case where user doesn't provide absolute path.
     )
   )
