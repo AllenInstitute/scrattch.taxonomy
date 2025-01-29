@@ -107,6 +107,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 
   ## Now we will check any RECOMMENDED schema elements that are present in uns
   recommended.schema.columns = ._get_schema_elements(schema, "uns", "RECOMMENDED")
+  tovalidate.schema.columns = intersect(recommended.schema.columns, colnames(AIT.anndata$obs)) ## FIX or something very close to this.
   for(element in tovalidate.schema.columns){
     if(is.element(elemenet, names(AIT.anndata$uns))){
       column_def = ._get_schema_def(element)
@@ -184,60 +185,312 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 
 #' This function will validate a given column against the schema
 #'
-#' @param column_name The name of the column to validate.
+#' @param column The vector of entrees in the column to validate.
 #' @param column_def The schema definition for the column.
 #' @param messages The current messages to append to.
+#' @param isValid The current call for whether the taxonomy is valid.
+#' @param pull_cl If FALSE (default) loads a preset list of CL terms from OBO; otherwise pulls from OBO
+#' @param validate_percent_cl Percent of entries that must correspond to valid CL terms to validate
+#' @param pull_assay If FALSE (default) loads the list of EFO terms (assays); otherwise pulls from EBI (VERY slow) 
+#' @param pull_ncbitaxon If FALSE (default) loads the list of species with gene information at NCBI; otherwise pulls from OBO (VERY slow) 
+#' @param pull_uberon If FALSE (default) loads the list of anatomic regions from UBERON; otherwise pulls from OBO
+#' @param pull_brain_atlases If FALSE (default) loads the list of brain atlas ids; otherwise pulls from brain-bican
+#' @param pull_hancestro If FALSE (default) loads the list of HANCESTRO terms; otherwise, pulls from OBO 
+#' @param pull_mondo If FALSE (default) loads the list of MONDO terms; otherwise, pulls from OBO 
+#' @param pull_ensembl If FALSE (default) loads the list of Ensembl terms from NCBI; otherwise, pulls from NCBI (VERY slow)
+#' @param validate_percent_ensembl Percent of entries that must correspond to valid Ensembl terms to validate
 #'
 #' @return
 #'
 #' @keywords internal
-._validate_schema_element = function(column, column_def, messages, isValid){
+._validate_schema_element = function(column, column_def, messages, isValid,
+                                     pull_cl = FALSE, validate_percent_cl = 80,            # cell_type_ontology_term variables
+                                     pull_ncbitaxon = FALSE,                               # organism_ontology_term_id variables
+                                     pull_uberon = FALSE,                                  # anatomical_region_ontology_term_id variables
+                                     pull_brain_atlases = FALSE,                           # brain_region_ontology_term_id variables
+                                     pull_hancestro = FALSE,                               # self_reported_ethnicity_ontology_term_id variables
+                                     pull_mondo = FALSE,                                   # disease_ontology_term_id variables
+                                     pull_ensembl = FALSE, validate_percent_ensembl = 60   # ensembl_id variables
+                                     ){
 
   ###########################################################
-  ## First we will validate invidual columns type matches expectation from schema
+  ## First we will validate individual columns type matches expectation from schema
 
   if(column_def$Type == "str"){
       if(!all(is.character(column))){
-        messages = c(messages, paste0("The anndata.obs element: ", column_def$Key, " must be strings.\n"))
+        messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must be strings."))
         isValid = FALSE
       }
   }else if(column_def$Type == "bool"){
       if(!all(column %in% c(TRUE, FALSE))){ 
-        messages = c(messages, paste0("The anndata.obs element: ", column_def$Key, " must be boolean.\n"))
+        messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must be boolean."))
         isValid = FALSE
       }
   }else if(column_def$Type == "Categorical"){
       if(all(is.factor(column))){
-        messages = c(messages, paste0("The anndata.obs element: ", column_def$Key, " must be categorical (factor).\n"))
+        messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must be categorical (factor)."))
         isValid = FALSE
       }
   }
 
   ###########################################################
-  ## Now we will validate invidual columns against schema
+  ## Now we will validate individual columns against schema
 
   ## suspension_type
   if(column_def$Key == "suspension_type"){
       if(!all(column %in% c("cell", "nucleus", "na"))){
-        messages = c(messages, paste0("The anndata.obs element: ", column_def$Key, " must be either 'cell', 'nucleus' or 'na'.\n"))
+        messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must be either 'cell', 'nucleus' or 'na'."))
         isValid = FALSE
       }
   }
 
+  
   ## cell_type_ontology_term
-
+  ## Must exist as a CL term to be valid. If unknown use 'CL:0000003' for native cell.
+  data(cl)
+  if(pull_cl){
+    # This step requires an internet connection and could take several minutes
+    file   <- try(download.file("https://purl.obolibrary.org/obo/cl.obo","cl.obo"))
+    if("try-error" %in% class(file)){
+      messages = c(messages, paste0("\nWARNING: CL terms not accessible via https://purl.obolibrary.org/obo/cl.obo and not updated."))
+    } else {
+      cl_obo <- ontologyIndex::get_OBO("cl.obo") 
+      cl     <- cl_obo$id[substr(cl_obo$id,1,2)=="CL"]
+    }
+  }
+  # Allow for NA values
+  cl <- c(cl,"NA")
+  column[is.na(column)] = "NA"
+  # Now do the test
+  if(column_def$Key == "cell_type_ontology_term"){
+    if(!all(column %in% cl)){
+      percent_with_cl  <- signif(100*mean(column %in% cl),4)
+      message  = paste0("\nThe anndata.obs element: ", column_def$Key, " contains ",percent_with_cl,"% CL terms.")
+      if(percent_with_cl<validate_percent_cl){
+        message = paste0(message,"\nERROR: At least ",validate_percent_cl,"% CL terms required to validate.")
+        isValid = FALSE
+      }
+      messages = c(messages, paste0(message))
+    }
+  }
+  
+  
   ## organism_ontology_term_id
-
+  #  Must be a child of http://purl.obolibrary.org/obo/NCBITaxon_33208 (for Metazoa); e.g., "NCBITaxon:9606" for Homo sapiens
+  #  Default file includes all 658 species with gene info at NCBI
+  data(ncbitaxon)
+  if(pull_ncbitaxon){
+    file   <- try(download.file("http://purl.obolibrary.org/obo/ncbitaxon.obo","ncbitaxon.obo"))
+    if("try-error" %in% class(file)){
+      messages = c(messages, paste0("\nWARNING: NCBITaxon terms not accessible via https://purl.obolibrary.org/obo/ncbitaxon.obo and not updated."))
+    } else {
+      ncbitaxon_obo <- ontologyIndex::get_OBO("ncbitaxon.obo")
+      ncbitaxon     <- ncbitaxon_obo$id[substr(ncbitaxon_obo$id,1,10)=="NCBITaxon:"]
+    }
+  }
+  # Allow for NA values
+  ncbitaxon <- c(ncbitaxon,"NA")
+  column[is.na(column)] = "NA"
+  # Now do the test
+  if(column_def$Key == "organism_ontology_term_id"){
+    if(!all(column %in% ncbitaxon)){
+      messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must all be valid NCBITaxons."))
+      isValid = FALSE
+    }
+  }
+ 
+   
+  ## assay_ontology_term_id
+  #  Most appropriate EFO ontology term for assay. (e.g., "10x 3' v2"="EFO:0009899", "10x 3' v3"="EFO:0009922", "Smart-seq"="EFO:0008930")
+  #  Note: using the latest release as of 1/15/2025 
+  data(assay)
+  if(pull_assay){
+    file   <- try(download.file("http://www.ebi.ac.uk/efo/efo.obo","efo.obo"))
+    if("try-error" %in% class(file)){
+      messages = c(messages, paste0("\nWARNING: NCBITaxon terms not accessible via https://github.com/EBISPOT/efo/ and not updated."))
+    } else {
+      efo_obo <- ontologyIndex::get_OBO("efo.obo")
+      assay   <- efo_obo$id[substr(efo_obo$id,1,3)=="EFO"]
+    }
+  }
+  # Allow for NA values
+  assay <- c(assay,"NA")
+  column[is.na(column)] = "NA"
+  # Now do the test
+  if(column_def$Key == "assay_ontology_term_id"){
+    if(!all(column %in% assay)){
+      messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must all be valid EFO terms."))
+      isValid = FALSE
+    }
+  }
+  
+  
   ## anatomical_region_ontology_term_id
-
+  # Must be an UBERON term (http://www.obofoundry.org/ontology/uberon.html) to be valid <- NOTE: may need to update to allow for Allen Brain Map ontology term
+  # NOTE: This code will need to be updated for more recent UBERON terms, but the current one matches CELLxGENE
+  data(uberon)
+  if(pull_uberon){
+    file   <- try(download.file("https://github.com/obophenotype/uberon/releases/download/v2022-08-19/amniote-basic.obo","uberon.obo"))
+      # NOTE: we are using and older version of UBERON because the one at http://purl.obolibrary.org/obo/uberon.obo has a cycle error.
+    if("try-error" %in% class(file)){
+      messages = c(messages, paste0("\nWARNING: UBERON terms not accessible via https://purl.obolibrary.org/obo/uberon.obo and not updated."))
+    } else {
+      uberon_obo <- ontologyIndex::get_OBO("uberon.obo")
+      uberon     <- uberon_obo$id[substr(uberon_obo$id,1,6)=="UBERON"]
+    }
+  }
+  # Allow for NA values
+  uberon <- c(uberon,"NA")
+  column[is.na(column)] = "NA"
+  # Now do the test
+  if(column_def$Key == "anatomical_region_ontology_term_id"){
+    if(!all(column %in% uberon)){
+      messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must all be valid NCBITaxons."))
+      isValid = FALSE
+    }
+  }
+  
+  
+  ## brain_region_ontology_term_id
+  # If provided, must be a valid id from developing_human_brain_atlas_ontology, human_brain_atlas_ontology, or mouse_brain_atlas_ontology
+  # These are the Allen Institute / BICAN ontologies available on brain-bican, and could be expanded in the future
+  data(brain_atlases)
+  if(pull_brain_atlases){
+    # Developing human brain atlas
+    file <- try(download.file("https://github.com/brain-bican/developing_human_brain_atlas_ontology/raw/refs/heads/main/dhbao-simple-non-classified.obo","dhbao.obo"))
+    if("try-error" %in% class(file)){
+      messages = c(messages, paste0("\nWARNING: DHBA terms not accessible via https://github.com/brain-bican/ and not updated."))
+    } else {
+      dhbao_obo <- ontologyIndex::get_OBO("dhbao.obo")
+      brain_atlases <- c(brain_atlases, dhbao_obo$id[substr(dhbao_obo$id,1,4)=="DHBA"])
+    }
+    # Human brain atlas
+    file <- try(download.file("https://github.com/brain-bican/human_brain_atlas_ontology/raw/refs/heads/main/hbao-simple-non-classified.obo","hbao.obo"))
+    if("try-error" %in% class(file)){
+      messages = c(messages, paste0("\nWARNING: HBA terms not accessible via https://github.com/brain-bican/ and not updated."))
+    } else {
+      hbao_obo <- ontologyIndex::get_OBO("hbao.obo")
+      brain_atlases <- c(brain_atlases, hbao_obo$id[substr(hbao_obo$id,1,3)=="HBA"])
+    }
+    # Mouse brain atlas
+    file <- try(download.file("https://github.com/brain-bican/mouse_brain_atlas_ontology/raw/refs/heads/main/mbao-simple-non-classified.obo","mbao.obo"))
+    if("try-error" %in% class(file)){
+      messages = c(messages, paste0("\nWARNING: MBA terms not accessible via https://github.com/brain-bican/ and not updated."))
+    } else {
+      mbao_obo <- ontologyIndex::get_OBO("mbao.obo")
+      brain_atlases <- c(brain_atlases, mbao_obo$id[substr(mbao_obo$id,1,3)=="MBA"])
+    }
+  }
+  # Allow for NA values
+  brain_atlases <- c(brain_atlases,"NA")
+  column[is.na(column)] = "NA"
+  # Now do the test
+  if(column_def$Key == "brain_region_ontology_term_id"){
+    if(!all(column %in% brain_atlases)){
+      messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must all be valid brain atlas terms from BICAN-brain ontologies."))
+      isValid = FALSE
+    }
+  }
+  
+  
   ## self_reported_sex_ontology_term_id
-
+  # female = PATO_0000383; male = PATO_0000384; other uncommon options are children of http://purl.obolibrary.org/obo/PATO_0001894
+  # for now, we set to NA anything that doesn't fit into one of the above two categories (but it will be retained in self_reported_sex) <-- THIS IS NOT IDEAL
+  # Called "sex_ontology_term_id" in cellxgene
+  # For now we validate anything, but report the number of rows that don't have PATO_0000383 or PATO_0000384. Again, not ideal, but ok for now.
+  if(column_def$Key == "self_reported_sex_ontology_term_id"){
+    column[is.na(column)] = "NA"
+    if(!all(column %in% c("PATO_0000383", "PATO_0000384"))){
+      percent_MF  <- signif(100*mean(column %in% c("PATO_0000383", "PATO_0000384")),4)
+      messages = c(messages, paste0("\nWARNING: The anndata.obs element: ", column_def$Key, " contains ",percent_MF,"% of terms as PATO_0000383 or PATO_0000384. This may cause issues in translation to CELLxGENE."))
+    }
+  }
+  
+  
+  ## self_reported_ethnicity_ontology_term_id
+  # If organism_ontolology_term_id is "NCBITaxon:9606" for Homo sapiens, this MUST be either a HANCESTRO term, "multiethnic" if more than one ethnicity is reported, or "unknown" if unavailable. 
+  # For now we have a parameter asking if the species is "NCBITaxon:9606" and only flag as invalid if TRUE and above requirements not met
+  # We are looking in a slightly different place for this ontology
+  data(hancestro)
+  if(pull_hancestro){
+    file   <- try(download.file("https://raw.githubusercontent.com/EBISPOT/hancestro/main/hancestro.obo","hancestro.obo"))
+    if("try-error" %in% class(file)){
+      messages = c(messages, paste0("\nWARNING: HANCESTRO terms not accessible via https://raw.githubusercontent.com/EBISPOT/hancestro/main/hancestro.obo and not updated."))
+    } else {
+      hancestro_obo <- ontologyIndex::get_OBO("hancestro.obo")
+      hancestro     <- hancestro_obo$id[substr(hancestro_obo$id,1,9)=="HANCESTRO"]
+    }
+  }
+  hancestro <- c(hancestro,"multiethnic","unknown")
+  # Allow for NA values
+  hancestro <- c(hancestro,"NA")
+  column[is.na(column)] = "NA"
+  # Now do the test
+  if(column_def$Key == "organism_ontology_term_id"){
+    if(!all(column %in% hancestro)){
+      messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must all be valid HANCESTRO terms, or 'multiethnic' or 'unknown'."))
+      isValid = FALSE
+    }
+  }
+  
+  
   ## disease_ontology_term_id
-
+  # Either "PATO_0000461" or a "MONDO" term
+  # Note that http://purl.obolibrary.org/obo/mondo.obo has a cycle so we are backtracking to the version used in cellxgene.  Should update eventually.
+  data(mondo)
+  if(pull_mondo){
+    file   <- try(download.file("https://github.com/monarch-initiative/mondo/releases/download/v2022-09-06/mondo.obo","mondo.obo")) 
+    if("try-error" %in% class(file)){
+      messages = c(messages, paste0("\nWARNING: HANCESTRO terms not accessible via https://github.com/monarch-initiative/mondo/releases/download/v2022-09-06/mondo.obo and not updated."))
+    } else {
+      mondo_obo <- ontologyIndex::get_OBO("mondo.obo")
+      mondo     <- mondo_obo$id[substr(mondo_obo$id,1,5)=="MONDO"]
+    }
+  }
+  mondo <- c(mondo,"PATO:0000461")
+  # Allow for NA values
+  mondo <- c(mondo,"NA")
+  column[is.na(column)] = "NA"
+  # Now do the test
+  if(column_def$Key == "organism_ontology_term_id"){
+    if(!all(column %in% mondo)){
+      messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must all be valid HANCESTRO terms, or 'multiethnic' or 'unknown'."))
+      isValid = FALSE
+    }
+  }
+  
+  
   ## ensembl_id
+  # At least 60% of terms must exist to be valid. Will look at predefined list for "human", "mouse", "marmoset", and "rhesus_macaque" by default and will only query other species if asked.
+  data(ensembl)
+  if(pull_ensembl){
+    ncbi_gene_info <- try(data.table::fread("https://ftp.ncbi.nlm.nih.gov/gene/DATA/gene2ensembl.gz"))
+    if("try-error" %in% class(ncbi_gene_info)){
+      messages = c(messages, paste0("\nWARNING: ensembl terms not accessible via https://ftp.ncbi.nlm.nih.gov/gene/DATA/gene2ensembl.gz and not updated.\n"))
+    } else {
+      ensembl  <- convertEns$Ensembl_gene_identifier
+    }
+  }
+  # Allow for NA values
+  ensembl <- c(ensembl,"NA")
+  column[is.na(column)] = "NA"
+  # Now do the test
+  if(column_def$Key == "ensembl_id"){
+    if(!all(column %in% ensembl)){
+      percent_with_ensembl  <- signif(100*mean(column %in% ensembl),4)
+      message  = paste0("\nThe anndata.obs element: ", column_def$Key, " contains ",percent_with_ensembl,"% ensembl terms.")
+      if(percent_with_ensembl<validate_percent_ensembl){
+        message = paste0(message,"\n:ERROR: At least ",validate_percent_ensembl,"% ensembl terms required to validate.")
+        isValid = FALSE
+      }
+      messages = c(messages, paste0(message))
+    }
+  }
 
+  
   ## cluster_[algorithm]
-  ## How should we check this? We need to write a schema on https://github.com/AllenInstitute/AllenInstituteTaxonomy/tree/main/schema
+  # How should we check this? We need to write a schema on https://github.com/AllenInstitute/AllenInstituteTaxonomy/tree/main/schema
+  # Recommended name change to cluster_algorithm
 
   ## 
   return(list("messages" = messages, "isValid" = isValid))
@@ -261,7 +514,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   ## Check modes
   if (length(modes)==0){
     isValid = FALSE
-    messages = c(messages,"\nERROR: taxonomy modes with filters are not found. Allen Institute Taxonomy requires atleast a standard mode with all cells included which should have been created with `buildTaxonomy`.  Likely this h5ad is an earlier version of Allen Institute Taxonomy (AIT) format and should be remade.")
+    messages = c(messages,"\nERROR: taxonomy modes with filters are not found. Allen Institute Taxonomy requires at least a standard mode with all cells included which should have been created with `buildTaxonomy`.  Likely this h5ad is an earlier version of Allen Institute Taxonomy (AIT) format and should be remade.")
   } else {
     if(!is.element(AIT.anndata$uns$mode, modes)){
         isWarning = TRUE
@@ -279,7 +532,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
           messages = c(messages,"\nERROR: the dendrogram", dat, "is not correct please rebuild taxonomy or check with creator.")
         },
         finally={
-          messages = c(messages,paste0(":-) AIT.anndata$uns$dend looks correct for mode ", mode, "."))
+          messages = c(messages,paste0("\n:-) AIT.anndata$uns$dend looks correct for mode ", mode, "."))
       })    
       
       ## Check the filter AIT.anndata$uns$filter[[mode]]
@@ -294,7 +547,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
         isWarning = TRUE
         messages = c(messages,"\nWARNING: the filter for mode", mode, "excludes all of the data!")
       } else {
-        messages = c(messages, paste0(":-) AIT.anndata$uns$filter looks correct for mode ",mode,"."))
+        messages = c(messages, paste0("\n:-) AIT.anndata$uns$filter looks correct for mode ",mode,"."))
       }
     }
   }
@@ -324,7 +577,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
         isValid = FALSE
         messages = c(messages,"\nERROR: An embedding is provided but not in the correct format of 'X_[embedding]'")
       } else {
-        messages = c(messages,":-) AIT.anndata$obsm contains correctly named embeddings (additional warnings, if any, will be listed below).")
+        messages = c(messages,"\n:-) AIT.anndata$obsm contains correctly named embeddings (additional warnings, if any, will be listed below).")
       }
 
       ## Now check that each embedding is what we would expect
@@ -361,9 +614,9 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
       column = AIT.anndata$var[[var_gene_column]]
       if(!all(column %in% c(TRUE, FALSE))){ 
         isValid = FALSE
-        messages = c(messages, paste0("The anndata.var element: ", var_gene_column, " must be boolean.\n"))
+        messages = c(messages, paste0("\nThe anndata.var element: ", var_gene_column, " must be boolean."))
       }else{
-        messages = c(messages,":-) AIT.anndata$var contains highly_variable_genes (additional warnings, if any, will be listed below).")
+        messages = c(messages,"\n:-) AIT.anndata$var contains highly_variable_genes (additional warnings, if any, will be listed below).")
       }
     }
   }
@@ -380,7 +633,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
         isValid = FALSE
         messages = c(messages, paste0("The anndata.var element: ", marker_gene_column, " must be boolean.\n"))
       }else{
-        messages = c(messages,":-) AIT.anndata$var contains marker_genes (additional warnings, if any, will be listed below).")
+        messages = c(messages,"\n:-) AIT.anndata$var contains marker_genes (additional warnings, if any, will be listed below).")
       }
     }
   }
@@ -391,7 +644,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
     messages = c(messages,"\nWARNING: AIT.anndata$var does not contain ensembl_id, which is recommended for generating UMAPs and dendrograms.")
   }else{
     ## Validate ensembl_id???
-    messages = c(messages,":-) AIT.anndata$var contains ensembl_id (additional warnings, if any, will be listed below).")
+    messages = c(messages,"\n:-) AIT.anndata$var contains ensembl_id (additional warnings, if any, will be listed below).")
   }
 
   return(list("messages"= messages, "isValid" = isValid, "isWarning" = isWarning))

@@ -11,21 +11,23 @@ RUN pip3 install anndata==0.8.0 numpy
 
 RUN R -e 'install.packages("reticulate")'
 RUN R -e 'install.packages("anndata", update=TRUE)'
+RUN R -e 'install.packages("ontologyIndex")'
 
 RUN R -e 'install.packages("BiocManager", update=FALSE)' 
 RUN R -e 'BiocManager::install(c( "AnnotationDbi", "data.table", "GO.db", \
-                                  "impute", "limma", "preprocessCore", "xml2", "rols"), dependenceis=NA, update=TRUE)' 
+                                  "impute", "limma", "preprocessCore", "xml2", "rols"), dependencies=NA, update=TRUE)' 
 RUN R -e 'BiocManager::install(c( "munsell", "rhdf5", "dplyr", \
                                   "optparse", "foreach", "doParallel", "futile.logger", \
-                                  "ggplot2", "WGCNA"), dependenceis=NA, update=TRUE)' 
+                                  "ggplot2", "WGCNA"), dependencies=NA, update=TRUE)' 
 RUN R -e 'BiocManager::install(c( "randomForest", "LaplacesDemon", "reshape2", \
                                   "feather", "future", "tibble", "dendextend", \
-                                  "Matrix", "MatrixExtra"), dependenceis=NA, update=TRUE)' 
+                                  "Matrix", "MatrixExtra"), dependencies=NA, update=TRUE)' 
 RUN R -e 'BiocManager::install(c( "mgcv", "edgeR", "caret", \
                                   "ggbeeswarm", "pvclust", \
-                                  "cowplot" ), dependenceis=NA, update=TRUE)'
-RUN R -e 'BiocManager::install(c("bigstatsr", "umap"), dependenceis=NA, update=TRUE)' 
-RUN R -e 'BiocManager::install(c("beachmat", "BiocNeighbors"), dependenceis=NA, update=TRUE)' 
+                                  "cowplot" ), dependencies=NA, update=TRUE)'
+RUN R -e 'BiocManager::install(c("bigstatsr", "umap"), dependencies=NA, update=TRUE)' 
+RUN R -e 'BiocManager::install(c("beachmat", "BiocNeighbors"), dependencies=NA, update=TRUE)' 
+# RUN R -e 'BiocManager::install("scOntoMatch", update=FALSE)'  # Uncomment if new code fails. Installation of "ontologyIndex" SHOULD suffice.
 
 RUN R -e 'install.packages("https://cran.r-project.org/src/contrib/Archive/Rcpp/Rcpp_1.0.5.tar.gz", repos=NULL, type="source")'
 RUN R -e 'install.packages("https://cloud.r-project.org/src/contrib/profmem_0.6.0.tar.gz", repos=NULL, type="source")'

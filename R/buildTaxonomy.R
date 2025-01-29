@@ -131,6 +131,9 @@ buildTaxonomy = function(meta.data,
     print("...dendrogram built.")
   }
 
+  ## Compute most likely "ontology_term_id" for "organism", "anatomical_region", "self_reported_sex", "self_reported_ethnicity" and "disease"
+  # meta.data <- computeOntologyTerms(meta.data)
+  
   ## Build the AIT object
   print("===== Building taxonomy anndata =====")
   AIT.anndata = AnnData(
