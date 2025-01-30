@@ -19,6 +19,8 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
     stop("AIT.anndata is not a variable of class anndata.")
   }
 
+  data(schema)
+  
   messages  = NULL
   isValid   = TRUE
   isWarning = FALSE
@@ -280,12 +282,13 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   #  Default file includes all 658 species with gene info at NCBI
   data(ncbitaxon)
   if(pull_ncbitaxon){
-    file   <- try(download.file("http://purl.obolibrary.org/obo/ncbitaxon.obo","ncbitaxon.obo"))
+    #file   <- try(download.file("http://purl.obolibrary.org/obo/ncbitaxon.obo","ncbitaxon.obo")) # complete, HUGE file
+    file   <- try(download.file("https://raw.githubusercontent.com/obophenotype/ncbitaxon/refs/heads/master/subsets/taxslim.obo","ncbitaxon.obo"))
     if("try-error" %in% class(file)){
       messages = c(messages, paste0("\nWARNING: NCBITaxon terms not accessible via https://purl.obolibrary.org/obo/ncbitaxon.obo and not updated."))
     } else {
       ncbitaxon_obo <- ontologyIndex::get_OBO("ncbitaxon.obo")
-      ncbitaxon     <- ncbitaxon_obo$id[substr(ncbitaxon_obo$id,1,10)=="NCBITaxon:"]
+      ncbitaxon     <- unique(c(ncbitaxon,ncbitaxon_obo$id[substr(ncbitaxon_obo$id,1,10)=="NCBITaxon:"])) # 
     }
   }
   # Allow for NA values
