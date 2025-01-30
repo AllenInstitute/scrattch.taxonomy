@@ -491,9 +491,8 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   }
 
   
-  ## cluster_[algorithm]
+  ## cluster_algorithm
   # How should we check this? We need to write a schema on https://github.com/AllenInstitute/AllenInstituteTaxonomy/tree/main/schema
-  # Recommended name change to cluster_algorithm
 
   ## 
   return(list("messages" = messages, "isValid" = isValid))
