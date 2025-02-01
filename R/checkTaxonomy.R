@@ -155,11 +155,11 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   return(isValid)
 }
 
-#' This function will return infromation about a given schema Key
+#' This function will return information about a given schema Key
 #'
 #' @param key The schema Key to provide information about to the user.
 #'
-#' @return
+#' @return internal schema information
 #'
 #' @keywords internal
 ._get_schema_def = function(key=NULL){
@@ -172,7 +172,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 #' @param component The schema Component to provide information about.
 #' @param type The schema element Type to provide information about.
 #'
-#' @return
+#' @return schema elements
 #'
 #' @keywords internal
 ._get_schema_elements = function(schema, component, type="MUST"){
@@ -202,7 +202,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 #' @param pull_ensembl If FALSE (default) loads the list of Ensembl terms from NCBI; otherwise, pulls from NCBI (VERY slow)
 #' @param validate_percent_ensembl Percent of entries that must correspond to valid Ensembl terms to validate
 #'
-#' @return
+#' @return A list with messages and an isValid logical call
 #'
 #' @keywords internal
 ._validate_schema_element = function(column, column_def, messages, isValid,
@@ -463,34 +463,6 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   }
   
   
-  ## ensembl_id
-  # At least 60% of terms must exist to be valid. Will look at predefined list for "human", "mouse", "marmoset", and "rhesus_macaque" by default and will only query other species if asked.
-  data(ensembl)
-  if(pull_ensembl){
-    ncbi_gene_info <- try(data.table::fread("https://ftp.ncbi.nlm.nih.gov/gene/DATA/gene2ensembl.gz"))
-    if("try-error" %in% class(ncbi_gene_info)){
-      messages = c(messages, paste0("\nWARNING: ensembl terms not accessible via https://ftp.ncbi.nlm.nih.gov/gene/DATA/gene2ensembl.gz and not updated.\n"))
-    } else {
-      ensembl  <- convertEns$Ensembl_gene_identifier
-    }
-  }
-  # Allow for NA values
-  ensembl <- c(ensembl,"NA")
-  column[is.na(column)] = "NA"
-  # Now do the test
-  if(column_def$Key == "ensembl_id"){
-    if(!all(column %in% ensembl)){
-      percent_with_ensembl  <- signif(100*mean(column %in% ensembl),4)
-      message  = paste0("\nThe anndata.obs element: ", column_def$Key, " contains ",percent_with_ensembl,"% ensembl terms.")
-      if(percent_with_ensembl<validate_percent_ensembl){
-        message = paste0(message,"\n:ERROR: At least ",validate_percent_ensembl,"% ensembl terms required to validate.")
-        isValid = FALSE
-      }
-      messages = c(messages, paste0(message))
-    }
-  }
-
-  
   ## cluster_algorithm
   # How should we check this? We need to write a schema on https://github.com/AllenInstitute/AllenInstituteTaxonomy/tree/main/schema
 
@@ -505,7 +477,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 #' @param isValid The current isValid status.
 #' @param isWarning The current isWarning status.
 #'
-#' @return
+#' @return A list with messages, an isValid logical call, and an isWarning logical call
 #'
 #' @keywords internal
 ._validate_ait_modes = function(AIT.anndata, messages, isValid, isWarning){
@@ -563,7 +535,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 #' @param isValid The current isValid status.
 #' @param isWarning The current isWarning status.
 #'
-#' @return
+#' @return A list with messages, an isValid logical call, and an isWarning logical call
 #'
 #' @keywords internal
 ._validated_embeddings = function(AIT.anndata, messages, isValid, isWarning){
@@ -602,7 +574,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 #' @param isValid The current isValid status.
 #' @param isWarning The current isWarning status.
 #'
-#' @return
+#' @return A list with messages, an isValid logical call, and an isWarning logical call
 #'
 #' @keywords internal
 .validate_var_elements = function(AIT.anndata, messages, isValid, isWarning){
@@ -640,6 +612,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
     }
   }
   
+  
   ## Check the ensembl_id
   if(sum(is.element(c("ensembl_id"), colnames(AIT.anndata$var)))==0){
     isWarning = TRUE
@@ -649,6 +622,33 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
     messages = c(messages,"\n:-) AIT.anndata$var contains ensembl_id (additional warnings, if any, will be listed below).")
   }
 
+  # At least 60% of terms must exist to be valid. Will look at predefined list for "human", "mouse", "marmoset", and "rhesus_macaque" by default and will only query other species if asked.
+  data(ensembl)
+  if(pull_ensembl){
+    ncbi_gene_info <- try(data.table::fread("https://ftp.ncbi.nlm.nih.gov/gene/DATA/gene2ensembl.gz"))
+    if("try-error" %in% class(ncbi_gene_info)){
+      messages = c(messages, paste0("\nWARNING: ensembl terms not accessible via https://ftp.ncbi.nlm.nih.gov/gene/DATA/gene2ensembl.gz and not updated.\n"))
+    } else {
+      ensembl  <- convertEns$Ensembl_gene_identifier
+    }
+  }
+  # Allow for NA values
+  ensembl <- c(ensembl,"NA")
+  column[is.na(column)] = "NA"
+  # Now do the test
+  if(column_def$Key == "ensembl_id"){
+    if(!all(column %in% ensembl)){
+      percent_with_ensembl  <- signif(100*mean(column %in% ensembl),4)
+      message  = paste0("\nThe anndata.obs element: ", column_def$Key, " contains ",percent_with_ensembl,"% ensembl terms.")
+      if(percent_with_ensembl<validate_percent_ensembl){
+        message = paste0(message,"\n:ERROR: At least ",validate_percent_ensembl,"% ensembl terms required to validate.")
+        isValid = FALSE
+      }
+      messages = c(messages, paste0(message))
+    }
+  }
+  
+  
   return(list("messages"= messages, "isValid" = isValid, "isWarning" = isWarning))
 }
 

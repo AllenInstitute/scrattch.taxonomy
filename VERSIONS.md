@@ -1,17 +1,49 @@
-## scrattch.taxonomy 0.5.14
+## scrattch.taxonomy v0.9.1
 
-Upgrades to streamline process
+Major update to integrate the new Allen Institute schema
 
 ### Major changes
-* Updated example
-* Pull code for setting up tree and heirarchical mapping into buildTaxonomy
+* Introduction of AIT schema into code
+* Many new functions to deal with schema, ontologies, taxonomy checks, etc.
+* Updated example to use new schema
+* Metadata error correction
+
 
 ### Minor changes
 Bug fixes
 
 --
 
-## scrattch.taxonomy 0.5.13
+
+## scrattch.taxonomy v0.7.1
+
+Updates to improve correlation mapping
+
+### Major changes
+* New function `updateHighlyVariableGenes` to update genes used in mapping
+
+### Minor changes
+* Synchronized versions between scrattch.taxonomy, scrattch.mapping, an scrattch.patchseq
+* Set mode-specific variable genes for "standard"
+* Minor (but breaking) bug fix for AIT.anndata <---> AIT_anndata
+* Updated documentation
+
+--
+
+## scrattch.taxonomy v0.5.14
+
+Upgrades to streamline process
+
+### Major changes
+* Updated example
+* Pull code for setting up tree and hierarchical mapping into buildTaxonomy
+
+### Minor changes
+Bug fixes
+
+--
+
+## scrattch.taxonomy v0.5.13
 
 Supporting changes for scrattch.mapping updates to hierarchical and Seurat mapping
 
@@ -24,7 +56,7 @@ Bug fix allowing users to provide their own dendrogram
 
 --
 
-## scrattch.taxonomy 0.2
+## scrattch.taxonomy v0.2
 
 ## Major changes
 

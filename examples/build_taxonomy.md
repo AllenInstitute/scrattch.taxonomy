@@ -48,6 +48,15 @@ umap.coords = umap(pcs[,1:30])$layout
 rownames(taxonomy.anno) = taxonomy.anno$sample_name
 rownames(umap.coords) = colnames(taxonomy.counts)
 
+## Identify Ensembl IDs 
+# Common NCBI taxIDs: Human = 9609; Mouse = 10090; Macaque (rhesus) = 9544; Marmoset = 9483
+ensembl_id <- geneSymbolToEnsembl(gene.symbols = rownames(taxonomy.counts), ncbi.taxid = 10090)
+
+## Align taxonomy metadata with AIT standard
+# NOTE: this function is still being adjusted. It is safe to comment out if it crashes.
+full.taxonomy.anno <- updateTaxonomyMetadata(taxonomy.anno)
+taxonomy.anno      <- full.taxonomy.anno$metadata
+
 ## Build Allen Insitute Taxonomy, for large taxonomies you can pass in tpm and cluster_stats if pre-computed.
 AIT.anndata = buildTaxonomy(meta.data = taxonomy.anno,
                             title = "Tasic2016",
@@ -55,6 +64,7 @@ AIT.anndata = buildTaxonomy(meta.data = taxonomy.anno,
                             normalized.expr = NULL,
                             highly_variable_genes = NULL,
                             marker_genes = list("marker_genes_binary" = binary.genes),
+                            ensembl_id = ensembl_id,
                             cluster_stats = NULL, ## Pre-computed cluster stats
                             embeddings = list("X_umap" = umap.coords),
                             ##

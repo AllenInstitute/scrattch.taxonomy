@@ -4,10 +4,10 @@
 \alias{subsample_taxonomy}
 \title{Function to subsample cells from a taxonomy}
 \usage{
-subsample_taxonomy(meta.data, cell_ids, dend, subsample = 2000)
+subsample_taxonomy(cluster.names, cell_ids, dend = NULL, subsample = 2000)
 }
 \arguments{
-\item{meta.data}{A data.frame with cell metadata}
+\item{cluster.names}{A vector of cell type names}
 
 \item{cell_ids}{A vector of cell ids to subsample from}
 

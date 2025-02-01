@@ -3,6 +3,7 @@
 .Ruserdata
 .Rproj.user
 data/*.obo
+data/*.csv
 examples/build_MTG_patchseq_taxonomy_temp.Rmd
 examples/build_MTG_patchseq_taxonomy_TEMP.Rmd
 examples/patchseq.RData

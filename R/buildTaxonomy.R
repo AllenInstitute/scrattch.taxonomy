@@ -3,22 +3,30 @@
 #' @param meta.data Meta.data corresponding to count matrix. Rownames must be equal to colnames of counts. "clusters" must be provided (see hierarchy[[-1]] and notes).
 #' @param title The file name to assign for the Taxonomy h5ad.
 #' @param counts A count matrix in sparse format: dgCMatrix.
-#' @param highly_variable_genes Set of feature defined as highly variable genes.
-#' @param marker_genes Set of feature defined as marker genes.
-#' @param ensemble_id A vector of ensemble ids corresponding to the gene symbols in counts.
-#' @param cluster_stats A matrix of median gene expression by cluster. Cluster names must exactly match meta.data$cluster.
-#' @param embeddings Dimensionality reduction coordiant data.frame with 2 columns. Rownames must be equal to colnames of counts.
+#' @param highly_variable_genes Set of features defined as highly variable genes. Provide either as a named list of vectors, or as a single vector (in which case the name "highly_variable_genes_standard" will be used).
+#' @param marker_genes Set of features defined as marker genes. Provide either as a named list of vectors, or as a single vector (in which case the name "marker_genes_standard" will be used).
+#' @param ensembl_id A vector of ensemble ids corresponding to the gene symbols in counts.
+#' @param cluster_stats A matrix of median gene expression by cluster. Cluster names must exactly match meta.data$cluster.  If provided, will get saved to "varm$cluster_id_median_expr_[mode]"
+#' @param embeddings Dimensionality reduction coordinate data.frame with 2 columns. Rownames must be equal to colnames of counts.  Either provide as a named list or as a single data.frame (in which case the name "default_standard" will be used).
 #' @param dend Existing dendrogram associated with this taxonomy (e.g., one calculated elsewhere).  If NULL (default) a new dendrogram will be calculated based on the input `feature.set`
 #' @param taxonomyDir The location to save Shiny objects, e.g. "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/NHP_BG_20220104/"
 #' @param hierarchy List of term_set_labels in the Taxonomy ordered from most gross to most fine (e.g., subclass, supertype, neighborhood, class).
 #' @param subsample The number of cells to retain per cluster (default = 2000)
 #' @param cluster_colors An optional named character vector where the values correspond to colors and the names correspond to celltypes in hierarchy[[-1]].  If this vector is incomplete, a warning is thrown and it is ignored. cluster_colors can also be provided in the metadata (see notes)
+#' @param default_embedding A string indicating which embedding to use for calculations.  Default (NULL) is to take the first one provided in embeddings.
+#' @param uns.variables If provided, a list of additional variables to be included in the uns.  See Notes for schema variables not otherwise accounted for.
 #' @param reorder.dendrogram Should dendogram attempt to match a preset order? (Default = FALSE).  If TRUE, the dendrogram attempts to match the celltype factor order as closely as possible (if celltype is a character vector rather than a factor, this will sort clusters alphabetically, which is not ideal).
 #' @param add.dendrogram.markers If TRUE (default), will also add dendrogram markers to prep the taxonomy for tree mapping
 #' @param addMapMyCells If TRUE (default), will also prep this taxonomy for hierarchical mapping
+#' @param check.taxonomy description
 #' @param ... Additional variables to be passed to `addDendrogramMarkers`
 #' 
-#' Notes: Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If hierarchy[[-1]] is anything other than cluster, then any existing "cluster" column will be overwritten by hierarchy[[-1]].  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.
+#' *Notes*: Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If hierarchy[[-1]] is anything other than cluster, then any existing "cluster" column will be overwritten by hierarchy[[-1]].  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.
+#' 
+#' *Additional uns.variables*:
+#' * dataset_purl: Link to molecular data if not present in X or raw.X.
+#' * batch_condition: Keys defining batches for normalization/integration algorithms. Used for cellxgene.
+#' * reference_genome: Reference genome used to align molecular measurements.
 #' 
 #' @import scrattch.hicat 
 #' @import feather
@@ -50,12 +58,15 @@ buildTaxonomy = function(meta.data,
                          dend = NULL,
                          taxonomyDir = getwd(),
                          cluster_colors = NULL, ## @Jeremy please handle this.
+                         default_embedding = NULL,
+                         uns.variables = list(),  ## @Nelson: this is my inelegant way of handling Additional uns.variables (see notes above... feel free to edit)
                          ## Additional parameters
                          subsample=2000,
                          features.dendrogram = NULL,
                          reorder.dendrogram = FALSE,
                          add.dendrogram.markers = TRUE,
                          addMapMyCells = TRUE,
+                         check.taxonomy = TRUE,
                          ...){
 
   ## Sanity check and cleaning of parameters
@@ -111,7 +122,9 @@ buildTaxonomy = function(meta.data,
     if(reorder.dendrogram){
       l.rank = setNames(meta.data[[celltypeColumn]][match(clusterInfo[[celltypeColumn]], meta.data[[celltypeColumn]])], clusterInfo[[celltypeColumn]])
       l.rank = sort(l.rank)
-    }else{ l.rank    = NULL }
+    } else { 
+      l.rank = NULL 
+    }
     ## Figure out feature set to use 
     if(is.null(features.dendrogram)){
       feature.set = rownames(cluster_stats)
@@ -124,15 +137,24 @@ buildTaxonomy = function(meta.data,
         cl.dat  = cluster_stats[feature.set,],
         cl.cor  = NULL,
         # l.color = use.color, @Jeremy please handle this.
-        # l.rank  = l.rank, 
+        l.rank  = l.rank, 
         nboot   = 1,
         ncores  = 1)
     }))
     print("...dendrogram built.")
   }
 
-  ## Compute most likely "ontology_term_id" for "organism", "anatomical_region", "self_reported_sex", "self_reported_ethnicity" and "disease"
-  # meta.data <- computeOntologyTerms(meta.data)
+  ## If highly_variable_genes and/or marker genes are provided as vectors (as with previous versions of scrattch.taxonomy, convert to named lists)
+  if(is.character(highly_variable_genes)){
+    highly_variable_genes <- list(highly_variable_genes_standard = highly_variable_genes)
+  }
+  if(is.character(marker_genes)){
+    marker_genes <- list(marker_genes_standard = marker_genes)
+  }
+  
+  ## Compute most likely "ontology_term_id" for "organism", "anatomical_region", "self_reported_sex", "self_reported_ethnicity", "assay", and "disease"
+  meta.data <- computeOntologyTerms(meta.data)
+  # NOTE this is a wrapper function for updateTaxonomyMetadata and found in updateTaxonomyMetadata.R
   
   ## Build the AIT object
   print("===== Building taxonomy anndata =====")
@@ -145,13 +167,13 @@ buildTaxonomy = function(meta.data,
                                row.names = rownames(counts))
           else data.frame(),
     varm = list(
-      "standard" = cluster_stats ## Median expression by cluster
+      "cluster_id_median_expr_standard" = cluster_stats ## Median expression by cluster
     ),
     obsm = list(  ## A data frame with cell_id, and 2D coordinates for umap (or comparable) representation(s)
     ),  
     uns = list(
-      dend        = list("standard" = toJSON(dend_to_json(dend.result$dend))), ## JSON dendrogram
-      filter      = list("standard" = !(colnames(counts) %in% kpSub)), ## Filtered cells
+      dend       = list("standard" = toJSON(dend_to_json(dend.result$dend))), ## JSON dendrogram
+      filter     = list("standard" = !(colnames(counts) %in% kpSub)), ## Filtered cells
       mapmycells = list("standard" = list()),
       mode = "standard", ## Default mode to standard
       cellSet = rownames(meta.data),
@@ -159,7 +181,8 @@ buildTaxonomy = function(meta.data,
       clusterStatsColumns = list("standard" = colnames(cluster_stats)),
       title = title,
       hierarchy = hierarchy,
-      taxonomyDir = file.path(normalizePath(taxonomyDir), leading_string="/") ## Normalize path in case where user doesn't provide absolute path.
+      taxonomyDir = file.path(normalizePath(taxonomyDir), leading_string="/"), ## Normalize path in case where user doesn't provide absolute path.
+      schema_version = packageVersion("scrattch.taxonomy")  # Tying schema version to scrattch.taxonomy version. @Nelson, I'm open to another option.
     )
   )
 
@@ -179,14 +202,49 @@ buildTaxonomy = function(meta.data,
 
   ## Add ensemble_id into AIT object
   if(!is.null(ensembl_id)){
-    AIT.anndata$var$ensembl_id = ensembl_id
-  }
-
-  ## Add embeddings
-  if(!is.null(embeddings)){
-    for(embedding in names(embeddings)){
-      AIT.anndata$obsm[[embedding]] = embeddings[[embedding]]
+    if(dim(AIT.anndata$var)[1]==length(ensembl_id)){
+      AIT.anndata$var$ensembl_id = ensembl_id
+    } else {
+      print("===== Provided ensembl_id vector of different length from gene length in var. Skipping adding ensembl_ids. =====")
     }
+  }
+  
+  ## Add embeddings (dealing with the "X_" header)
+  if(!is.null(embeddings)){
+    print("===== Adding provided embeddings. =====")
+    if(is.list(embeddings)){
+      # Check the names and add "X_" if needed
+      nm <- names(embeddings)
+      for (i in 1:length(nm)) if(substr(nm[i],1,2)!="X_") nm[i] = paste0("X_",nm[i])
+      names(embeddings) <- nm
+      for(embedding in names(embeddings))
+        AIT.anndata$obsm[[embedding]] = embeddings[[embedding]]
+    } else {
+      if(is.data.frame(embeddings))
+        AIT.anndata$obsm[["X_default_standard"]] = embeddings
+    }
+  
+    ## Set default_embedding
+    if(is.null(default_embedding)){
+      AIT.anndata$uns$default_embedding = names(AIT.anndata$obsm)[1]
+    } else {
+      # Check the name and add "X_" if needed
+      default_embedding = default_embedding[1]
+      if(substr(default_embedding,1,2)!="X_") default_embedding = paste0("X_",default_embedding)
+      default_embedding = intersect(default_embedding,names(AIT.anndata$obsm))
+      if(length(default_embedding)==1){
+        AIT.anndata$uns$default_embedding = default_embedding
+      } else {
+        AIT.anndata$uns$default_embedding = names(AIT.anndata$obsm)[1]
+      }
+    }
+    print(paste("Default embedding set as:",substr(AIT.anndata$uns$default_embedding,3,1000)))
+  }
+  
+  ## Add additional uns variables
+  if (length(uns.variables)>0){
+    for (nm in names(uns.variables))
+     AIT.anndata$uns[[nm]] <- uns.variables[[nm]]
   }
 
   ## Write the Allen Institute Taxonomy object
@@ -224,6 +282,12 @@ buildTaxonomy = function(meta.data,
     }
   }
 
+  ## Check whether the taxonomy is a valid scrattch.taxonomy format
+  AIT.anndata$uns$check = list(isValid=NA)
+  if(check.taxonomy){
+    AIT.anndata$uns$check <- checkTaxonomy(AIT.anndata)
+  }
+  
   ## Return the anndata object
   return(AIT.anndata)
 }

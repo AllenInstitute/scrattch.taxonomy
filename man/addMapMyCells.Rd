@@ -6,7 +6,7 @@
 \usage{
 addMapMyCells(
   AIT_anndata,
-  hierarchy = AIT.anndata$uns$hierarchy,
+  hierarchy = AIT_anndata$uns$hierarchy,
   anndata_path = NULL,
   force = FALSE,
   n_processors = 3,

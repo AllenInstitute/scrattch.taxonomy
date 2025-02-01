@@ -7,6 +7,174 @@
   data = data.frame("")
 }
 
+
+#' Convert to sentence case
+#'
+#' @param str A character string
+#'
+#' @return The character string in sentence case
+tosentence <- function(str) {
+  str <- as.character(str)
+  paste0(toupper(substr(str,1,1)),tolower(substr(str,2,nchar(str))))
+}
+
+
+
+#' Convert the first character of a string to lowercase
+#'
+#' @param str A character string
+#'
+#' @return The character string with specific characters changed to lower case
+firsttolower <- function(str) {
+  str <- as.character(str)
+  paste0(tolower(substr(str,1,1)),substr(str,2,nchar(str)))
+}
+
+
+#' Convert gene symbols to Ensembl IDs
+#' 
+#' NOTE: This function requires an internet connection.
+#' 
+#' @param gene.symbols List of gene symbols to convert to Ensembl IDs.
+#' @param ncbi.taxid The integer part of the NCBITaxon ID for the species want to convert genes between.
+#' @param use.synonyms If TRUE (default) will search synonyms for current gene symbols to try and match Ensembl IDs
+#' @param remove.duplicates If TRUE (default) any genes that share Ensembl IDs with any other genes will have their Ensembl IDs set to NA to avoid ambiguity. In cases where a duplicate is introduced in the synonyms, the original gene.symbol will retain the Ensembl IDs and synonym duplicates will be set to NA.
+#'
+#' @import data.table
+#'
+#' @return Ensembl IDs for the input gene.symbols (or NA if not found or if duplicated)
+#'
+#' @export
+geneSymbolToEnsembl <- function (gene.symbols, ncbi.taxid = 9606, use.synonyms = TRUE, remove.duplicates=TRUE)
+{
+  ## Read the gene information file from the smallest available file
+  if(ncbi.taxid==9606){  # If we go back to reporting for only primary species, we can speed up the code by putting this back
+    geneInfo <- fread("https://ftp.ncbi.nlm.nih.gov/gene/DATA/GENE_INFO/Mammalia/Homo_sapiens.gene_info.gz")
+  } else if(ncbi.taxid==10090){
+    geneInfo <- fread("https://ftp.ncbi.nlm.nih.gov/gene/DATA/GENE_INFO/Mammalia/Mus_musculus.gene_info.gz")
+  } else if (!includeNonMammalianSpecies){
+    geneInfo <- fread("https://ftp.ncbi.nlm.nih.gov/gene/DATA/GENE_INFO/Mammalia/All_Mammalia.gene_info.gz")
+    geneInfo <- geneInfo[geneInfo$`#tax_id`==ncbi.taxid,]
+  } else {
+    print("Non-mammalian species indicated, so this step may be very slow...")
+    geneInfo <- fread("https://ftp.ncbi.nlm.nih.gov/gene/DATA/GENE_INFO/All_Data.gene_info.gz") # a 1GB file!
+    geneInfo <- geneInfo[geneInfo$`#tax_id`==ncbi.taxid,]
+  } 
+  if(dim(geneInfo)[1]==0) stop(paste0("ERROR: No gene information available for NCBI taxid",ncbi.taxid,". Exiting."))
+  
+  # Extract and return ensembl information from dbXrefs 
+  ensembl.all  <- as.character(lapply(geneInfo$dbXrefs, function(x) strsplit(strsplit(x,"Ensembl:")[[1]][2],"\\|")[[1]][1]))
+  ensembl.true <- setNames(ensembl.all[match(genes,geneInfo$Symbol)],genes)
+  
+  # Return what it finds if we don't want to use synonyms
+  if(!use.synonyms) return(ensembl.true)
+  
+  # Explore synonyms for values that are NA, if requested
+  ensembl  <- ensembl.true
+  synonyms <- geneInfo$Synonyms
+  ens <- as.character(lapply(gene.symbols[is.na(ensembl.true)], function(x) ensembl.all[grep(x,synonyms)[1]]))
+  ensembl[is.na(ensembl.true)] <- ens
+  if(!remove.duplicates) return(ensembl)
+  
+  # Remove duplicates introduced by synonyms, if requested
+  ensembl[is.element(ensembl,names(table(ensembl)[table(ensembl)>1]))] = NA  # Remove all duplicates
+  ensembl[!is.na(ensembl.true)] <- ensembl.true[!is.na(ensembl.true)]        # Return gene symbol values
+  ensembl[is.element(ensembl,names(table(ensembl)[table(ensembl)>1]))] = NA  # Remove duplicates in gene symbol values
+  ensembl
+}
+
+
+#' Determine the NCBITaxon ID for a species from the scientific name
+#' 
+#' This function returns the NCBITaxon ID for a species from the scientific name.  It's probably easier just looking it up via a google search, and most of the ones used at the Allen Institute are listed here: https://github.com/AllenInstitute/GeneOrthology.
+#'
+#' @param species Scientific name for one or more species. Not case sensitive, but make sure you spell it correctly or the function will return NA.
+#' @param ncbitaxon_obo Variable in ontologyIndex format read in from obo.file file.
+#' @param obo.file Location to look for or put the ncbitaxon.obo file, if ncbitaxon_obo is not provided
+#' @param obo.url URL to download obo.file from, if not already downloaded. We recommend keeping the default and only switching to "http://purl.obolibrary.org/obo/ncbitaxon.obo" if absolutely necessary.
+#'
+#' @import ontologyIndex
+#'
+#' @return an AIT.anndata object with the updated/additional vector of highly variable genes
+#'
+#' @export
+getNCBITaxon <- function(species,
+                         ncbitaxon_obo=NULL,
+                         obo.file="ncbitaxon.obo",
+                         obo.url="https://raw.githubusercontent.com/obophenotype/ncbitaxon/refs/heads/master/subsets/taxslim.obo"
+                                 # Larger option is "http://purl.obolibrary.org/obo/ncbitaxon.obo"
+                         ){
+  if(is.null(ncbitaxon_obo)){
+    if(!file.exists(obo.file)){
+      file   <- try(download.file(obo.url,obo.file))
+      if("try-error" %in% class(file)) stop(paste(obo.url,"currently inexcessible and",obo.file,"does not exist.  Exiting."))
+    }
+    ncbitaxon_obo <- ontologyIndex::get_OBO(obo.file)
+  }
+  species <- tosentence(species)
+  have.species <- intersect(ncbitaxon_obo$name,species)
+  taxid   <- setNames(names(ncbitaxon_obo$name[match(have.species,ncbitaxon_obo$name)]),have.species)
+  if(length(taxid)==0) return(setNames(rep(NA,length(species)),species))
+  taxid   <- as.numeric(gsub("NCBITaxon:","",taxid))
+  taxid   <- setNames(taxid,have.species)
+  setNames(taxid[match(species,names(taxid))],species)  # Return in same order, with NA for missing values
+}
+
+
+
+#' Function to add or update highly variable genes for the current mode
+#'
+#' @param AIT.anndata A reference taxonomy anndata object.
+#' @param variable.genes Set of variable genes to add to the list.name slot in obs. Can be provided as a logical or character vector.
+#' @param list.name Which slot in obs to should the highly variable genes go?  Default is highly_variable_genes_[mode]
+#'
+#' @return an AIT.anndata object with the updated/additional vector of highly variable genes
+#'
+#' @export
+updateHighlyVariableGenes = function(AIT.anndata,
+                                     variable.genes=NULL,
+                                     list.name = paste0("highly_variable_genes_",AIT.anndata$uns$mode) ){
+  
+  if(is.null(variable.genes)){
+    print("Returning the starting object since AIT.anndata$var$highly_variable_genes is unspecified.")
+    return(AIT.anndata)
+  } 
+  if (is.logical(variable.genes)) {
+    if (length(variable.genes)!=dim(AIT.anndata)[2]) stop("If variable.genes is logical it must be the same length as the total number of genes in AIT.anndata.")
+    variable.genes.vector = variable.genes
+  } else if (is.character(variable.genes)){
+    variable.genes <- intersect(variable.genes,AIT.anndata$var_names)
+    if (length(variable.genes)<=2) stop("More than 2 valid gene names must be provided in variable.genes.")
+    variable.genes.vector <- is.element(AIT.anndata$var_names,variable.genes)
+  } else {
+    stop("variable.genes must be a character or logical vector.")
+  }
+  AIT.anndata$var[,list.name] = variable.genes.vector
+  
+  AIT.anndata
+}
+
+
+#' Function to add or update marker genes for the current mode
+#'
+#' @param AIT.anndata A reference taxonomy anndata object.
+#' @param variable.genes Set of variable genes to add to the list.name slot in obs.
+#' @param list.name Which slot in obs to should the highly variable genes go?  Default is marker_genes_[mode]
+#'
+#' @return an AIT.anndata object with the updated/additional vector of marker genes
+#'
+#' Note that this is a wrapper of updateHighlyVariableGenes with different default names
+#'
+#' @export
+updateMarkerGenes = function(AIT.anndata,
+                             marker.genes=NULL,
+                             list.name = paste0("marker_genes_",AIT.anndata$uns$mode)){
+  updateHighlyVariableGenes(AIT.anndata=AIT.anndata, variable.genes=marker.genes, list.name=list.name)
+}
+
+
+
+
 #' Function to update meta.data
 #'
 #' @param meta.data A data.frame with cell metadata
@@ -68,8 +236,8 @@
 .checkBuildTaxonomyParams <- function(counts, 
                                       normalized.expr,
                                       meta.data, 
-                                      highly_variable_genes,
-                                      marker_genes,
+                                      highly_variable_genes,  # This is checked within buildTaxonomy now
+                                      marker_genes,           # This is checked within buildTaxonomy now
                                       embeddings, 
                                       hierarchy,
                                       cluster_stats,
@@ -129,7 +297,7 @@
 
 #' Function to subsample cells from a taxonomy
 #'
-#' @param meta.data A data.frame with cell metadata
+#' @param cluster.names A vector of cell type names 
 #' @param cell_ids A vector of cell ids to subsample from
 #' @param dend A dendrogram object to use for subsampling
 #' @param subsample The number of cells to retain per cluster (default = 2000)
@@ -137,42 +305,68 @@
 #' @return boolean vector for subsampling
 #'
 #' @keywords internal
-subsample_taxonomy = function(cluster.names, cell_ids, dend, subsample=2000){
+subsample_taxonomy = function(cluster.names, cell_ids, dend=NULL, subsample=2000){
   
-  if(!is.null(dend))
+  kpClusters <- rep(TRUE,length(cluster.names))
+  if(!is.null(dend)){
     kpClusters <- is.element(cluster.names, labels(dend)) # exclude missing clusters, if any
-
+    if(mean(kpClusters)<1) print("===== Omitting cells from missing clusters =====")
+  }
+  
   if((subsample > 0) & (subsample < Inf)){
       print("===== Subsampling cells =====")
-      kpSub = cell_ids[subsampleCells(cluster.names, subsample)]
+      kpSub = cell_ids[subsampleCells(cluster.names, subsample)&kpClusters]
   }else{
       print("===== No subsampling of cells =====")
-      kpSub = cell_ids
+      kpSub = cell_ids[kpClusters]
   }
 
   return(kpSub)
 }
+
 
 #' Function to subsample cells
 #'
 #' @param cluster.names A vector of cluster names in the reference taxonomy.
 #' @param subSamp Number of cells to keep per cluster.
 #' @param seed Random seed used for subsampling.
+#' @param use.historical Defualt (FALSE) uses new, faster implementation. Set to TRUE to use the historical, but slower implementation for back-compatibility.
 #'
 #' @return Boolean vector of cells to keep (TRUE) and cells to remove (FALSE)
 #' 
 #' @export
-subsampleCells <- function(cluster.names, subSamp=25, seed=5){
-  # Returns a vector of TRUE false for choosing a maximum of subsamp cells in each cluster
-  # cluster.names = vector of cluster labels in factor format
-  kpSamp = rep(FALSE,length(cluster.names))
-  for (cli in unique(as.character(cluster.names))){
-    set.seed(seed)
-    seed   = seed+1
-    kp     = which(cluster.names==cli)
-    kpSamp[kp[sample(1:length(kp),min(length(kp),subSamp))]] = TRUE
+subsampleCells <- function(cluster.names, subSamp = 25, seed = 5, use.historical=FALSE) { 
+  if(use.historical){
+    kpSamp = rep(FALSE,length(cluster.names))
+    for (cli in unique(as.character(cluster.names))){
+      set.seed(seed)
+      seed   = seed+1
+      kp     = which(cluster.names==cli)
+      kpSamp[kp[sample(1:length(kp),min(length(kp),subSamp))]] = TRUE
+    }
+    return(kpSamp)
   }
-  return(kpSamp)
+  # If use.historical is false, the new implementation (below) will be used
+  if(length(subSamp)==1) 
+    subSamp = rep(subSamp,length(unique(as.character(cluster.names)))) 
+  if(is.null(names(subSamp))) 
+    names(subSamp) <- unique(as.character(cluster.names)) 
+  
+  set.seed(seed) 
+  cluster_split <- split(seq_along(cluster.names), as.character(cluster.names)) 
+  
+  kpSamp <- unlist(lapply(names(cluster_split), function(cli) { 
+    val <- subSamp[cli] 
+    if (!is.na(val)[1]) { 
+      kp <- cluster_split[[cli]] 
+      kp[sample(length(kp), min(length(kp), val))] 
+    } else { 
+      integer(0) 
+    } 
+  })) 
+  kpSamp2 <- rep(FALSE, length(cluster.names)) 
+  kpSamp2[kpSamp] <- TRUE
+  kpSamp2
 }
 
 
@@ -218,6 +412,7 @@ dend_to_json = function(dend){
     return(dendrogram_json)
 }
 
+
 #' Convert json to R dendrogram
 #'
 #' @param json json from R dendrogram
@@ -261,6 +456,7 @@ json_to_dend = function(json){
     return(dend)
 }
 
+
 #' Get top genes by beta (binary) score
 #'
 #' @param data A count (or CPM or logCPM) matrix
@@ -278,6 +474,7 @@ top_binary_genes <- function(data, cluster.names, gene.count=2000){
   top.genes <- names(betaScore)[1:gene.count]
   return(top.genes)
 }
+
 
 ####################################################################
 ## Functions for reversing '\' and '/'
