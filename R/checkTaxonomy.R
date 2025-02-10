@@ -62,6 +62,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
       messages = c(messages,paste0("\nWARNING: the following AIT.anndata$obs columns are **REQUIRED** for the schema: ", val, "."))
     }
   }else{
+    missing.schema.columns = c()
     messages = c(messages,":-) AIT.anndata$obs contains all required schema elements (additional warnings, if any, will be listed below).")
   }
 
@@ -76,7 +77,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   ## Now we will check any RECOMMENDED schema elements that are present in obs
   recommended.schema.columns = ._get_schema_elements(schema, "obs", "RECOMMENDED")
   for(element in tovalidate.schema.columns){
-    if(is.element(elemenet, names(AIT.anndata$uns))){
+    if(is.element(element, names(AIT.anndata$uns))){
       column_def = ._get_schema_def(element)
       validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid)
       messages = validation[["messages"]]; isValid = validation[["isValid"]]
@@ -103,17 +104,17 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   tovalidate.schema.columns = setdiff(required.schema.columns, missing.schema.columns)
   for(element in tovalidate.schema.columns){
     column_def = ._get_schema_def(element)
-    validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid)
+    validation = ._validate_schema_element(AIT.anndata$uns[[element]], column_def, messages, isValid)
     messages = validation[["messages"]]; isValid = validation[["isValid"]]
   }
 
   ## Now we will check any RECOMMENDED schema elements that are present in uns
   recommended.schema.columns = ._get_schema_elements(schema, "uns", "RECOMMENDED")
-  tovalidate.schema.columns = intersect(recommended.schema.columns, colnames(AIT.anndata$obs)) ## FIX or something very close to this.
+  tovalidate.schema.columns = intersect(recommended.schema.columns, colnames(AIT.anndata$uns)) ## FIX or something very close to this.
   for(element in tovalidate.schema.columns){
     if(is.element(elemenet, names(AIT.anndata$uns))){
       column_def = ._get_schema_def(element)
-      validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid)
+      validation = ._validate_schema_element(AIT.anndata$uns[[element]], column_def, messages, isValid)
       messages = validation[["messages"]]; isValid = validation[["isValid"]]
     }
   }
@@ -206,6 +207,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 #'
 #' @keywords internal
 ._validate_schema_element = function(column, column_def, messages, isValid,
+                                     pull_assay = FALSE,
                                      pull_cl = FALSE, validate_percent_cl = 80,            # cell_type_ontology_term variables
                                      pull_ncbitaxon = FALSE,                               # organism_ontology_term_id variables
                                      pull_uberon = FALSE,                                  # anatomical_region_ontology_term_id variables
@@ -229,7 +231,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
         isValid = FALSE
       }
   }else if(column_def$Type == "Categorical"){
-      if(all(is.factor(column))){
+      if(!all(is.factor(column))){
         messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must be categorical (factor)."))
         isValid = FALSE
       }
@@ -467,7 +469,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   # How should we check this? We need to write a schema on https://github.com/AllenInstitute/AllenInstituteTaxonomy/tree/main/schema
 
   ## 
-  return(list("messages" = messages, "isValid" = isValid))
+  return(isValid)
 }
 
 #' This function will validate the modes in an AIT file
@@ -538,7 +540,10 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 #' @return A list with messages, an isValid logical call, and an isWarning logical call
 #'
 #' @keywords internal
-._validated_embeddings = function(AIT.anndata, messages, isValid, isWarning){
+._validated_embeddings = function(AIT.anndata, 
+                                   messages, 
+                                   isValid, 
+                                   isWarning){
 
   ## Check for a 2D UMAP / latent space (obsm)
   embeddings = names(AIT.anndata$obsm)
@@ -577,7 +582,8 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 #' @return A list with messages, an isValid logical call, and an isWarning logical call
 #'
 #' @keywords internal
-.validate_var_elements = function(AIT.anndata, messages, isValid, isWarning){
+.validate_var_elements = function(AIT.anndata, messages, isValid, isWarning, pull_ensembl=FALSE){
+
   ## Check the highly_variable_genes
   if(sum(is.element(c("highly_variable_genes"), colnames(AIT.anndata$var)))==0){
     isWarning = TRUE
@@ -632,21 +638,24 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
       ensembl  <- convertEns$Ensembl_gene_identifier
     }
   }
+
+
+  ## @Jeremy, What is column here? In my example file that contains NO highly_variable_genes or marker_genes this variable is never set above.
   # Allow for NA values
-  ensembl <- c(ensembl,"NA")
-  column[is.na(column)] = "NA"
-  # Now do the test
-  if(column_def$Key == "ensembl_id"){
-    if(!all(column %in% ensembl)){
-      percent_with_ensembl  <- signif(100*mean(column %in% ensembl),4)
-      message  = paste0("\nThe anndata.obs element: ", column_def$Key, " contains ",percent_with_ensembl,"% ensembl terms.")
-      if(percent_with_ensembl<validate_percent_ensembl){
-        message = paste0(message,"\n:ERROR: At least ",validate_percent_ensembl,"% ensembl terms required to validate.")
-        isValid = FALSE
-      }
-      messages = c(messages, paste0(message))
-    }
-  }
+  # ensembl <- c(ensembl,"NA")
+  # column[is.na(column)] = "NA"
+  # # Now do the test
+  # if(column_def$Key == "ensembl_id"){
+  #   if(!all(column %in% ensembl)){
+  #     percent_with_ensembl  <- signif(100*mean(column %in% ensembl),4)
+  #     message  = paste0("\nThe anndata.obs element: ", column_def$Key, " contains ",percent_with_ensembl,"% ensembl terms.")
+  #     if(percent_with_ensembl<validate_percent_ensembl){
+  #       message = paste0(message,"\n:ERROR: At least ",validate_percent_ensembl,"% ensembl terms required to validate.")
+  #       isValid = FALSE
+  #     }
+  #     messages = c(messages, paste0(message))
+  #   }
+  # }
   
   
   return(list("messages"= messages, "isValid" = isValid, "isWarning" = isWarning))
