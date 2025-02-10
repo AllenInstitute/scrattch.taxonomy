@@ -1,11 +1,10 @@
 #' Updates a metadata data frame with ontology terms
 #'
 #' See updateTaxonomyMetadata for details. computeOntologyTerms is a wrapper for updateTaxonomyMetadata with defaults to do compute the ontology terms for everything (except CL), but not do anything else.
+#' Any breaking issues will cause this function to return FALSE.  And potential issues will still return TRUE but will output a warning to stderr.  All messages will get returned to the log file. 
 #'
 #' @import stringdist
 #' @import ontologyIndex
-#' 
-#' Note: Any breaking issues will cause this function to return FALSE.  And potential issues will still return TRUE but will output a warning to stderr.  All messages will get returned to the log file. 
 #' 
 #' @return A list where "metadata" is the updated metadata file and there are additional list entries corresponding to conversions surrounding ontology terms.  The original metadata data frame is also returned.
 #'
@@ -33,6 +32,7 @@ computeOntologyTerms <- function(
 #' Updates a metadata data frame to better align with the AIT schema
 #'
 #' This function defaults to standardizing metadata but not messing with ontologies. computeOntologyTerms is a wrapper function that defaults to compute the ontology terms for everything (except CL), but not do anything else.  Either function can be used identically by adjusting the parameters.
+#' Any breaking issues will cause this function to return FALSE.  And potential issues will still return TRUE but will output a warning to stderr.  All messages will get returned to the log file. 
 #'
 #' @param metadata A metadata table (data.frame) to be included in the obs slot of an AIT file that will follow the AIT schema
 #' @param log.file.path The directory to output the logfile of errors and warnings (if any; default getwd())
@@ -44,8 +44,6 @@ computeOntologyTerms <- function(
 #' 
 #' @import stringdist
 #' @import ontologyIndex
-#' 
-#' Note: Any breaking issues will cause this function to return FALSE.  And potential issues will still return TRUE but will output a warning to stderr.  All messages will get returned to the log file. 
 #' 
 #' @return A list where "metadata" is the updated metadata file and there are addition list entries corresponding to any additional columns and statistics around the conversions performed in compute.ontology.terms, if any
 #'

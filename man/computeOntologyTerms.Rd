@@ -21,4 +21,5 @@ A list where "metadata" is the updated metadata file and there are additional li
 }
 \description{
 See updateTaxonomyMetadata for details. computeOntologyTerms is a wrapper for updateTaxonomyMetadata with defaults to do compute the ontology terms for everything (except CL), but not do anything else.
+Any breaking issues will cause this function to return FALSE.  And potential issues will still return TRUE but will output a warning to stderr.  All messages will get returned to the log file.
 }

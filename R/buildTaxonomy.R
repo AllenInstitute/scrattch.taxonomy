@@ -1,4 +1,5 @@
 #' This function builds the minimum files required for Shiny
+#' Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If hierarchy[[-1]] is anything other than cluster, then any existing "cluster" column will be overwritten by hierarchy[[-1]].  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.
 #'
 #' @param meta.data Meta.data corresponding to count matrix. Rownames must be equal to colnames of counts. "clusters" must be provided (see hierarchy[[-1]] and notes).
 #' @param title The file name to assign for the Taxonomy h5ad.
@@ -20,8 +21,6 @@
 #' @param addMapMyCells If TRUE (default), will also prep this taxonomy for hierarchical mapping
 #' @param check.taxonomy description
 #' @param ... Additional variables to be passed to `addDendrogramMarkers`
-#' 
-#' *Notes*: Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If hierarchy[[-1]] is anything other than cluster, then any existing "cluster" column will be overwritten by hierarchy[[-1]].  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.
 #' 
 #' *Additional uns.variables*:
 #' * dataset_purl: Link to molecular data if not present in X or raw.X.

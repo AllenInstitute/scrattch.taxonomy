@@ -1,5 +1,5 @@
 cp /home/nelson.johansen/scripts/R/github/scrattch.mapping_0.55.5.tar.gz /allen/programs/celltypes/workgroups/hct/NelsonJ/docker/scrattch-mapping_dev
-cp /home/nelson.johansen/scripts/R/github/scrattch.taxonomy_0.5.14.tar.gz /allen/programs/celltypes/workgroups/hct/NelsonJ/docker/scrattch-mapping_dev
+cp /home/nelson.johansen/scripts/R/github/scrattch.taxonomy_0.9.1.tar.gz /allen/programs/celltypes/workgroups/hct/NelsonJ/docker/scrattch-mapping_dev
 cp /home/nelson.johansen/scripts/R/github/scrattch.patchseq_0.1.tar.gz /allen/programs/celltypes/workgroups/hct/NelsonJ/docker/scrattch-mapping_dev
 cp /home/nelson.johansen/scripts/R/github/scrattch.taxonomy/Dockerfile /allen/programs/celltypes/workgroups/hct/NelsonJ/docker/scrattch-mapping_dev
 cd /allen/programs/celltypes/workgroups/hct/NelsonJ/docker/scrattch-mapping_dev

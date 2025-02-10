@@ -1,5 +1,7 @@
 #' This function builds files needed for hierarchical mapping and stores them in the uns$hierarchical of AIT (Shiny) taxonomy.
 #'
+#' This hierarchical mapping is a wrapper around cell_type_mapper and call's it's functions to generate needed files needed for mapping.
+#'
 #' @param AIT_anndata A reference taxonomy anndata object.
 #' @param hierarchy List of term_set_labels in the reference taxonomy ordered from most gross to most fine. Will default to list included in AIT_anndata, if any.
 #' @param anndata_path Local file path of the AIT reference taxonomy (h5ad file).
@@ -9,9 +11,6 @@
 #' @param tmp_dir Temporary directory for writing out the hierarchical files.
 #' @param user_precomp_stats_path Alternative path to the user provided precompute stats HDF5 file. Will be generated, if not provided.
 #' @param user_query_markers_path Alternative path to the user provided query markers JSON file. Will be generated, if not provided.
-#' 
-#' Note: this hierarchical mapping is a wrapper around cell_type_mapper,   
-#'       and call's it's functions to generate needed files needed for mapping.
 #' 
 #' @import anndata
 #'

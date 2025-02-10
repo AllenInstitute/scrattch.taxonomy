@@ -33,14 +33,11 @@ addMapMyCells(
 
 \item{user_precomp_stats_path}{Alternative path to the user provided precompute stats HDF5 file. Will be generated, if not provided.}
 
-\item{user_query_markers_path}{Alternative path to the user provided query markers JSON file. Will be generated, if not provided.
-
-Note: this hierarchical mapping is a wrapper around cell_type_mapper,
-and call's it's functions to generate needed files needed for mapping.}
+\item{user_query_markers_path}{Alternative path to the user provided query markers JSON file. Will be generated, if not provided.}
 }
 \value{
 AIT.anndata, a reference taxonomy with hierarchical files, such as precompute stats and query markers saved in uns.
 }
 \description{
-This function builds files needed for hierarchical mapping and stores them in the uns$hierarchical of AIT (Shiny) taxonomy.
+This hierarchical mapping is a wrapper around cell_type_mapper and call's it's functions to generate needed files needed for mapping.
 }

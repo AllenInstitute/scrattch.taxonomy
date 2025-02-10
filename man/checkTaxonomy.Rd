@@ -9,13 +9,11 @@ checkTaxonomy(AIT.anndata, log.file.path = getwd())
 \arguments{
 \item{AIT.anndata}{A reference taxonomy anndata object to be tested}
 
-\item{log.file.path}{The directory to output the logfile of errors and warnings (if any; default getwd())
-
-Note: Any breaking issues will cause this function to return FALSE.  And potential issues will still return TRUE but will output a warning to stderr.  All messages will get returned to the log file.}
+\item{log.file.path}{The directory to output the logfile of errors and warnings (if any; default getwd())}
 }
 \value{
 Logical vector indicating whether the inputted taxonomy is a valid scrattch.taxonomy format.
 }
 \description{
-Checks whether an anndata object is in scrattch.taxonomy format and returns a log-file if not
+Any breaking issues will cause this function to return FALSE.  And potential issues will still return TRUE but will output a warning to stderr.  All messages will get returned to the log file.
 }

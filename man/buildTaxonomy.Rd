@@ -2,7 +2,8 @@
 % Please edit documentation in R/buildTaxonomy.R
 \name{buildTaxonomy}
 \alias{buildTaxonomy}
-\title{This function builds the minimum files required for Shiny}
+\title{This function builds the minimum files required for Shiny
+Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If hierarchy[\link{-1}] is anything other than cluster, then any existing "cluster" column will be overwritten by hierarchy[\link{-1}].  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.}
 \usage{
 buildTaxonomy(
   meta.data,
@@ -70,8 +71,6 @@ buildTaxonomy(
 
 \item{...}{Additional variables to be passed to \code{addDendrogramMarkers}
 
-\emph{Notes}: Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If hierarchy[\link{-1}] is anything other than cluster, then any existing "cluster" column will be overwritten by hierarchy[\link{-1}].  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.
-
 \emph{Additional uns.variables}:
 \itemize{
 \item dataset_purl: Link to molecular data if not present in X or raw.X.
@@ -84,4 +83,5 @@ AIT anndata object in the specified format (only if return.anndata=TRUE)
 }
 \description{
 This function builds the minimum files required for Shiny
+Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If hierarchy[\link{-1}] is anything other than cluster, then any existing "cluster" column will be overwritten by hierarchy[\link{-1}].  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.
 }

@@ -35,4 +35,5 @@ A list where "metadata" is the updated metadata file and there are addition list
 }
 \description{
 This function defaults to standardizing metadata but not messing with ontologies. computeOntologyTerms is a wrapper function that defaults to compute the ontology terms for everything (except CL), but not do anything else.  Either function can be used identically by adjusting the parameters.
+Any breaking issues will cause this function to return FALSE.  And potential issues will still return TRUE but will output a warning to stderr.  All messages will get returned to the log file.
 }
