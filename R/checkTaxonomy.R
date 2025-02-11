@@ -469,7 +469,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   # How should we check this? We need to write a schema on https://github.com/AllenInstitute/AllenInstituteTaxonomy/tree/main/schema
 
   ## 
-  return(isValid)
+  return(list(messages=messages, isValid=isValid))
 }
 
 #' This function will validate the modes in an AIT file
@@ -582,7 +582,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 #' @return A list with messages, an isValid logical call, and an isWarning logical call
 #'
 #' @keywords internal
-.validate_var_elements = function(AIT.anndata, messages, isValid, isWarning, pull_ensembl=FALSE){
+.validate_var_elements = function(AIT.anndata, messages, isValid, isWarning, validate_percent_ensembl=60, pull_ensembl=FALSE){
 
   ## Check the highly_variable_genes
   if(sum(is.element(c("highly_variable_genes"), colnames(AIT.anndata$var)))==0){
@@ -620,43 +620,43 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   
   
   ## Check the ensembl_id
-  if(sum(is.element(c("ensembl_id"), colnames(AIT.anndata$var)))==0){
+  if(is.element("ensembl_id", colnames(AIT.anndata$var))){
     isWarning = TRUE
     messages = c(messages,"\nWARNING: AIT.anndata$var does not contain ensembl_id, which is recommended for generating UMAPs and dendrograms.")
   }else{
     ## Validate ensembl_id???
     messages = c(messages,"\n:-) AIT.anndata$var contains ensembl_id (additional warnings, if any, will be listed below).")
-  }
+  
+    ## At least 60% of terms must exist to be valid. 
+    ## Will look at predefined list for "human", "mouse", "marmoset", and "rhesus_macaque" by default and will only query other species if asked.
+    data(ensembl)
+    if(pull_ensembl){
+      ncbi_gene_info <- try(data.table::fread("https://ftp.ncbi.nlm.nih.gov/gene/DATA/gene2ensembl.gz"))
+      if("try-error" %in% class(ncbi_gene_info)){
+        messages = c(messages, paste0("\nWARNING: ensembl terms not accessible via https://ftp.ncbi.nlm.nih.gov/gene/DATA/gene2ensembl.gz and not updated.\n"))
+      } else {
+        ensembl  <- convertEns$Ensembl_gene_identifier
+      }
+    }
 
-  # At least 60% of terms must exist to be valid. Will look at predefined list for "human", "mouse", "marmoset", and "rhesus_macaque" by default and will only query other species if asked.
-  data(ensembl)
-  if(pull_ensembl){
-    ncbi_gene_info <- try(data.table::fread("https://ftp.ncbi.nlm.nih.gov/gene/DATA/gene2ensembl.gz"))
-    if("try-error" %in% class(ncbi_gene_info)){
-      messages = c(messages, paste0("\nWARNING: ensembl terms not accessible via https://ftp.ncbi.nlm.nih.gov/gene/DATA/gene2ensembl.gz and not updated.\n"))
-    } else {
-      ensembl  <- convertEns$Ensembl_gene_identifier
+    ## Allow for NA values
+    ensembl <- c(ensembl, "NA")
+
+    ## Pull ensembl_id column out
+    column.to.validate = AIT.anndata$var$ensembl_id
+    column.to.validate[is.na(column.to.validate)] = "NA"
+
+    ## Now do the test
+    if(!all(column.to.validate %in% ensembl)){
+      percent_with_ensembl  <- signif(100*mean(column.to.validate %in% ensembl),4)
+      message  = paste0("\nThe anndata.obs element: ", "ensembl_id", " contains ", percent_with_ensembl,"% ensembl terms.")
+      if(percent_with_ensembl < validate_percent_ensembl){
+        message = paste0(message,"\n:ERROR: At least ",validate_percent_ensembl,"% ensembl terms required to validate.")
+        isValid = FALSE
+      }
+      messages = c(messages, paste0(message))
     }
   }
-
-
-  ## @Jeremy, What is column here? In my example file that contains NO highly_variable_genes or marker_genes this variable is never set above.
-  # Allow for NA values
-  # ensembl <- c(ensembl,"NA")
-  # column[is.na(column)] = "NA"
-  # # Now do the test
-  # if(column_def$Key == "ensembl_id"){
-  #   if(!all(column %in% ensembl)){
-  #     percent_with_ensembl  <- signif(100*mean(column %in% ensembl),4)
-  #     message  = paste0("\nThe anndata.obs element: ", column_def$Key, " contains ",percent_with_ensembl,"% ensembl terms.")
-  #     if(percent_with_ensembl<validate_percent_ensembl){
-  #       message = paste0(message,"\n:ERROR: At least ",validate_percent_ensembl,"% ensembl terms required to validate.")
-  #       isValid = FALSE
-  #     }
-  #     messages = c(messages, paste0(message))
-  #   }
-  # }
-  
   
   return(list("messages"= messages, "isValid" = isValid, "isWarning" = isWarning))
 }
