@@ -17,7 +17,8 @@ computeOntologyTerms <- function(
     compute.ontology.terms    = c("organism", "anatomical_region", "self_reported_sex", "self_reported_ethnicity", "assay", "disease"),
     compute.brain.atlas.terms = "DHBA",
     convert.regions.to.names  = TRUE,
-    compute.cl.terms          = NULL){
+    compute.cl.terms          = NULL,
+    print.messages            = FALSE){
   ## Call updateTaxonomyMetadata immediately
   updateTaxonomyMetadata(metadata                  = metadata,
                          log.file.path             = log.file.path,
@@ -25,7 +26,8 @@ computeOntologyTerms <- function(
                          compute.ontology.terms    = compute.ontology.terms,
                          compute.brain.atlas.terms = compute.brain.atlas.terms,
                          convert.regions.to.names  = convert.regions.to.names,
-                         compute.cl.terms          = compute.cl.terms)
+                         compute.cl.terms          = compute.cl.terms,
+                         print.messages            = print.messages)
 }
 
 
@@ -41,6 +43,7 @@ computeOntologyTerms <- function(
 #' @param compute.brain.atlas.terms Default (NULL) skips this step. If provided, can be one of: DHBA (developing human brain atlas), HBA (human brain atlas), or MBA (mouse brain atlas), which correspond to ontologies of the same name at https://github.com/brain-bican. 
 #' @param convert.regions.to.names If full brain region names are provided in "anatomical_region", this does nothing. Otherwise, updateTaxonomyMetadata will attempt to convert brain region abbreviations to brain region names, as required to convert to UBERON and brain atlas ontologies. If TRUE, these brain region names will overwrite inputted brain region abbrevations in "anatomical_region"; otherwise these are only returned in list entries for brain region-related ontology terms (default). Note that this variable requires a value for compute.brain.atlas.terms (not NULL), as that is the ontology that it will use to try and convert between abbreviation and name.
 #' @param compute.cl.terms Default (NULL) skips this step and is strongly recommended.  If a column name is provided (e.g., "subclass") will attempt to find the nearest CL term for whatever if included in that column. This will only provide reasonable results if this column includes human readable names that are similar to names found in cell ontology.
+#' @param print.messages Print messages only to a log file (FALSE; default) or also to the screen (TRUE)
 #' 
 #' @import stringdist
 #' @import ontologyIndex
@@ -55,7 +58,8 @@ updateTaxonomyMetadata = function(metadata,
                                   compute.ontology.terms    = NULL,
                                   compute.brain.atlas.terms = NULL,
                                   convert.regions.to.names  = FALSE,
-                                  compute.cl.terms          = NULL)
+                                  compute.cl.terms          = NULL,
+                                  print.messages            = FALSE)
   {
   
   #########################################
@@ -110,9 +114,9 @@ updateTaxonomyMetadata = function(metadata,
   ## If "anatomical_region" exists, check whether terms are abbreviations and if so, convert to full brain region 'name' 
   # Assume abbreviations are provided if average of <10 characters per entry
   
-  if("anatomic_region" %in% schema.columns){
-    num.characters = mean(as.numeric(lapply(metadata[,"anatomic_region"],nchar)),na.rm=TRUE)
-    # frac.lowercase = mean(as.numeric(lapply(metadata[,"anatomic_region"],function(x) stringdist(x,tolower(x))/nchar(x))),na.rm=TRUE) # Not used since several abbreviations in DHBA are all lowercase.
+  if("anatomical_region" %in% compute.ontology.terms){
+    num.characters = mean(as.numeric(lapply(as.character(metadata[,"anatomical_region"]),nchar)),na.rm=TRUE)
+    # frac.lowercase = mean(as.numeric(lapply(as.character(metadata[,"anatomical_region"]),function(x) stringdist(x,tolower(x))/nchar(x))),na.rm=TRUE) # Not used since several abbreviations in DHBA are all lowercase.
     if(num.characters<10) is.region.abbreviations = TRUE
     
     # If regions are abbreviations, convert to full names (we will convert BACK later if convert.regions.to.names=FALSE)
@@ -121,7 +125,7 @@ updateTaxonomyMetadata = function(metadata,
         messages = c(messages, paste0("\nWARNING: compute.brain.atlas.terms are not included in existing options, so brain region names cannot be computed from brain region abbreviations and therefore ontology definitions based on brain regions will likely be WRONG."))
       } else {
         ## Message that we are going to look for long names
-        messages = c(messages, paste0("\nMESSAGE: Brain region abbreviations appear to be included in anatomic_region. Attempting to convert to full name for future ontology conversions, if requested."))
+        messages = c(messages, paste0("\nMESSAGE: Brain region abbreviations appear to be included in anatomical_region. Attempting to convert to full name for future ontology conversions, if requested."))
         ## Search for existing downloaded obo file and use that if in current directory, otherwise download
         onto_term = compute.brain.atlas.terms[1]
         if(!file.exists(brain_atlas_files[onto_term])){
@@ -140,7 +144,7 @@ updateTaxonomyMetadata = function(metadata,
           ontology$name <- setNames(synonym, as.character(ontology$name))      # Formatting for use with ._find_best_ontology_match
           
           ## Find the best match ontology name for the relevant metadata column that contains abbreviations (synonyms)
-          ontology_vector     <- as.character(metadata[,"anatomic_region"])
+          ontology_vector     <- as.character(metadata[,"anatomical_region"])
           unique_onto_terms   <- unique(ontology_vector)  # We only need to look up each term once
           ontology_conversion <- as.data.frame(data.table::rbindlist(lapply(unique_onto_terms,._find_best_ontology_match,ontology)))
           ontology_conversion <- ontology_conversion[match(ontology_vector,unique_onto_terms),]
@@ -149,7 +153,7 @@ updateTaxonomyMetadata = function(metadata,
           ## Save the returned ID, returned name, string distance from original name, and original name for each item
           output[["brain_region_abbreviation_conversion"]] = ontology_conversion
           ## Add a new column to the metadata table for the ontology ID terms
-          metadata[,"anatomic_region"] = ontology_conversion$name
+          metadata[,"anatomical_region"] = ontology_conversion$name
           ## Report any changed names
           if(sum(ontology_conversion$distance)>0){
             change <- paste0(ontology_conversion[,1],"('",ontology_conversion[,4],"'==>'",ontology_conversion[,2],"')")
@@ -159,10 +163,10 @@ updateTaxonomyMetadata = function(metadata,
         }
       }
     }  
-  } else {
-    is.region.abbreviations = FALSE
-    anatomic_region_name = metadata[,"anatomic_region"]
-  }
+  } #else {
+    #is.region.abbreviations = FALSE
+    #anatomical_region_name = metadata[,"anatomical_region"]
+  #}
   
   
   #########################################
@@ -190,7 +194,7 @@ updateTaxonomyMetadata = function(metadata,
     ## donor_age
     # Need to follow up on this. Is it numeric or categorical?
     
-    column.name = "anatomic_region"
+    column.name = "anatomical_region"
     # Convert the first character to lowercase - this is the way the vast majority of UBERON terms look and will make it easier to look up ontology terms
     if(column.name %in% schema.columns){
       metadata[,column.name] <- firsttolower(metadata[,column.name])  # will convert back to factor later
@@ -223,9 +227,8 @@ updateTaxonomyMetadata = function(metadata,
     column.name = "is_primary_data"
     # Check if boolean (logical) if not, convert to one by looking for terms similar to false and setting the rest to true
     if(column.name %in% schema.columns){
-      if(is.logical(metadata[,column.name])){
-        # No nothing if it's a logical... this is what we want!
-      } else {
+      # Do nothing if it's a logical... this is what we want!
+      if(!is.logical(metadata[,column.name])){
         value     <-  as.character(metadata[,column.name])
         value     <- tolower(value)
         falsedist <- stringdist("false", value, method = "lv")
@@ -239,37 +242,41 @@ updateTaxonomyMetadata = function(metadata,
   ## If desired, compute ontology terms
     
   ## Start with all the default terms
-  ontology_terms_to_compute = setdiff(interect(ontology_terms,compute.ontology.terms),"cell_type")  # CL is done separately below
+  ontology_terms_to_compute = setdiff(intersect(ontology_terms,compute.ontology.terms),"cell_type")  # CL is done separately below
   if(length(ontology_terms_to_compute)>0){
     for (onto_term in ontology_terms_to_compute){
-      ## Search for existing downloaded obo file and use that if in current directory, otherwise download
-      if(!file.exists(ontology_files[onto_term])){
-        file <- try(download.file(ontology_urls[onto_term],ontology_files[onto_term])) 
-        if("try-error" %in% class(file))
-          messages = c(messages, paste0("\nWARNING: ",onto_term," ontology file not available and is being skipped"))
-      } 
-      if(file.exists(ontology_files[onto_term])){
-        ## Read in the ontology file
-        ontology <- ontologyIndex::get_OBO(ontology_files[onto_term])
-        kp       <- substr(ontology$id,1,nchar(ontology_prefix[onto_term]))==ontology_prefix[onto_term]
-        for (i in 1:length(ontology)) 
-          ontology[[i]] <- ontology[[i]][kp]
-        ## Find the best match ontology id for the relevant metadata column that contains names
-        ontology_vector     <- as.character(metadata[,onto_term])
-        unique_onto_terms   <- unique(ontology_vector)  # We only need to look up each term once
-        ontology_conversion <- as.data.frame(data.table::rbindlist(lapply(unique_onto_terms,._find_best_ontology_match,ontology)))
-        ontology_conversion <- ontology_conversion[match(ontology_vector,unique_onto_terms)]
-        ontology_conversion$original_name <- ontology_vector
-        ## Save the returned ID, returned name, string distance from original name, and original name for each item
-        output[[onto_term]] = ontology_conversion
-        ## Add a new column to the metadata table for the ontology ID terms
-        metadata[,paste0(onto_term,"_ontology_term_id")] = ontology_conversion$id
-        ## Report any changed names
-        if(sum(ontology_conversion$distance)>0){
-          change <- paste0(ontology_conversion[,1],"('",ontology_conversion[,4],"'==>'",ontology_conversion[,2],"')")
-          messages = c(messages, paste0("\nWARNING: the following ontology terms do not correspond perfectly with inputted values:\n"))
-          messages = c(messages, paste0("-----",paste(sort(unique(change[ontology_conversion$distance>0])),collapse="\n-----")))
+      if(onto_term %in% colnames(metadata)){
+        ## Search for existing downloaded obo file and use that if in current directory, otherwise download
+        if(!file.exists(ontology_files[onto_term])){
+          file <- try(download.file(ontology_urls[onto_term],ontology_files[onto_term])) 
+          if("try-error" %in% class(file))
+            messages = c(messages, paste0("\nWARNING: ",onto_term," ontology file not available and is being skipped"))
+        } 
+        if(file.exists(ontology_files[onto_term])){
+          ## Read in the ontology file
+          ontology <- ontologyIndex::get_OBO(ontology_files[onto_term])
+          kp       <- substr(ontology$id,1,nchar(ontology_prefix[onto_term]))==ontology_prefix[onto_term]
+          for (i in 1:length(ontology)) 
+            ontology[[i]] <- ontology[[i]][kp]
+          ## Find the best match ontology id for the relevant metadata column that contains names
+          ontology_vector     <- as.character(metadata[,onto_term])
+          unique_onto_terms   <- unique(ontology_vector)  # We only need to look up each term once
+          ontology_conversion <- as.data.frame(data.table::rbindlist(lapply(unique_onto_terms,._find_best_ontology_match,ontology)))
+          ontology_conversion <- ontology_conversion[match(ontology_vector,unique_onto_terms),]
+          ontology_conversion$original_name <- ontology_vector
+          ## Save the returned ID, returned name, string distance from original name, and original name for each item
+          output[[onto_term]] = ontology_conversion
+          ## Add a new column to the metadata table for the ontology ID terms
+          metadata[,paste0(onto_term,"_ontology_term_id")] = ontology_conversion$id
+          ## Report any changed names
+          if(sum(ontology_conversion$distance)>0){
+            change <- paste0(ontology_conversion[,1],"('",ontology_conversion[,4],"'==>'",ontology_conversion[,2],"')")
+            messages = c(messages, paste0("\nWARNING: the following ontology terms do not correspond perfectly with inputted values:\n"))
+            messages = c(messages, paste0("-----",paste(sort(unique(change[ontology_conversion$distance>0])),collapse="\n-----")))
+          }
         }
+      } else {
+        messages = c(messages, paste0("\nWARNING: ",onto_term," not include in metadata so ontology terms not calculated."))
       }
     }
   }
@@ -288,7 +295,7 @@ updateTaxonomyMetadata = function(metadata,
   
   
   ## Now deal with "brain_region"
-  if (is.null(compute.brain.atlas.terms)|(!("anatomic_region" %in% schema.columns))){
+  if (is.null(compute.brain.atlas.terms)|(!("anatomical_region" %in% schema.columns))){
     if(!skip_message)
       messages = c(messages, paste0("\nWARNING: compute.brain.atlas.terms are not included in existing options. Skipping brain mapping."))
   } else {
@@ -307,7 +314,7 @@ updateTaxonomyMetadata = function(metadata,
       for (i in 1:length(ontology)) 
         ontology[[i]] <- ontology[[i]][kp]
       ## Find the best match ontology id for the relevant metadata column that contains names
-      ontology_vector     <- as.character(metadata[,"anatomic_region"])
+      ontology_vector     <- as.character(metadata[,"anatomical_region"])
       unique_onto_terms   <- unique(ontology_vector)  # We only need to look up each term once
       ontology_conversion <- as.data.frame(data.table::rbindlist(lapply(unique_onto_terms,._find_best_ontology_match,ontology)))
       ontology_conversion <- ontology_conversion[match(ontology_vector,unique_onto_terms),]
@@ -346,7 +353,7 @@ updateTaxonomyMetadata = function(metadata,
         ontology_vector     <- as.character(metadata[,compute.cl.terms[1]]) 
         unique_onto_terms   <- unique(ontology_vector)  # We only need to look up each term once
         ontology_conversion <- as.data.frame(data.table::rbindlist(lapply(unique_onto_terms,._find_best_ontology_match,ontology)))
-        ontology_conversion <- ontology_conversion[match(ontology_vector,unique_onto_terms)]
+        ontology_conversion <- ontology_conversion[match(ontology_vector,unique_onto_terms),]
         ontology_conversion$original_name <- ontology_vector
         ## Save the returned ID, returned name, string distance from original name, and original name for each item
         output[[onto_term]] = ontology_conversion
@@ -368,10 +375,10 @@ updateTaxonomyMetadata = function(metadata,
   #########################################
   ## Convert any categorical variables to factors, if they aren't already
   
-  ## If convert.regions.to.names=FALSE, change "anatomic_region" back to original values
+  ## If convert.regions.to.names=FALSE, and "anatomical_region" exists change "anatomical_region" back to original values
   initial.metadata <- output[["starting_metadata"]]
-  if((!convert.regions.to.names)&("anatomic_region" %in% schema.columns)){
-    metadata[,"anatomic_region"] <- initial.metadata[,"anatomic_region"]
+  if((!convert.regions.to.names)&("anatomical_region" %in% schema.columns)&("anatomical_region" %in% colnames(metadata))){
+    metadata[,"anatomical_region"] <- initial.metadata[,"anatomical_region"]
   }
     
   ## Factorize initial columns that are part of the schema
@@ -404,7 +411,7 @@ updateTaxonomyMetadata = function(metadata,
       metadata[,element.id] <- ._transfer_factor_levels(metadata[,element.id],metadata[,element])
     }
   if("brain_region_ontology_term_id" %in% colnames(metadata)){
-    element    <- "anatomic_region"
+    element    <- "anatomical_region"
     element.id <- "brain_region_ontology_term_id"
     metadata[,element.id] <- ._transfer_factor_levels(metadata[,element.id],metadata[,element])
   }
@@ -416,9 +423,14 @@ updateTaxonomyMetadata = function(metadata,
   ## Output/return results
   if(!is.null(messages)){
     write(messages,file.path(log.file.path,log.file.name))
-    print("\n=== Messages from updateTaxonomyMetadata.R are available in checkMetadata_log.txt. ===\n")
-    ## @Jeremy Should we print the messages to the console as well?
-  } 
+    print("=== Messages from updateTaxonomyMetadata.R are available in checkMetadata_log.txt. ===")
+
+    ## If requested, output messages to screen
+    if(print.messages) writeLines(readLines(file.path(log.file.path,log.file.name)))
+    
+  } else {
+    print("No messages printed from updateTaxonomyMetadata.R.")
+  }
 
   ## Return the metadata information
   output[["metadata"]] = metadata
@@ -444,7 +456,7 @@ updateTaxonomyMetadata = function(metadata,
     initial.factor <- as.factor(initial.factor)  # To work in situations where the inputs are numeric (probably unlikely)
  
   level.order = match(as.character(levels(initial.factor)),as.character(initial.factor))
-  new.factor  = factor(new.string,levels=new.string[level.order])
+  new.factor  = factor(new.string,levels=unique(new.string[level.order]))
   return(new.factor)  
 }
 

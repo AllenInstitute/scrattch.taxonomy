@@ -39,13 +39,14 @@ firsttolower <- function(str) {
 #' @param ncbi.taxid The integer part of the NCBITaxon ID for the species want to convert genes between.
 #' @param use.synonyms If TRUE (default) will search synonyms for current gene symbols to try and match Ensembl IDs
 #' @param remove.duplicates If TRUE (default) any genes that share Ensembl IDs with any other genes will have their Ensembl IDs set to NA to avoid ambiguity. In cases where a duplicate is introduced in the synonyms, the original gene.symbol will retain the Ensembl IDs and synonym duplicates will be set to NA.
+#' @param includeNonMammalianSpecies Default (FALSE) only considers mammalian species. Set to TRUE if non-mammalian species are considered (much slower).
 #'
 #' @import data.table
 #'
 #' @return Ensembl IDs for the input gene.symbols (or NA if not found or if duplicated)
 #'
 #' @export
-geneSymbolToEnsembl <- function (gene.symbols, ncbi.taxid = 9606, use.synonyms = TRUE, remove.duplicates=TRUE)
+geneSymbolToEnsembl <- function (gene.symbols, ncbi.taxid = 9606, use.synonyms = TRUE, remove.duplicates=TRUE, includeNonMammalianSpecies=FALSE)
 {
   ## Read the gene information file from the smallest available file
   if(ncbi.taxid==9606){  # If we go back to reporting for only primary species, we can speed up the code by putting this back
@@ -64,7 +65,7 @@ geneSymbolToEnsembl <- function (gene.symbols, ncbi.taxid = 9606, use.synonyms =
   
   # Extract and return ensembl information from dbXrefs 
   ensembl.all  <- as.character(lapply(geneInfo$dbXrefs, function(x) strsplit(strsplit(x,"Ensembl:")[[1]][2],"\\|")[[1]][1]))
-  ensembl.true <- setNames(ensembl.all[match(genes,geneInfo$Symbol)],genes)
+  ensembl.true <- setNames(ensembl.all[match(gene.symbols,geneInfo$Symbol)],gene.symbols)
   
   # Return what it finds if we don't want to use synonyms
   if(!use.synonyms) return(ensembl.true)

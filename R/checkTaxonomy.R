@@ -4,13 +4,16 @@
 #'
 #' @param AIT.anndata A reference taxonomy anndata object to be tested
 #' @param log.file.path The directory to output the logfile of errors and warnings (if any; default getwd())
+#' @param print.messages Print messages only to a log file (FALSE; default) or also to the screen (TRUE)
+#' @param ... Additional parameters for ._validate_schema_elements and .validate_var_elements (can be ignored in most cases)
 #' 
 #' @import anndata
 #'
 #' @return Logical vector indicating whether the inputted taxonomy is a valid scrattch.taxonomy format.
 #'
 #' @export
-checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
+checkTaxonomy = function(AIT.anndata, log.file.path=getwd(), print.messages=FALSE, 
+                         validate_percent_ensembl=60, pull_ensembl=FALSE, ...){
   
   #########################################
   ## Initial general check and set up
@@ -70,7 +73,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   tovalidate.schema.columns = setdiff(required.schema.columns, missing.schema.columns)
   for(element in tovalidate.schema.columns){
     column_def = ._get_schema_def(element)
-    validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid)
+    validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid, ...)
     messages = validation[["messages"]]; isValid = validation[["isValid"]]
   }
 
@@ -79,7 +82,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   for(element in tovalidate.schema.columns){
     if(is.element(element, names(AIT.anndata$uns))){
       column_def = ._get_schema_def(element)
-      validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid)
+      validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid, ...)
       messages = validation[["messages"]]; isValid = validation[["isValid"]]
     }
   }
@@ -104,7 +107,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   tovalidate.schema.columns = setdiff(required.schema.columns, missing.schema.columns)
   for(element in tovalidate.schema.columns){
     column_def = ._get_schema_def(element)
-    validation = ._validate_schema_element(AIT.anndata$uns[[element]], column_def, messages, isValid)
+    validation = ._validate_schema_element(AIT.anndata$uns[[element]], column_def, messages, isValid, ...)
     messages = validation[["messages"]]; isValid = validation[["isValid"]]
   }
 
@@ -114,7 +117,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   for(element in tovalidate.schema.columns){
     if(is.element(elemenet, names(AIT.anndata$uns))){
       column_def = ._get_schema_def(element)
-      validation = ._validate_schema_element(AIT.anndata$uns[[element]], column_def, messages, isValid)
+      validation = ._validate_schema_element(AIT.anndata$uns[[element]], column_def, messages, isValid, ...)
       messages = validation[["messages"]]; isValid = validation[["isValid"]]
     }
   }
@@ -123,7 +126,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   ## Check the metadata (var)
   ## highly_variable_genes[_name], marker_genes[_name], ensembl_id all of which are RECOMMENDED
 
-  validation = .validate_var_elements(AIT.anndata, messages, isValid, isWarning)
+  validation = .validate_var_elements(AIT.anndata, messages, isValid, isWarning, validate_percent_ensembl, pull_ensembl)
   messages = validation[["messages"]]; isValid = validation[["isValid"]]; isWarning = validation[["isWarning"]]
 
   #########################################
@@ -151,6 +154,9 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   } else {
     print("AIT.anndata appears to be a completely valid Allen Institute Taxonomy file!")
   }
+  
+  ## If requested, output messages to screen
+  if(print.messages) writeLines(readLines(file.path(log.file.path,"checkTaxonomy_log.txt")))
 
   ## Return the logical for validation
   return(isValid)
@@ -196,12 +202,10 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 #' @param validate_percent_cl Percent of entries that must correspond to valid CL terms to validate
 #' @param pull_assay If FALSE (default) loads the list of EFO terms (assays); otherwise pulls from EBI (VERY slow) 
 #' @param pull_ncbitaxon If FALSE (default) loads the list of species with gene information at NCBI; otherwise pulls from OBO (VERY slow) 
-#' @param pull_uberon If FALSE (default) loads the list of anatomic regions from UBERON; otherwise pulls from OBO
+#' @param pull_uberon If FALSE (default) loads the list of anatomical regions from UBERON; otherwise pulls from OBO
 #' @param pull_brain_atlases If FALSE (default) loads the list of brain atlas ids; otherwise pulls from brain-bican
 #' @param pull_hancestro If FALSE (default) loads the list of HANCESTRO terms; otherwise, pulls from OBO 
 #' @param pull_mondo If FALSE (default) loads the list of MONDO terms; otherwise, pulls from OBO 
-#' @param pull_ensembl If FALSE (default) loads the list of Ensembl terms from NCBI; otherwise, pulls from NCBI (VERY slow)
-#' @param validate_percent_ensembl Percent of entries that must correspond to valid Ensembl terms to validate
 #'
 #' @return A list with messages and an isValid logical call
 #'
@@ -213,8 +217,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
                                      pull_uberon = FALSE,                                  # anatomical_region_ontology_term_id variables
                                      pull_brain_atlases = FALSE,                           # brain_region_ontology_term_id variables
                                      pull_hancestro = FALSE,                               # self_reported_ethnicity_ontology_term_id variables
-                                     pull_mondo = FALSE,                                   # disease_ontology_term_id variables
-                                     pull_ensembl = FALSE, validate_percent_ensembl = 60   # ensembl_id variables
+                                     pull_mondo = FALSE                                    # disease_ontology_term_id variables
                                      ){
 
   ###########################################################
@@ -228,6 +231,11 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   }else if(column_def$Type == "bool"){
       if(!all(column %in% c(TRUE, FALSE))){ 
         messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must be boolean."))
+        isValid = FALSE
+      }
+  }else if(column_def$Type == "numeric"){
+      if(!all(is.numeric(column))){ 
+        messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must be numeric"))
         isValid = FALSE
       }
   }else if(column_def$Type == "Categorical"){
@@ -567,6 +575,8 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
         messages = c(messages, paste0("\nWARNING: An embedding: ", embedding, " is invalid."))
       }
     }
+  } else {
+    messages = c(messages, paste0("\nWARNING: AIT.anndata$obsm does not include any embeddings, which are required for some downstream functions."))
   }
 
   return(list("messages"= messages, "isValid" = isValid, "isWarning" = isWarning))
@@ -578,6 +588,8 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 #' @param messages The current messages to append to.
 #' @param isValid The current isValid status.
 #' @param isWarning The current isWarning status.
+#' @param pull_ensembl If FALSE (default) loads the list of Ensembl terms from NCBI; otherwise, pulls from NCBI (VERY slow)
+#' @param validate_percent_ensembl Percent of entries that must correspond to valid Ensembl terms to validate
 #'
 #' @return A list with messages, an isValid logical call, and an isWarning logical call
 #'
@@ -585,7 +597,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
 .validate_var_elements = function(AIT.anndata, messages, isValid, isWarning, validate_percent_ensembl=60, pull_ensembl=FALSE){
 
   ## Check the highly_variable_genes
-  if(sum(is.element(c("highly_variable_genes"), colnames(AIT.anndata$var)))==0){
+  if(sum(is.element(c("highly_variable_genes"), substr(colnames(AIT.anndata$var),1,21)))==0){
     isWarning = TRUE
     messages = c(messages,"\nWARNING: AIT.anndata$var does not contain highly_variable_genes[_name], which is recommended for generating UMAPs and dendrograms.")
   }else{
@@ -602,7 +614,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   }
 
   ## Check the marker_genes
-  if(sum(is.element(c("marker_genes"), colnames(AIT.anndata$var)))==0){
+  if(sum(is.element(c("marker_genes"), substr(colnames(AIT.anndata$var),1,12)))==0){
     isWarning = TRUE
     messages = c(messages,"\nWARNING: AIT.anndata$var does not contain marker_genes[_name], which is recommended for generating UMAPs and dendrograms.")
   }else{
@@ -620,7 +632,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
   
   
   ## Check the ensembl_id
-  if(is.element("ensembl_id", colnames(AIT.anndata$var))){
+  if(!is.element("ensembl_id", colnames(AIT.anndata$var))){
     isWarning = TRUE
     messages = c(messages,"\nWARNING: AIT.anndata$var does not contain ensembl_id, which is recommended for generating UMAPs and dendrograms.")
   }else{
@@ -643,7 +655,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
     ensembl <- c(ensembl, "NA")
 
     ## Pull ensembl_id column out
-    column.to.validate = AIT.anndata$var$ensembl_id
+    column.to.validate = as.character(AIT.anndata$var$ensembl_id)
     column.to.validate[is.na(column.to.validate)] = "NA"
 
     ## Now do the test
@@ -651,7 +663,7 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd()){
       percent_with_ensembl  <- signif(100*mean(column.to.validate %in% ensembl),4)
       message  = paste0("\nThe anndata.obs element: ", "ensembl_id", " contains ", percent_with_ensembl,"% ensembl terms.")
       if(percent_with_ensembl < validate_percent_ensembl){
-        message = paste0(message,"\n:ERROR: At least ",validate_percent_ensembl,"% ensembl terms required to validate.")
+        message = paste0(message,"\nERROR: At least ",validate_percent_ensembl,"% ensembl terms required to validate.")
         isValid = FALSE
       }
       messages = c(messages, paste0(message))

@@ -13,7 +13,8 @@ computeOntologyTerms(
     "self_reported_ethnicity", "assay", "disease"),
   compute.brain.atlas.terms = "DHBA",
   convert.regions.to.names = TRUE,
-  compute.cl.terms = NULL
+  compute.cl.terms = NULL,
+  print.messages = FALSE
 )
 }
 \value{

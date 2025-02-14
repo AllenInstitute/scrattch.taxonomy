@@ -152,8 +152,9 @@ buildTaxonomy = function(meta.data,
   }
   
   ## Compute most likely "ontology_term_id" for "organism", "anatomical_region", "self_reported_sex", "self_reported_ethnicity", "assay", and "disease"
-  meta.data <- computeOntologyTerms(meta.data)
+  # meta.data <- computeOntologyTerms(meta.data)
   # NOTE this is a wrapper function for updateTaxonomyMetadata and found in updateTaxonomyMetadata.R
+  # I think it's better that this gets called outside this function
   
   ## Build the AIT object
   print("===== Building taxonomy anndata =====")
@@ -181,7 +182,7 @@ buildTaxonomy = function(meta.data,
       title = title,
       hierarchy = hierarchy,
       taxonomyDir = file.path(normalizePath(taxonomyDir), leading_string="/"), ## Normalize path in case where user doesn't provide absolute path.
-      schema_version = packageVersion("scrattch.taxonomy")  # Tying schema version to scrattch.taxonomy version. @Nelson, I'm open to another option.
+      schema_version = as.character(packageVersion("scrattch.taxonomy"))  # Tying schema version to scrattch.taxonomy version. @Nelson, I'm open to another option.
     )
   )
 
@@ -202,7 +203,7 @@ buildTaxonomy = function(meta.data,
   ## Add ensemble_id into AIT object
   if(!is.null(ensembl_id)){
     if(dim(AIT.anndata$var)[1]==length(ensembl_id)){
-      AIT.anndata$var$ensembl_id = ensembl_id
+      AIT.anndata$var$ensembl_id = as.character(ensembl_id)
     } else {
       print("===== Provided ensembl_id vector of different length from gene length in var. Skipping adding ensembl_ids. =====")
     }

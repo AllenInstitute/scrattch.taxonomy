@@ -12,7 +12,8 @@ updateTaxonomyMetadata(
   compute.ontology.terms = NULL,
   compute.brain.atlas.terms = NULL,
   convert.regions.to.names = FALSE,
-  compute.cl.terms = NULL
+  compute.cl.terms = NULL,
+  print.messages = FALSE
 )
 }
 \arguments{
@@ -29,6 +30,8 @@ updateTaxonomyMetadata(
 \item{convert.regions.to.names}{If full brain region names are provided in "anatomical_region", this does nothing. Otherwise, updateTaxonomyMetadata will attempt to convert brain region abbreviations to brain region names, as required to convert to UBERON and brain atlas ontologies. If TRUE, these brain region names will overwrite inputted brain region abbrevations in "anatomical_region"; otherwise these are only returned in list entries for brain region-related ontology terms (default). Note that this variable requires a value for compute.brain.atlas.terms (not NULL), as that is the ontology that it will use to try and convert between abbreviation and name.}
 
 \item{compute.cl.terms}{Default (NULL) skips this step and is strongly recommended.  If a column name is provided (e.g., "subclass") will attempt to find the nearest CL term for whatever if included in that column. This will only provide reasonable results if this column includes human readable names that are similar to names found in cell ontology.}
+
+\item{print.messages}{Print messages only to a log file (FALSE; default) or also to the screen (TRUE)}
 }
 \value{
 A list where "metadata" is the updated metadata file and there are addition list entries corresponding to any additional columns and statistics around the conversions performed in compute.ontology.terms, if any

@@ -9,15 +9,14 @@
   column_def,
   messages,
   isValid,
+  pull_assay = FALSE,
   pull_cl = FALSE,
   validate_percent_cl = 80,
   pull_ncbitaxon = FALSE,
   pull_uberon = FALSE,
   pull_brain_atlases = FALSE,
   pull_hancestro = FALSE,
-  pull_mondo = FALSE,
-  pull_ensembl = FALSE,
-  validate_percent_ensembl = 60
+  pull_mondo = FALSE
 )
 }
 \arguments{
@@ -29,25 +28,21 @@
 
 \item{isValid}{The current call for whether the taxonomy is valid.}
 
+\item{pull_assay}{If FALSE (default) loads the list of EFO terms (assays); otherwise pulls from EBI (VERY slow)}
+
 \item{pull_cl}{If FALSE (default) loads a preset list of CL terms from OBO; otherwise pulls from OBO}
 
 \item{validate_percent_cl}{Percent of entries that must correspond to valid CL terms to validate}
 
 \item{pull_ncbitaxon}{If FALSE (default) loads the list of species with gene information at NCBI; otherwise pulls from OBO (VERY slow)}
 
-\item{pull_uberon}{If FALSE (default) loads the list of anatomic regions from UBERON; otherwise pulls from OBO}
+\item{pull_uberon}{If FALSE (default) loads the list of anatomical regions from UBERON; otherwise pulls from OBO}
 
 \item{pull_brain_atlases}{If FALSE (default) loads the list of brain atlas ids; otherwise pulls from brain-bican}
 
 \item{pull_hancestro}{If FALSE (default) loads the list of HANCESTRO terms; otherwise, pulls from OBO}
 
 \item{pull_mondo}{If FALSE (default) loads the list of MONDO terms; otherwise, pulls from OBO}
-
-\item{pull_ensembl}{If FALSE (default) loads the list of Ensembl terms from NCBI; otherwise, pulls from NCBI (VERY slow)}
-
-\item{validate_percent_ensembl}{Percent of entries that must correspond to valid Ensembl terms to validate}
-
-\item{pull_assay}{If FALSE (default) loads the list of EFO terms (assays); otherwise pulls from EBI (VERY slow)}
 }
 \value{
 A list with messages and an isValid logical call

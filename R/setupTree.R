@@ -117,7 +117,7 @@ addDendrogramMarkers = function(AIT.anndata,
 
     ## Check number of markers for each leaf
     min.marker.gene.count = as.numeric(as.character(lapply(de.genes, function(x) x$num)))
-    if(sum(min.marker.gene.count<2)>0)({
+    if((sum(min.marker.gene.count<2,na.rm=TRUE)>0)|(sum(is.na(min.marker.gene.count)>0)))({
       stop("Marker genes could not be calculated for at least one node in the tree. Tree mapping will not work in this situation. We recommend loosening the de.param parameters and trying again, but warn that some cell types may not be well resolved.")
     })
 

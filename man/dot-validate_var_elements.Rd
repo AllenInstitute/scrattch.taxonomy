@@ -4,7 +4,14 @@
 \alias{.validate_var_elements}
 \title{This function will validate the var in an AIT file}
 \usage{
-.validate_var_elements(AIT.anndata, messages, isValid, isWarning)
+.validate_var_elements(
+  AIT.anndata,
+  messages,
+  isValid,
+  isWarning,
+  validate_percent_ensembl = 60,
+  pull_ensembl = FALSE
+)
 }
 \arguments{
 \item{AIT.anndata}{The AIT anndata object to validate.}
@@ -14,6 +21,10 @@
 \item{isValid}{The current isValid status.}
 
 \item{isWarning}{The current isWarning status.}
+
+\item{validate_percent_ensembl}{Percent of entries that must correspond to valid Ensembl terms to validate}
+
+\item{pull_ensembl}{If FALSE (default) loads the list of Ensembl terms from NCBI; otherwise, pulls from NCBI (VERY slow)}
 }
 \value{
 A list with messages, an isValid logical call, and an isWarning logical call
