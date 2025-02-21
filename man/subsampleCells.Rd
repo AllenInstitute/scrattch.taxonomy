@@ -4,7 +4,7 @@
 \alias{subsampleCells}
 \title{Function to subsample cells}
 \usage{
-subsampleCells(cluster.names, subSamp = 25, seed = 5)
+subsampleCells(cluster.names, subSamp = 25, seed = 5, use.historical = FALSE)
 }
 \arguments{
 \item{cluster.names}{A vector of cluster names in the reference taxonomy.}
@@ -12,6 +12,8 @@ subsampleCells(cluster.names, subSamp = 25, seed = 5)
 \item{subSamp}{Number of cells to keep per cluster.}
 
 \item{seed}{Random seed used for subsampling.}
+
+\item{use.historical}{Defualt (FALSE) uses new, faster implementation. Set to TRUE to use the historical, but slower implementation for back-compatibility.}
 }
 \value{
 Boolean vector of cells to keep (TRUE) and cells to remove (FALSE)

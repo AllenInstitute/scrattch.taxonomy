@@ -1,7 +1,9 @@
 #' This function builds files needed for hierarchical mapping and stores them in the uns$hierarchical of AIT (Shiny) taxonomy.
 #'
+#' This hierarchical mapping is a wrapper around cell_type_mapper and call's it's functions to generate needed files needed for mapping.
+#'
 #' @param AIT_anndata A reference taxonomy anndata object.
-#' @param hierarchy List of term_set_labels in the reference taxonomy ordered from most gross to most fine. Will default to list included in AIT_anndata, if any.
+#' @param hierarchy Named list of term_set_labels in the reference taxonomy ordered from most gross to most fine. Will default to list included in AIT_anndata, if any. E.g. ["Class" = 0, "Subclass"=  1]
 #' @param anndata_path Local file path of the AIT reference taxonomy (h5ad file).
 #' @param force Boolean value indicating whether to overwrite the AIT reference taxonomy's hierarchical file for a given mode.
 #' @param n_processors Number of independent worker processes to spin up.
@@ -10,16 +12,13 @@
 #' @param user_precomp_stats_path Alternative path to the user provided precompute stats HDF5 file. Will be generated, if not provided.
 #' @param user_query_markers_path Alternative path to the user provided query markers JSON file. Will be generated, if not provided.
 #' 
-#' Note: this hierarchical mapping is a wrapper around cell_type_mapper,   
-#'       and call's it's functions to generate needed files needed for mapping.
-#' 
 #' @import anndata
 #'
 #' @return AIT.anndata, a reference taxonomy with hierarchical files, such as precompute stats and query markers saved in uns.
 #'
 #' @export
 addMapMyCells = function(AIT_anndata,
-                         hierarchy=AIT.anndata$uns$hierarchy,
+                         hierarchy=AIT_anndata$uns$hierarchy,
                          anndata_path=NULL,
                          force=FALSE,
                          n_processors = 3,
@@ -33,26 +32,25 @@ addMapMyCells = function(AIT_anndata,
       ## move to zzz try catch
       cell_type_mapper <- import("cell_type_mapper")
 
-      if ((length(AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]]) > 0) && force==FALSE) {
+      if ((length(AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]]) > 0) && force==FALSE) {
         stop(paste0(paste0("ERROR: mode provided '", AIT_anndata$uns$mode), 
         "' already exists, choose a new mode name or use force=TRUE to overwrite."))
       }
       
       # get an ordered list of taxonomy's hierarchy levels.
-      taxonomy_hierarchy = get_hierarchy(AIT_anndata, hierarchy)
+      taxonomy_hierarchy = names(hierarchy)
 
       if (is.null(tmp_dir) || tmp_dir == "") {
         tmp_dir <- paste0("tmp_dir_", format(Sys.time(), "%Y%m%d-%H%M%S"))
         tmp_dir <- file.path(getwd(), tmp_dir)
         dir.create(tmp_dir)
-      }
+      }      
 
       # get file path to the AIT taxonomy (h5ad)
-      taxonomy_anndata_path = get_anndata_path(anndata_path, tmp_dir)
+      taxonomy_anndata_path = get_anndata_path(AIT_anndata, anndata_path, tmp_dir)
       
-      # (NEW!) write a subsetted h5ad file to the temp_folder. This will allow proper subsetting of the compute stats and speed it up.
-      mode_dir <- file.path(AIT_anndata$uns$taxonomyDir, "temp")
-      if(sum(AIT_anndata$uns$filter[[mode]])==0){
+      # (NEW!) write a subsetted h5ad file to the tmp_dir. This will allow proper subsetting of the compute stats and speed it up.
+      if(sum(AIT_anndata$uns$filter[[AIT_anndata$uns$mode]])==0){
         anndata_calc_path = taxonomy_anndata_path
         AIT_anndata_calc  = AIT_anndata
       } else {
@@ -87,8 +85,8 @@ addMapMyCells = function(AIT_anndata,
       
       # (NEW!) Move stats from calculation anndata to actual anndata
       AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]] <- list()
-      AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]][["precomp_stats"]] <- AIT_anndata_calc$uns$hierarchical[[AIT_anndata$uns$mode]][["precomp_stats"]]
-      AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]][["query_markers"]] <- AIT_anndata_calc$uns$hierarchical[[AIT_anndata$uns$mode]][["query_markers"]]
+      AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]][["precomp_stats"]] <- AIT_anndata_calc$uns$mapmycells[[AIT_anndata$uns$mode]][["precomp_stats"]]
+      AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]][["query_markers"]] <- AIT_anndata_calc$uns$mapmycells[[AIT_anndata$uns$mode]][["query_markers"]]
       
       # Overwrite correct anndata with added query markers
       AIT_anndata$write_h5ad(anndata_path)
@@ -105,7 +103,7 @@ addMapMyCells = function(AIT_anndata,
       }
       else {
         # remove the files is they were code generated
-        if(is.null(user_precomp_stats_path)) {
+        if(is.null(user_precomp_stats_path) && !is.null(precomp_stats_output_path)) {
           file.remove(precomp_stats_output_path)
         }
         if(is.null(user_query_markers_path)) {
@@ -189,8 +187,8 @@ save_precomp_stats_to_uns = function(anndata_path, precomp_stats_output_path, mo
 
   ## take the precomputed_stats from uns and save to uns$hierarchical$mode
   precomp_stats_json = AIT_anndata$uns[[temp_precomp_stats_name]]
-  AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]] <- list()
-  AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]][["precomp_stats"]] <- precomp_stats_json
+  AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]] <- list()
+  AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]][["precomp_stats"]] <- precomp_stats_json
   AIT_anndata$uns[[temp_precomp_stats_name]] <- NULL
 
   return(AIT_anndata)
@@ -267,7 +265,7 @@ save_query_markers_to_uns = function(AIT_anndata, query_markers_output_path) {
   serialized_query_markers = cell_type_mapper$utils$utils$clean_for_uns_serialization(query_markers_data)
   
   ## save serialized query_markers to uns$hierarchical$mode
-  AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]][["query_markers"]] <- serialized_query_markers
+  AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]][["query_markers"]] <- serialized_query_markers
 
   return(AIT_anndata)
 }
@@ -283,7 +281,10 @@ get_anndata_path = function(AIT_anndata, anndata_path, tmp_dir) {
   if (is.null(anndata_path) || !file.exists(anndata_path)){
     # Use AIT path stored in AIT.anndata$uns, if not null.
     if (!is.null(AIT_anndata$uns$taxonomyDir) && !is.null(AIT_anndata$uns$title)){
-      anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
+      # Check if the file name already ends with .h5ad, if not, append it
+      anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, 
+                               ifelse(!grepl("\\.h5ad$", AIT_anndata$uns$title), ".h5ad", "")))
+
     }
     # Check if anndata path exists; if does not, write it out to temp - show WARNING.
     if (is.null(anndata_path) || !file.exists(anndata_path)) {
@@ -295,23 +296,4 @@ get_anndata_path = function(AIT_anndata, anndata_path, tmp_dir) {
     }
   }
   return(anndata_path)
-}
-
-#' This function looks for a valid hierarchy list.
-#' @param AIT_anndata AIT reference taxonomy object.
-#' @param hierarchy List of term_set_labels in the reference taxonomy ordered from most gross to most fine.
-#' @return Local file path to the AIT reference taxonomy h5ad file.
-#'
-#' @keywords internal
-get_hierarchy = function(AIT_anndata, hierarchy) {
-  if ((sum(class(hierarchy)=="list")<1) | (length(hierarchy) == 0)) {
-    hierarchy = AIT_anndata$uns$hierarchy
-  }
-  else {
-    AIT_anndata$uns$hierarchy = hierarchy 
-  }
-  if ((sum(class(hierarchy)=="list")<1) | (length(hierarchy) == 0)) {
-    stop(paste("Hierarchy does NOT exist in AIT.anndata$uns$hierarchy, please pass hierarchy list as a function parameter 'hierarchy=list()'."))
-  }
-  return(hierarchy)
 }

@@ -4,11 +4,7 @@
 \alias{save_precomp_stats_to_uns}
 \title{Saves the contents of the precomputed_stats.h5 file to AIT -> uns -> hierarchical.}
 \usage{
-save_precomp_stats_to_uns(
-  anndata_path,
-  precomp_stats_output_path,
-  mode = AIT_anndata$uns$mode
-)
+save_precomp_stats_to_uns(anndata_path, precomp_stats_output_path, mode)
 }
 \arguments{
 \item{anndata_path}{Local file path of the AIT reference taxonomy (h5ad file).}

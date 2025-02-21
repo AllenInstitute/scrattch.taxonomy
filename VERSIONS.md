@@ -1,3 +1,19 @@
+## scrattch.taxonomy v0.9.1
+
+Major update to integrate the new Allen Institute schema
+
+### Major changes
+* Introduction of AIT schema into code
+* Many new functions to deal with schema, ontologies, taxonomy checks, etc.
+* Updated example to use new schema
+* Metadata error correction
+
+
+### Minor changes
+Bug fixes
+
+--
+
 ## scrattch.taxonomy v0.7.1
 
 Updates to improve correlation mapping
@@ -19,7 +35,7 @@ Upgrades to streamline process
 
 ### Major changes
 * Updated example
-* Pull code for setting up tree and heirarchical mapping into buildTaxonomy
+* Pull code for setting up tree and hierarchical mapping into buildTaxonomy
 
 ### Minor changes
 Bug fixes

@@ -15,7 +15,6 @@
 #' @param overwriteMarkers If markers already are calculated a tree, should they be overwritten (default = TRUE)
 #' @param taxonomyDir The location to create the directory with taxonomy mode information (default is as a subdirectory of the taxonomy location stored in the anndata object).
 #'
-#' NOTES:
 #' By default VERY loose parameters are set for de_param in an effort to get extra marker genes for each node.  The defaults previously proposed for 10x nuclei are the following `de_param(low.th = 1, padj.th = 0.01, lfc.th = 1, q1.th = 0.3, q2.th = NULL, q.diff.th = 0.7, de.score.th = 100, min.cells = 2, min.genes = 5)`. See the function `de_param` in the scrattch.hicat for more details.  
 #'
 #' If save.shiny.output=TRUE, membership_information_reference.rda will be generated, which includes two variables
@@ -54,11 +53,14 @@ addDendrogramMarkers = function(AIT.anndata,
                                 taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir)){
   suppressWarnings({ # wrapping the whole function in suppressWarnings to avoid having this printed a zillion times: 'useNames = NA is deprecated. Instead, specify either useNames = TRUE or useNames = FALSE.'
   
+  print(celltypeColumn)
+
   ## We should already know this? Clean up in future.
   if(!is.element(celltypeColumn, colnames(AIT.anndata$obs))){ stop(paste(celltypeColumn, "is not a column in the metadata data frame.")) }
 
   ##
   if(mode == "standard"){ taxonomyModeDir = file.path(taxonomyDir) } else { taxonomyModeDir = file.path(taxonomyDir, mode) }
+
   if(!dir.exists(taxonomyModeDir)){ stop("Taxonomy version doesn't exist, please run `buildPatchseqTaxonomy()` then retry.") }
 
   ##
@@ -71,7 +73,7 @@ addDendrogramMarkers = function(AIT.anndata,
   dend = json_to_dend(AIT.anndata$uns$dend[[mode]])
 
   ## norm.data
-  norm.data = Matrix::t(AIT.anndata$X[keep.samples,])
+  norm.data = Matrix::t(AIT.anndata$X[AIT.anndata$obs_names[keep.samples],])
   
   ## metadata 
   metadata = AIT.anndata$obs[keep.samples,] %>% as.data.frame()
@@ -86,7 +88,7 @@ addDendrogramMarkers = function(AIT.anndata,
   cl.df$cluster_label = cl.df[,celltypeColumn]
   rownames(cl.df) = 1:length(labels(dend)) 
   cl.label  = as.factor(setNames(cl.df$cluster_label, rownames(cl.df)))
-  select.cl = droplevels(as.factor(setNames(match(metadata[,celltypeColumn],cl.label), metadata$cell_id)))
+  select.cl = droplevels(as.factor(setNames(match(metadata[,celltypeColumn], cl.label), AIT.anndata$obs_names[keep.samples])))
   
   ## CHECK IF THIS IS NEEDED
   ## We might need to relabel the dendrogram from 1 to #clusters in order
@@ -96,7 +98,7 @@ addDendrogramMarkers = function(AIT.anndata,
   print("Define marker genes and gene scores for the tree")
   if((sum(!is.na(get_nodes_attr(dend, "markers"))) == 0) | (overwriteMarkers == TRUE)){
     de_genes_file <- file.path(taxonomyDir,"de_genes.RData")
-    if(!is.element("de_genes", names(AIT.anndata$uns$QC_markers[[mode]])) | calculate.de.genes){
+    if(calculate.de.genes){
       print("=== NOTE: This step can be very slow (several minute to many hours).")
       print("      To speed up the calculation (or if it crashes) try decreasing the value of subsample.")
       de.genes = scrattch.hicat::select_markers(norm.dat=norm.data, 
@@ -108,13 +110,14 @@ addDendrogramMarkers = function(AIT.anndata,
       #AIT.anndata$uns$QC_markers[[mode]][["de_genes"]] = de.genes  # Do not save to anndata, as it makes files MUCH slower to access
       save(de.genes, file=de_genes_file)
     } else {
+      ## Check that file exists before loading
       load(de_genes_file)
       #de.genes = AIT.anndata$uns$QC_markers[[mode]][["de_genes"]]  # Do not save to anndata, as it makes files MUCH slower to access
     }
 
     ## Check number of markers for each leaf
     min.marker.gene.count = as.numeric(as.character(lapply(de.genes, function(x) x$num)))
-    if(sum(min.marker.gene.count<2)>0)({
+    if((sum(min.marker.gene.count<2,na.rm=TRUE)>0)|(sum(is.na(min.marker.gene.count)>0)))({
       stop("Marker genes could not be calculated for at least one node in the tree. Tree mapping will not work in this situation. We recommend loosening the de.param parameters and trying again, but warn that some cell types may not be well resolved.")
     })
 
@@ -174,8 +177,8 @@ addDendrogramMarkers = function(AIT.anndata,
                                 memb.ref, 
                                 as.matrix(norm.data))
     }))
-    memb.ref   = memb.ref[metadata$cell_id,]
-    map.df.ref = map.df.ref[metadata$cell_id,]
+    memb.ref   = memb.ref[AIT.anndata$obs_names[keep.samples],]
+    map.df.ref = map.df.ref[AIT.anndata$obs_names[keep.samples],]
     
     AIT.anndata$uns$memb[[mode]]$memb.ref = as.data.frame.matrix(memb.ref)
     AIT.anndata$uns$memb[[mode]]$map.df.ref = map.df.ref

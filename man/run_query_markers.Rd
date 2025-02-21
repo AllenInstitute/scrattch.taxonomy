@@ -4,12 +4,7 @@
 \alias{run_query_markers}
 \title{Generates query_markers.json file. This is done by converting reference_markers.h5 file into the final JSON lookup table of marker genes.}
 \usage{
-run_query_markers(
-  anndata_path,
-  ref_markers_file_path,
-  n_processors,
-  temp_folder
-)
+run_query_markers(anndata_path, ref_markers_file_path, n_processors, tmp_dir)
 }
 \arguments{
 \item{anndata_path}{Local file path of the AIT reference taxonomy (h5ad file).}
@@ -18,7 +13,7 @@ run_query_markers(
 
 \item{n_processors}{Number of independent worker processes to spin up.}
 
-\item{temp_folder}{Temporary directory for writing out the hierarchical files (the code will clean these up after itself).}
+\item{tmp_dir}{Temporary directory for writing out the hierarchical files (the code will clean these up after itself).}
 }
 \value{
 File path of the query markers file.

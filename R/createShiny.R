@@ -1,10 +1,10 @@
 #' This function builds the minimum files required for Shiny
 #'
+#' Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If celltypeColumn is anything other than cluster, then any existing "cluster" column will be overwritten by celltypeColumn.  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.
+#'
 #' @param AIT.anndata A reference taxonomy anndata object.
 #' @param shinyDir The location to save files for MolGen Shiny (AIBS)
 #' @param metadata_names An optional named character vector where the vector NAMES correspond to columns in the metadata matrix and the vector VALUES correspond to how these metadata should be displayed in Shiny. This is used for writing the desc.feather file later.
-#' 
-#' Notes: Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If celltypeColumn is anything other than cluster, then any existing "cluster" column will be overwritten by celltypeColumn.  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.
 #' 
 #' @import scrattch.hicat 
 #' @import feather
@@ -145,3 +145,13 @@ createShiny = function(AIT.anndata,
   feather::write_feather(medianmat, file.path(shinyDir,"medians.feather"))
   feather::write_feather(sums,      file.path(shinyDir,"sums.feather"))
 }
+
+
+
+  # ## ----------
+  # ## Run auto_annotate, this changes cell_id to cell_id.
+  # meta.data$cell_id = colnames(counts)
+  # meta.data = .formatMetadata(meta.data, cluster_colors)
+
+  #   ## Gather clusters
+  # clustersUse = unique(meta.data$cluster_label)

@@ -2,52 +2,64 @@
 % Please edit documentation in R/buildTaxonomy.R
 \name{buildTaxonomy}
 \alias{buildTaxonomy}
-\title{This function builds the minimum files required for Shiny}
+\title{This function builds the minimum files required for Shiny
+Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If hierarchy[\link{-1}] is anything other than cluster, then any existing "cluster" column will be overwritten by hierarchy[\link{-1}].  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.}
 \usage{
 buildTaxonomy(
-  counts,
   meta.data,
-  feature.set,
-  umap.coords,
-  tpm = NULL,
-  subsample = 2000,
-  taxonomyDir = getwd(),
-  taxonomyTitle = "AI_taxonomy",
-  celltypeColumn = "cluster",
-  hierarchy = list(),
-  cluster_colors = NULL,
+  title,
+  hierarchy,
+  counts = NULL,
+  normalized.expr = NULL,
+  highly_variable_genes = NULL,
+  marker_genes = NULL,
+  ensembl_id = NULL,
   cluster_stats = NULL,
+  embeddings = NULL,
   dend = NULL,
+  taxonomyDir = getwd(),
+  cluster_colors = NULL,
+  default_embedding = NULL,
+  uns.variables = list(),
+  subsample = 2000,
+  features.dendrogram = NULL,
   reorder.dendrogram = FALSE,
   add.dendrogram.markers = TRUE,
   addMapMyCells = TRUE,
+  check.taxonomy = TRUE,
   ...
 )
 }
 \arguments{
-\item{counts}{A count matrix in sparse format: dgCMatrix.}
+\item{meta.data}{Meta.data corresponding to count matrix. Rownames must be equal to colnames of counts. "clusters" must be provided (see hierarchy[\link{-1}] and notes).}
 
-\item{meta.data}{Meta.data corresponding to count matrix. Rownames must be equal to colnames of counts. "clusters" must be provided (see celltypeColumn and notes).}
-
-\item{feature.set}{Set of feature used to calculate dendrogram. Typically highly variable and/or marker genes.}
-
-\item{umap.coords}{Dimensionality reduction coordiant data.frame with 2 columns. Rownames must be equal to colnames of counts.}
-
-\item{subsample}{The number of cells to retain per cluster (default = 2000)}
-
-\item{taxonomyDir}{The location to save Shiny objects, e.g. "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/NHP_BG_20220104/"}
-
-\item{taxonomyTitle}{The file name to assign for the Taxonomy h5ad.}
-
-\item{celltypeColumn}{Column name corresponding to where the clusters are located (default="cluster")}
+\item{title}{The file name to assign for the Taxonomy h5ad.}
 
 \item{hierarchy}{List of term_set_labels in the Taxonomy ordered from most gross to most fine (e.g., subclass, supertype, neighborhood, class).}
 
-\item{cluster_colors}{An optional named character vector where the values correspond to colors and the names correspond to celltypes in celltypeColumn.  If this vector is incomplete, a warning is thrown and it is ignored. cluster_colors can also be provided in the metadata (see notes)}
+\item{counts}{A count matrix in sparse format: dgCMatrix.}
 
-\item{cluster_stats}{A matrix of median gene expression by cluster. Cluster names must exactly match meta.data$cluster.}
+\item{highly_variable_genes}{Set of features defined as highly variable genes. Provide either as a named list of vectors, or as a single vector (in which case the name "highly_variable_genes_standard" will be used).}
+
+\item{marker_genes}{Set of features defined as marker genes. Provide either as a named list of vectors, or as a single vector (in which case the name "marker_genes_standard" will be used).}
+
+\item{ensembl_id}{A vector of ensemble ids corresponding to the gene symbols in counts.}
+
+\item{cluster_stats}{A matrix of median gene expression by cluster. Cluster names must exactly match meta.data$cluster.  If provided, will get saved to "varm$cluster_id_median_expr_\link{mode}"}
+
+\item{embeddings}{Dimensionality reduction coordinate data.frame with 2 columns. Rownames must be equal to colnames of counts.  Either provide as a named list or as a single data.frame (in which case the name "default_standard" will be used).}
 
 \item{dend}{Existing dendrogram associated with this taxonomy (e.g., one calculated elsewhere).  If NULL (default) a new dendrogram will be calculated based on the input \code{feature.set}}
+
+\item{taxonomyDir}{The location to save Shiny objects, e.g. "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/NHP_BG_20220104/"}
+
+\item{cluster_colors}{An optional named character vector where the values correspond to colors and the names correspond to celltypes in hierarchy[\link{-1}].  If this vector is incomplete, a warning is thrown and it is ignored. cluster_colors can also be provided in the metadata (see notes)}
+
+\item{default_embedding}{A string indicating which embedding to use for calculations.  Default (NULL) is to take the first one provided in embeddings.}
+
+\item{uns.variables}{If provided, a list of additional variables to be included in the uns.  See Notes for schema variables not otherwise accounted for.}
+
+\item{subsample}{The number of cells to retain per cluster (default = 2000)}
 
 \item{reorder.dendrogram}{Should dendogram attempt to match a preset order? (Default = FALSE).  If TRUE, the dendrogram attempts to match the celltype factor order as closely as possible (if celltype is a character vector rather than a factor, this will sort clusters alphabetically, which is not ideal).}
 
@@ -55,13 +67,21 @@ buildTaxonomy(
 
 \item{addMapMyCells}{If TRUE (default), will also prep this taxonomy for hierarchical mapping}
 
+\item{check.taxonomy}{description}
+
 \item{...}{Additional variables to be passed to \code{addDendrogramMarkers}
 
-Notes: Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If celltypeColumn is anything other than cluster, then any existing "cluster" column will be overwritten by celltypeColumn.  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.}
+\emph{Additional uns.variables}:
+\itemize{
+\item dataset_purl: Link to molecular data if not present in X or raw.X.
+\item batch_condition: Keys defining batches for normalization/integration algorithms. Used for cellxgene.
+\item reference_genome: Reference genome used to align molecular measurements.
+}}
 }
 \value{
 AIT anndata object in the specified format (only if return.anndata=TRUE)
 }
 \description{
 This function builds the minimum files required for Shiny
+Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If hierarchy[\link{-1}] is anything other than cluster, then any existing "cluster" column will be overwritten by hierarchy[\link{-1}].  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.
 }
