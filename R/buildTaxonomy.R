@@ -68,6 +68,9 @@ buildTaxonomy = function(meta.data,
                          check.taxonomy = TRUE,
                          ...){
 
+  ## Pull the finest level cell type column
+  celltypeColumn = names(hierarchy)[length(hierarchy)][[1]]
+
   ## Sanity check and cleaning of parameters
   clean.params = .checkBuildTaxonomyParams(counts, 
                                             normalized.expr,
@@ -75,14 +78,11 @@ buildTaxonomy = function(meta.data,
                                             highly_variable_genes,
                                             marker_genes,
                                             embeddings, 
-                                            hierarchy,
+                                            celltypeColumn,
                                             cluster_stats,
                                             taxonomyDir, 
                                             title, 
                                             dend)
-
-  ## Pull the finest level cell type column
-  celltypeColumn = names(hierarchy)[[-1]]
 
   ## Ensure that hierarchy is a named list with ascending order to heirarchy, e.g. ["Class"=0, "Subclass"=1, "cluster"=2]
   ordered_hierarchy <- setNames(seq_along(hierarchy) - 1, hierarchy)

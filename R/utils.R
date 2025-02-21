@@ -241,12 +241,12 @@ updateMarkerGenes = function(AIT.anndata,
                                       highly_variable_genes,  # This is checked within buildTaxonomy now
                                       marker_genes,           # This is checked within buildTaxonomy now
                                       embeddings, 
-                                      hierarchy,
+                                      celltypeColumn,
                                       cluster_stats,
                                       taxonomyDir, 
                                       title, 
                                       dend){
-  if(sum(is.element(names(hierarchy)[[-1]], colnames(meta.data)))==0){stop("cluster column must be defined in the meta.data object")}
+  if(sum(is.element(celltypeColumn, colnames(meta.data)))==0){stop("cluster column must be defined in the meta.data object")}
   if(!all(colnames(counts) == rownames(meta.data))){stop("Colnames of `counts` and rownames of `meta.data` do not match.")}
   if(!is.data.frame(meta.data)){stop("meta.data must be a data.frame, convert using as.data.frame(meta.data)")}
 
