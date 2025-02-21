@@ -17,7 +17,7 @@ taxonomy_file = "Macaque_basalganglia_AIT.h5ad"
 
 ait.anndata = loadTaxonomy(taxonomy_dir, anndata_file=taxonomy_file)
 
-ait.anndata$uns$valid = checkTaxonomy(ait.anndata, print.messages=TRUE)
+ait.anndata = checkTaxonomy(ait.anndata, print.messages=TRUE)
 ```
 
 This is an old file which contains most of the schema elements, but is missing a bunch of other elements.  **If you downloaded the file yourself or created it with docker versions 0.9 or higher, your file should pass and you can probably stop here.**
