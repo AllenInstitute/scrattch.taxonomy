@@ -3,7 +3,7 @@
 #' This hierarchical mapping is a wrapper around cell_type_mapper and call's it's functions to generate needed files needed for mapping.
 #'
 #' @param AIT_anndata A reference taxonomy anndata object.
-#' @param hierarchy List of term_set_labels in the reference taxonomy ordered from most gross to most fine. Will default to list included in AIT_anndata, if any.
+#' @param hierarchy Named list of term_set_labels in the reference taxonomy ordered from most gross to most fine. Will default to list included in AIT_anndata, if any. E.g. ["Class" = 0, "Subclass"=  1]
 #' @param anndata_path Local file path of the AIT reference taxonomy (h5ad file).
 #' @param force Boolean value indicating whether to overwrite the AIT reference taxonomy's hierarchical file for a given mode.
 #' @param n_processors Number of independent worker processes to spin up.
@@ -38,7 +38,7 @@ addMapMyCells = function(AIT_anndata,
       }
       
       # get an ordered list of taxonomy's hierarchy levels.
-      taxonomy_hierarchy = get_hierarchy(AIT_anndata, names(hierarchy))
+      taxonomy_hierarchy = names(hierarchy)
 
       if (is.null(tmp_dir) || tmp_dir == "") {
         tmp_dir <- paste0("tmp_dir_", format(Sys.time(), "%Y%m%d-%H%M%S"))
@@ -299,21 +299,3 @@ get_anndata_path = function(AIT_anndata, anndata_path, tmp_dir) {
   return(anndata_path)
 }
 
-#' This function looks for a valid hierarchy list.
-#' @param AIT_anndata AIT reference taxonomy object.
-#' @param hierarchy List of term_set_labels in the reference taxonomy ordered from most gross to most fine.
-#' @return Local file path to the AIT reference taxonomy h5ad file.
-#'
-#' @keywords internal
-get_hierarchy = function(AIT_anndata, hierarchy) {
-  if ((sum(class(hierarchy)=="list")<1) | (length(hierarchy) == 0)) {
-    hierarchy = AIT_anndata$uns$hierarchy
-  }
-  else {
-    AIT_anndata$uns$hierarchy = hierarchy 
-  }
-  if ((sum(class(hierarchy)=="list")<1) | (length(hierarchy) == 0)) {
-    stop(paste("Hierarchy does NOT exist in AIT.anndata$uns$hierarchy, please pass hierarchy list as a function parameter 'hierarchy=list()'."))
-  }
-  return(hierarchy)
-}
