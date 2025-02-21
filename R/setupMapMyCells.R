@@ -54,7 +54,6 @@ addMapMyCells = function(AIT_anndata,
         anndata_calc_path = taxonomy_anndata_path
         AIT_anndata_calc  = AIT_anndata
       } else {
-        mode_dir <- file.path(AIT_anndata$uns$taxonomyDir, "temp")
         anndata_calc_path <- file.path(mode_dir, paste0(AIT_anndata$uns$title, ".h5ad"))
         dir.create(mode_dir)
         keep <- !(AIT_anndata$uns$filter[[AIT_anndata$uns$mode]])
@@ -77,9 +76,9 @@ addMapMyCells = function(AIT_anndata,
       # compute query markers and save them to anndata
       query_markers_output_path = user_query_markers_path
       if(is.null(query_markers_output_path)) {
-        print("run_reference_markers")
+        print("Running reference markers")
         ref_markers_file_path = run_reference_markers(precomp_stats_output_path, n_processors, tmp_dir) 
-        print("run_query_markers")
+        print("Running query markers")
         query_markers_output_path = run_query_markers(anndata_calc_path, ref_markers_file_path, n_processors, tmp_dir) 
       }
       AIT_anndata_calc = save_query_markers_to_uns(AIT_anndata_calc, query_markers_output_path) # Move back to original file
@@ -117,7 +116,7 @@ addMapMyCells = function(AIT_anndata,
           file.remove(taxonomy_anndata_path)
         }
       }
-      if(file.exists(mode_dir)){
+      if(exists("mode_dir")) if(file.exists(mode_dir)){
         # (NEW!) removes the mode temp directory
         unlink(mode_dir, recursive = TRUE)
       }
@@ -298,4 +297,3 @@ get_anndata_path = function(AIT_anndata, anndata_path, tmp_dir) {
   }
   return(anndata_path)
 }
-

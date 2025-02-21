@@ -134,13 +134,18 @@ getNCBITaxon <- function(species,
 #' @export
 updateHighlyVariableGenes = function(AIT.anndata,
                                      variable.genes=NULL,
+                                     mode = AIT.anndata$uns$mode,
                                      list.name = paste0("highly_variable_genes_",AIT.anndata$uns$mode) ){
   
   if(is.null(variable.genes)){
-    print("Returning the starting object since AIT.anndata$var$highly_variable_genes is unspecified.")
+    if(is.null(AIT.anndata$var$highly_variable_genes)){
+       print("Returning the starting object since AIT.anndata$var$highly_variable_genes is unspecified.")
+     } else {
+       print("Setting the mode-specific variable genes as the global variable genes since variable.genes=NULL.")
+       AIT.anndata$var[,paste0("highly_variable_genes_",mode)] = AIT.anndata$var$highly_variable_genes
+     }
     return(AIT.anndata)
-  } 
-  if (is.logical(variable.genes)) {
+  } else if (is.logical(variable.genes)) {
     if (length(variable.genes)!=dim(AIT.anndata)[2]) stop("If variable.genes is logical it must be the same length as the total number of genes in AIT.anndata.")
     variable.genes.vector = variable.genes
   } else if (is.character(variable.genes)){
@@ -151,7 +156,6 @@ updateHighlyVariableGenes = function(AIT.anndata,
     stop("variable.genes must be a character or logical vector.")
   }
   AIT.anndata$var[,list.name] = variable.genes.vector
-  
   AIT.anndata
 }
 
@@ -172,10 +176,7 @@ updateMarkerGenes = function(AIT.anndata,
                              list.name = paste0("marker_genes_",AIT.anndata$uns$mode)){
   updateHighlyVariableGenes(AIT.anndata=AIT.anndata, variable.genes=marker.genes, list.name=list.name)
 }
-
-
-
-
+                             
 #' Function to update meta.data
 #'
 #' @param meta.data A data.frame with cell metadata

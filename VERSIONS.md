@@ -14,7 +14,6 @@ Bug fixes
 
 --
 
-
 ## scrattch.taxonomy v0.7.1
 
 Updates to improve correlation mapping

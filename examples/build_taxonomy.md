@@ -77,6 +77,7 @@ AIT.anndata = buildTaxonomy(meta.data = taxonomy.anno,
 ## Check whether the taxonomy file is valid
 AIT.anndata$uns$valid = checkTaxonomy(AIT.anndata)
 
+
 ## Create Shiny directory (AIBS-internal)
 createShiny(AIT.anndata,
             shinyDir = getwd(),  # Replace location with desired location for shiny directory output
