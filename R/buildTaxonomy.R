@@ -11,7 +11,7 @@
 #' @param embeddings Dimensionality reduction coordinate data.frame with 2 columns. Rownames must be equal to colnames of counts.  Either provide as a named list or as a single data.frame (in which case the name "default_standard" will be used).
 #' @param dend Existing dendrogram associated with this taxonomy (e.g., one calculated elsewhere).  If NULL (default) a new dendrogram will be calculated based on the input `feature.set`
 #' @param taxonomyDir The location to save Shiny objects, e.g. "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/NHP_BG_20220104/"
-#' @param hierarchy List of term_set_labels in the Taxonomy ordered from most gross to most fine (e.g., subclass, supertype, neighborhood, class).
+#' @param hierarchy List of term_set_labels in the Taxonomy ordered from most gross to most fine (e.g., neighborhood, class, subclass, supertype).
 #' @param subsample The number of cells to retain per cluster (default = 2000)
 #' @param cluster_colors An optional named character vector where the values correspond to colors and the names correspond to celltypes in hierarchy[[-1]].  If this vector is incomplete, a warning is thrown and it is ignored. cluster_colors can also be provided in the metadata (see notes)
 #' @param default_embedding A string indicating which embedding to use for calculations.  Default (NULL) is to take the first one provided in embeddings.
@@ -84,6 +84,13 @@ buildTaxonomy = function(meta.data,
   ## Pull the finest level cell type column
   celltypeColumn = names(hierarchy)[[-1]]
 
+  ## Ensure that hierarchy is a named list with ascending order to heirarchy, e.g. ["Class"=0, "Subclass"=1, "cluster"=2]
+  ordered_hierarchy <- setNames(seq_along(hierarchy) - 1, hierarchy)
+  if(!all(hierarchy %in% names(ordered_hierarchy))) {
+    stop("Hierarchy must be supplied as an unnamed list with ascending order to heirarchy, e.g. ['Class', 'Subclass', 'cluster']")
+  }
+  hierarchy = ordered_hierarchy
+
   ## ----------
   ## Subsample nuclei per cluster, max of subsample cells per cluster
   kpSub = subsample_taxonomy(meta.data[[celltypeColumn]], rownames(meta.data), dend, subsample)
@@ -151,11 +158,6 @@ buildTaxonomy = function(meta.data,
     marker_genes <- list(marker_genes_standard = marker_genes)
   }
   
-  ## Compute most likely "ontology_term_id" for "organism", "anatomical_region", "self_reported_sex", "self_reported_ethnicity", "assay", and "disease"
-  # meta.data <- computeOntologyTerms(meta.data)
-  # NOTE this is a wrapper function for updateTaxonomyMetadata and found in updateTaxonomyMetadata.R
-  # I think it's better that this gets called outside this function
-  
   ## Build the AIT object
   print("===== Building taxonomy anndata =====")
   AIT.anndata = AnnData(
@@ -182,7 +184,7 @@ buildTaxonomy = function(meta.data,
       title = title,
       hierarchy = hierarchy,
       taxonomyDir = file.path(normalizePath(taxonomyDir), leading_string="/"), ## Normalize path in case where user doesn't provide absolute path.
-      schema_version = as.character(packageVersion("scrattch.taxonomy"))  # Tying schema version to scrattch.taxonomy version. @Nelson, I'm open to another option.
+      schema_version = as.character(packageVersion("scrattch.taxonomy"))
     )
   )
 
@@ -257,7 +259,6 @@ buildTaxonomy = function(meta.data,
   ## Add dendrogram markers and membership tables, if requested
   if(add.dendrogram.markers){
     print("===== Adding dendrogram markers and membership tables for tree mapping =====")
-    if(is.character(hierarchy)) hierarchy <- as.list(hierarchy)
     AIT.anndata = addDendrogramMarkers(AIT.anndata, 
                                         mode="standard", 
                                         celltypeColumn = celltypeColumn,
@@ -272,14 +273,9 @@ buildTaxonomy = function(meta.data,
   ## NOTE: REMOVE CHECKS OF HEIRARCHY AND DO ELSEWEHRE
   ## Add MapMyCells (hierarchical mapping) functionality, if requested
   if(addMapMyCells) {
-    if(is.character(hierarchy)) hierarchy <- as.list(hierarchy)
-    if((length(hierarchy)==0)|(sum(class(hierarchy)=="list")<1)){
-      warning("hierarchy must be a list of term_set_labels in the reference taxonomy ordered from most gross to most fine included in AIT_anndata or provided separately. Since this is NOT the case, addMapMyCells is being skipped")
-    } else{
-      print("===== Adding MapMyCells (hierarchical mapping) functionality =====")
-      AIT.anndata = mappingMode(AIT.anndata, mode="standard")
-      AIT.anndata = addMapMyCells(AIT.anndata, names(hierarchy), force=TRUE)
-    }
+    print("===== Adding MapMyCells (hierarchical mapping) functionality =====")
+    AIT.anndata = mappingMode(AIT.anndata, mode="standard")
+    AIT.anndata = addMapMyCells(AIT.anndata, names(hierarchy), force=TRUE)
   }
 
   ## Check whether the taxonomy is a valid scrattch.taxonomy format

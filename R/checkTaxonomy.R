@@ -12,8 +12,11 @@
 #' @return Logical vector indicating whether the inputted taxonomy is a valid scrattch.taxonomy format.
 #'
 #' @export
-checkTaxonomy = function(AIT.anndata, log.file.path=getwd(), print.messages=FALSE, 
-                         validate_percent_ensembl=60, pull_ensembl=FALSE, ...){
+checkTaxonomy = function(AIT.anndata, 
+                          log.file.path=getwd(), 
+                          print.messages=FALSE, 
+                          validate_percent_ensembl=60, 
+                          pull_ensembl=FALSE, ...){
   
   #########################################
   ## Initial general check and set up
@@ -159,7 +162,10 @@ checkTaxonomy = function(AIT.anndata, log.file.path=getwd(), print.messages=FALS
   if(print.messages) writeLines(readLines(file.path(log.file.path,"checkTaxonomy_log.txt")))
 
   ## Return the logical for validation
-  return(isValid)
+  AIT.anndata$uns$valid = isValid
+
+  ## Return the AIT.anndata object
+  return(AIT.anndata)
 }
 
 #' This function will return information about a given schema Key

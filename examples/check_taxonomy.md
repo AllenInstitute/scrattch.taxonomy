@@ -6,7 +6,7 @@
 
 ### Check taxonomy:
 
-Use: `singularity shell --cleanenv docker://njjai/scrattch_mapping:0.9.1`
+Use: `singularity shell --cleanenv docker://njjai/scrattch_mapping:1.0.0`
 
 ```R
 ## Load scrattch.taxonomy
@@ -38,7 +38,7 @@ taxonomy.anno <- ait.anndata$obs
 taxonomy.counts <- t(ait.anndata$X)
 
 # WARNING: the following AIT.anndata$uns columns are **REQUIRED** for the schema: hierarchy, filter, cluster_info, schema_version.
-hierarchy = list("cluster_id" = 1) # This taxonomy does not have a hierarchy yet, but we can still put in level 1.
+hierarchy = list("cluster_id") # This taxonomy does not have a hierarchy yet, but we can still put in level 1.
 # filter, cluster_info, and schema_version are generated automatically
 
 # WARNING: AIT.anndata$var does not contain highly_variable_genes[_name], which is recommended for generating UMAPs and dendrograms.
