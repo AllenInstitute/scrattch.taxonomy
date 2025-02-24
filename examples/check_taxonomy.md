@@ -87,8 +87,10 @@ Finally, regenerate the AIT-formatted file using the above information
 
 ```R
 ## Build Allen Insitute Taxonomy, for large taxonomies you can pass in tpm and cluster_stats if pre-computed.
-AIT.anndata = buildTaxonomy(meta.data = taxonomy.anno,
-                            title = "AIT.anndata",
+AIT.anndata = buildTaxonomy(title = "AIT.anndata",
+                            meta.data = taxonomy.anno,
+                            hierarchy = hierarchy,
+                            ## --- Optional parameters ---
                             counts = as(taxonomy.counts, "dgCMatrix"),
                             normalized.expr = NULL,
                             highly_variable_genes = NULL,
@@ -99,7 +101,6 @@ AIT.anndata = buildTaxonomy(meta.data = taxonomy.anno,
                             ##
                             dend = NULL, ## Pre-computed dendrogram
                             taxonomyDir = getwd(), ## This is where our taxonomy will be created
-                            hierarchy = hierarchy,
                             ##
                             subsample=100,
                             ##

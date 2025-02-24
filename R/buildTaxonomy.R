@@ -39,8 +39,8 @@
 #' @return AIT anndata object in the specified format (only if return.anndata=TRUE)
 #'
 #' @export
-buildTaxonomy = function(meta.data,
-                         title,
+buildTaxonomy = function(title,
+                         meta.data,
                          hierarchy,
                          ## X
                          counts = NULL, ## matrix, sparse.
@@ -63,13 +63,13 @@ buildTaxonomy = function(meta.data,
                          subsample=2000,
                          features.dendrogram = NULL,
                          reorder.dendrogram = FALSE,
-                         add.dendrogram.markers = TRUE,
+                         add.dendrogram.markers = FALSE,
                          addMapMyCells = TRUE,
                          check.taxonomy = TRUE,
                          ...){
 
   ## Pull the finest level cell type column
-  celltypeColumn = names(hierarchy)[length(hierarchy)][[1]]
+  celltypeColumn = hierarchy[length(hierarchy)][[1]]
 
   ## Sanity check and cleaning of parameters
   clean.params = .checkBuildTaxonomyParams(counts, 
@@ -179,7 +179,7 @@ buildTaxonomy = function(meta.data,
       mapmycells = list("standard" = list()),
       mode = "standard", ## Default mode to standard
       cellSet = rownames(meta.data),
-      clusterInfo = clusterInfo,
+      cluster_info = clusterInfo,
       clusterStatsColumns = list("standard" = colnames(cluster_stats)),
       title = title,
       hierarchy = hierarchy,
@@ -240,7 +240,7 @@ buildTaxonomy = function(meta.data,
         AIT.anndata$uns$default_embedding = names(AIT.anndata$obsm)[1]
       }
     }
-    print(paste("Default embedding set as:",substr(AIT.anndata$uns$default_embedding,3,1000)))
+    print(paste("Default embedding set as:", substr(AIT.anndata$uns$default_embedding,1,1000)))
   }
   
   ## Add additional uns variables
@@ -281,7 +281,7 @@ buildTaxonomy = function(meta.data,
   ## Check whether the taxonomy is a valid scrattch.taxonomy format
   AIT.anndata$uns$check = list(isValid=NA)
   if(check.taxonomy){
-    AIT.anndata$uns$check <- checkTaxonomy(AIT.anndata)
+    AIT.anndata$uns$check <- checkTaxonomy(AIT.anndata, print.messages=TRUE)
   }
   
   ## Return the anndata object

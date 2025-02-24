@@ -82,8 +82,8 @@ checkTaxonomy = function(AIT.anndata,
 
   ## Now we will check any RECOMMENDED schema elements that are present in obs
   recommended.schema.columns = ._get_schema_elements(schema, "obs", "RECOMMENDED")
-  for(element in tovalidate.schema.columns){
-    if(is.element(element, names(AIT.anndata$uns))){
+  for(element in recommended.schema.columns){
+    if(is.element(element, colnames(AIT.anndata$obs))){
       column_def = ._get_schema_def(element)
       validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid, ...)
       messages = validation[["messages"]]; isValid = validation[["isValid"]]
@@ -484,6 +484,58 @@ checkTaxonomy = function(AIT.anndata,
 
   ## 
   return(list(messages=messages, isValid=isValid))
+}
+
+#' Checks whether metadata is in scrattch.taxonomy format
+#'
+#' Messages will be printed to the screen. 
+#'
+#' @param meta.data A meta.data object to be tested
+#' @param schema The schema data.frame.
+#' @param messages The current messages to append to.
+#' @param isValid The current call for whether the taxonomy is valid.
+#' @param isWarning The current call for whether the taxonomy is valid.
+#' @param print.messages Print messages only to a log file (FALSE; default) or also to the screen (TRUE)
+#' @param ... Additional parameters for ._validate_schema_elements and .validate_var_elements (can be ignored in most cases)
+#' 
+#' @import anndata
+#'
+#' @return Logical vector indicating whether the inputted taxonomy is a valid scrattch.taxonomy format.
+#'
+#' @export
+validate_obs_elements = function(meta.data, schema, messages=c(), isValid=FALSE, isWarning=FALSE, print.messages=TRUE, ...){
+    ## Check that the sample metadata (obs) all exist.
+    required.schema.columns = ._get_schema_elements(schema, "obs")
+    if(sum(is.element(required.schema.columns, colnames(meta.data))) < length(required.schema.columns)){
+      missing.schema.columns = setdiff(required.schema.columns, colnames(meta.data))
+      if(length(missing.schema.columns) > 0){
+        isValid = FALSE
+        val = paste0(missing.schema.columns, collapse=", ")
+        messages = c(messages,paste0("\nWARNING: the following meta.data columns are **REQUIRED** for the schema: ", val, "."))
+      }
+    }else{
+      missing.schema.columns = c()
+      messages = c(messages,":-) meta.data contains all required schema elements (additional warnings, if any, will be listed below).")
+    }
+
+    ## If the user has provide some/all schema columns lets validate against the schema.
+    tovalidate.schema.columns = setdiff(required.schema.columns, missing.schema.columns)
+    for(element in tovalidate.schema.columns){
+      column_def = ._get_schema_def(element)
+      validation = ._validate_schema_element(meta.data[[element]], column_def, messages, isValid, ...)
+      messages = validation[["messages"]]; isValid = validation[["isValid"]]
+    }
+
+    ## Now we will check any RECOMMENDED schema elements that are present in obs
+    recommended.schema.columns = ._get_schema_elements(schema, "obs", "RECOMMENDED")
+    for(element in tovalidate.schema.columns){
+      if(is.element(element, colnames(meta.data))){
+        column_def = ._get_schema_def(element)
+        validation = ._validate_schema_element(meta.data[[element]], column_def, messages, isValid, ...)
+        messages = validation[["messages"]]; isValid = validation[["isValid"]]
+      }
+    }
+    print(messages)
 }
 
 #' This function will validate the modes in an AIT file
