@@ -259,23 +259,29 @@ buildTaxonomy = function(title,
   ## Add dendrogram markers and membership tables, if requested
   if(add.dendrogram.markers){
     print("===== Adding dendrogram markers and membership tables for tree mapping =====")
-    AIT.anndata = addDendrogramMarkers(AIT.anndata, 
-                                        mode="standard", 
-                                        celltypeColumn = celltypeColumn,
-                                        taxonomyDir=AIT.anndata$uns$taxonomyDir,
-                                        ...)
-    # The reference probability matrix for the subsetted taxonomy is defined and outputted in this function as well
-    # $memb[[mode.name]]
-    # ...$memb.ref,
-    # ...$map.df.ref
+    tryCatch({
+      AIT.anndata = addDendrogramMarkers(AIT.anndata, 
+                                          mode="standard", 
+                                          celltypeColumn = celltypeColumn,
+                                          taxonomyDir=AIT.anndata$uns$taxonomyDir,
+                                          ...)
+    }, error = function(e) {
+      print("===== Error adding dendrogram markers. Skipping this step. =====")
+      print(e)
+    })
   }
   
   ## NOTE: REMOVE CHECKS OF HEIRARCHY AND DO ELSEWEHRE
   ## Add MapMyCells (hierarchical mapping) functionality, if requested
   if(addMapMyCells) {
     print("===== Adding MapMyCells (hierarchical mapping) functionality =====")
-    AIT.anndata = mappingMode(AIT.anndata, mode="standard")
-    AIT.anndata = addMapMyCells(AIT.anndata, names(hierarchy), force=TRUE)
+    tryCatch({
+      AIT.anndata = mappingMode(AIT.anndata, mode="standard")
+      AIT.anndata = addMapMyCells(AIT.anndata, names(hierarchy), force=TRUE)
+    }, error = function(e) {
+      print("===== Error adding MapMyCells functionality. Skipping this step. =====")
+      print(e)
+    })
   }
 
   ## Check whether the taxonomy is a valid scrattch.taxonomy format
