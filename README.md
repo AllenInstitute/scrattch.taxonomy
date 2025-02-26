@@ -1,12 +1,12 @@
 # scrattch.taxonomy
 
-Generalized taxonomy building scripts for RNA-seq based taxonomies following the [Allen Institute schema](https://github.com/AllenInstitute/scrattch.taxonomy/tree/main/schema).
+Generalized taxonomy building scripts for RNA-seq based taxonomies following the [Allen Institute schema]([https://github.com/AllenInstitute/scrattch.taxonomy/tree/main/schema](https://github.com/AllenInstitute/AllenInstituteTaxonomy/tree/main/schema)).
 
 **A list of available taxonomies in this format is available at [Taxonomy_list.md](https://github.com/AllenInstitute/scrattch.taxonomy/blob/main/Taxonomy_list.md)**. As of 10 November 2023, these represent published single-cell RNAseq taxonomies from the Allen Institute and other groups, and are largely complementary to taxonomies included at the [Brain Knowledge Platform](https://portal.brain-map.org/atlases-and-data/bkp), although efforts to integrate are ongoing.
 
 ## Documentation
 
-You can find a detail description of all scrattch.taxonomy functions here: ![Documentation](https://github.com/AllenInstitute/scrattch.taxonomy/blob/main/scrattch.taxonomy_0.1.pdf)
+You can find a detail description of scrattch.taxonomy (OUTDATED -- FIX) functions here: ![Documentation](https://github.com/AllenInstitute/scrattch.taxonomy/blob/main/scrattch.taxonomy_0.1.pdf)
 
 Update notes are here: ![Versions](https://github.com/AllenInstitute/scrattch.taxonomy/blob/main/VERSIONS.md)
 
