@@ -49,7 +49,7 @@ rownames(umap.coords) = colnames(taxonomy.counts)
 
 ## Identify Ensembl IDs 
 # Common NCBI taxIDs: Human = 9606; Mouse = 10090; Macaque (rhesus) = 9544; Marmoset = 9483
-ensembl_id <- geneSymbolToEnsembl(gene.symbols = rownames(taxonomy.counts), ncbi.taxid = 10090)
+# ensembl_id <- geneSymbolToEnsembl(gene.symbols = rownames(taxonomy.counts), ncbi.taxid = 10090)
 
 ## Align taxonomy metadata with AIT standard
 # NOTE: for this particular example, nothing gets updated
@@ -65,7 +65,7 @@ AIT.anndata = buildTaxonomy(title = "Tasic2016",
                             normalized.expr = NULL,
                             highly_variable_genes = NULL,
                             marker_genes = list("marker_genes_binary" = binary.genes),
-                            ensembl_id = ensembl_id,
+                            ensembl_id = NULL,
                             cluster_stats = NULL, ## Pre-computed cluster stats
                             embeddings = list("X_umap" = umap.coords),
                             ##
