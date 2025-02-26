@@ -35,7 +35,7 @@ taxonomy.anno   = taxonomy.anno[keep,]
 ## Provide hierarchy of the taxonomy
 ## -- This will be used for all mapping algorithms unless otherwise specified
 ## -- This MUST be from broadest to most specific types, and NOT vice versa
-hierarchy = list("broad_type" = 1, "primary_type_label" = 2)
+hierarchy = list("broad_type", "primary_type_label")
 
 ## Compute top 1000 binary marker genes for clusters (or use a pre-existing vector)
 binary.genes = top_binary_genes(taxonomy.counts, taxonomy.anno$primary_type_label, 1000)
@@ -76,7 +76,7 @@ AIT.anndata = buildTaxonomy(title = "Tasic2016"
                             subsample=2000)
 
 ## Check whether the taxonomy file is valid
-AIT.anndata$uns$valid = checkTaxonomy(AIT.anndata)
+AIT.anndata = checkTaxonomy(AIT.anndata)
 
 
 ## Create Shiny directory (AIBS-internal)
