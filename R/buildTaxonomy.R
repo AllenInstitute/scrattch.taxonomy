@@ -286,6 +286,7 @@ buildTaxonomy = function(title,
 
   ## Check whether the taxonomy is a valid scrattch.taxonomy format
   if(check.taxonomy){
+    print("===== Checking taxonomy for adherence to schema =====")
     AIT.anndata = checkTaxonomy(AIT.anndata, print.messages=TRUE)
   }
   
