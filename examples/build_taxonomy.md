@@ -57,7 +57,7 @@ full.taxonomy.anno <- updateTaxonomyMetadata(taxonomy.anno)
 taxonomy.anno      <- full.taxonomy.anno$metadata
 
 ## Build Allen Insitute Taxonomy, for large taxonomies you can pass in tpm and cluster_stats if pre-computed.
-AIT.anndata = buildTaxonomy(title = "Tasic2016"
+AIT.anndata = buildTaxonomy(title = "Tasic2016",
                             meta.data = taxonomy.anno,
                             hierarchy = hierarchy,
                             ## --- Optional parameters ---
