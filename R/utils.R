@@ -122,7 +122,6 @@ getNCBITaxon <- function(species,
 }
 
 
-
 #' Function to add or update highly variable genes for the current mode
 #'
 #' @param AIT.anndata A reference taxonomy anndata object.

@@ -503,7 +503,7 @@ checkTaxonomy = function(AIT.anndata,
 #' @return Logical vector indicating whether the inputted taxonomy is a valid scrattch.taxonomy format.
 #'
 #' @export
-validate_obs_elements = function(meta.data, schema, messages=c(), isValid=FALSE, isWarning=FALSE, print.messages=TRUE, ...){
+checkMetadata = function(meta.data, schema, messages=c(), isValid=FALSE, isWarning=FALSE, print.messages=TRUE, ...){
     ## Check that the sample metadata (obs) all exist.
     required.schema.columns = ._get_schema_elements(schema, "obs")
     if(sum(is.element(required.schema.columns, colnames(meta.data))) < length(required.schema.columns)){
