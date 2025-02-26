@@ -4,9 +4,8 @@ In this tutorial we demonstrate how to setup an Allen Institute Taxonomy object 
 
 #### Required inputs:
 
-* Count matrix (gene x cell), with genes as rownames and sample identifiers as colnames
+* Cell type hierarchy list, from coarse to most granular annotations
 * Annotation data.frame (cell x field), with sample identifiers as rownames
-* Variable and/or marker genes (vector), can be calculated if not provided
 * UMAP coordinates (cell x 2), can be calculated if not provided
 
 #### Additional prerequisites:
