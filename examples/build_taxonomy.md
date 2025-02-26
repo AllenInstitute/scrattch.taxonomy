@@ -1,6 +1,6 @@
 # Tutorial: Building a Shiny taxonomy 
 
-In this tutorial we demonstrate how to setup an Allen Institute Taxonomy object using scrattch.taxonomy. **WARNING** As written this AIT file will not validate as `MUST` schema elements are missing. When building your own AIT file please carefuly adhere to the [schema definitions](https://github.com/AllenInstitute/AllenInstituteTaxonomy/tree/main/schema). In this tutorial we will use prepackaged data from [Tasic et al 2016](https://www.nature.com/articles/nn.4216)
+In this tutorial we demonstrate how to setup an Allen Institute Taxonomy object using scrattch.taxonomy. **WARNING** As written this AIT file will not validate as `MUST` schema elements are missing, we will update this tutorial shortly. When building your own AIT file please carefuly adhere to the [schema definitions](https://github.com/AllenInstitute/AllenInstituteTaxonomy/tree/main/schema). In this tutorial we will use prepackaged data from [Tasic et al 2016](https://www.nature.com/articles/nn.4216)
 
 #### Required inputs:
 
