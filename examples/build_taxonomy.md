@@ -10,7 +10,7 @@ In this tutorial we demonstrate how to setup an Allen Institute Taxonomy object 
 
 #### Additional prerequisites:
 
-* Installation of the `tasic2016data` data package [from here](https://github.com/AllenInstitute/tasic2016data/), or replace with your own data set.
+* If you are not using the `scrattch` docker provided by the Allen Institute please install `tasic2016data` data package [from here](https://github.com/AllenInstitute/tasic2016data/).
 
 #### Build taxonomy:
 
