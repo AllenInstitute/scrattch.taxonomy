@@ -279,9 +279,8 @@ buildTaxonomy = function(title,
   }
 
   ## Check whether the taxonomy is a valid scrattch.taxonomy format
-  AIT.anndata$uns$check = list(isValid=NA)
   if(check.taxonomy){
-    AIT.anndata$uns$check <- checkTaxonomy(AIT.anndata, print.messages=TRUE)
+    AIT.anndata = checkTaxonomy(AIT.anndata, print.messages=TRUE)
   }
   
   ## Return the anndata object
