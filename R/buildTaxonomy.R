@@ -85,7 +85,7 @@ buildTaxonomy = function(title,
                                             dend)
 
   ## Ensure that hierarchy is a named list with ascending order to heirarchy, e.g. ["Class"=0, "Subclass"=1, "cluster"=2]
-  ordered_hierarchy <- setNames(seq_along(hierarchy) - 1, hierarchy)
+  ordered_hierarchy = setNames(as.list(seq_along(hierarchy)-1), unlist(hierarchy))
   if(!all(hierarchy %in% names(ordered_hierarchy))) {
     stop("Hierarchy must be supplied as an unnamed list with ascending order to heirarchy, e.g. ['Class', 'Subclass', 'cluster']")
   }
