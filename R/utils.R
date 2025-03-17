@@ -264,17 +264,17 @@ updateMarkerGenes = function(AIT.anndata,
     if(!is.element("dendrogram",class(dend))){stop("If provided, dend must be of R class dendrogram.")}
 
     ## Check that dend and meta.data match in labels
-    extra_labels <- setdiff(labels(dend), unique(meta.data$celltypeColumn))
+    extra_labels <- setdiff(labels(dend), unique(as.character(meta.data[,celltypeColumn])))
     if(length(extra_labels)>0){stop(paste("Dendrogram has labels not included in metadata:",paste(extra_labels,collapse=", ")))}
 
     ## Check that meta.data and dend match in labels
-    extra_labels <- setdiff(unique(meta.data$celltypeColumn), labels(dend))
+    extra_labels <- setdiff(unique(as.character(meta.data[,celltypeColumn])), labels(dend))
     if(length(extra_labels)>0){
       warning(paste0("Metadata include cluster labels not found in dendrogram: ", paste(extra_labels, collapse=", ")))
     }
   }
 
-  ## Check that cluster stats conforms to meta.data$celltypeColumn
+  ## Check that cluster stats conforms to as.character(meta.data[,celltypeColumn])
   if(!is.null(cluster_stats)){
     print("===== Checking cluster_stats =====")
     if(!is.null(counts)){

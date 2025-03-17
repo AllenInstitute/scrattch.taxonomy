@@ -2,7 +2,7 @@
 #' Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If hierarchy[[-1]] is anything other than cluster, then any existing "cluster" column will be overwritten by hierarchy[[-1]].  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.
 #'
 #' @param meta.data Meta.data corresponding to count matrix. Rownames must be equal to colnames of counts. "clusters" must be provided (see hierarchy[[-1]] and notes).
-#' @param title The file name to assign for the Taxonomy h5ad.
+#' @param title The file name to assign for the Taxonomy h5ad (default="AIT"; recommended to create your own title!).
 #' @param counts A count matrix in sparse format: dgCMatrix.
 #' @param highly_variable_genes Set of features defined as highly variable genes. Provide either as a named list of vectors, or as a single vector (in which case the name "highly_variable_genes_standard" will be used).
 #' @param marker_genes Set of features defined as marker genes. Provide either as a named list of vectors, or as a single vector (in which case the name "marker_genes_standard" will be used).
@@ -19,7 +19,8 @@
 #' @param reorder.dendrogram Should dendogram attempt to match a preset order? (Default = FALSE).  If TRUE, the dendrogram attempts to match the celltype factor order as closely as possible (if celltype is a character vector rather than a factor, this will sort clusters alphabetically, which is not ideal).
 #' @param add.dendrogram.markers If TRUE (default), will also add dendrogram markers to prep the taxonomy for tree mapping
 #' @param addMapMyCells If TRUE (default), will also prep this taxonomy for hierarchical mapping
-#' @param check.taxonomy description
+#' @param check.taxonomy Should the taxonomy be checked to see if it follows the AIT schema (default=TRUE)
+#' @param print.messages If check.taxonomy occurs, should any messages be written to the screen in addition to the log file (default=TRUE)
 #' @param ... Additional variables to be passed to `addDendrogramMarkers`
 #' 
 #' *Additional uns.variables*:
@@ -39,7 +40,7 @@
 #' @return AIT anndata object in the specified format (only if return.anndata=TRUE)
 #'
 #' @export
-buildTaxonomy = function(title,
+buildTaxonomy = function(title="AIT",
                          meta.data,
                          hierarchy,
                          ## X
@@ -66,6 +67,7 @@ buildTaxonomy = function(title,
                          add.dendrogram.markers = FALSE,
                          addMapMyCells = TRUE,
                          check.taxonomy = TRUE,
+                         print.messages = TRUE,
                          ...){
 
   ## Pull the finest level cell type column
@@ -84,8 +86,12 @@ buildTaxonomy = function(title,
                                             title, 
                                             dend)
 
-  ## Ensure that hierarchy is a named list with ascending order to heirarchy, e.g. ["Class"=0, "Subclass"=1, "cluster"=2]
-  ordered_hierarchy = setNames(as.list(seq_along(hierarchy)-1), unlist(hierarchy))
+  ## Ensure that hierarchy is a named list with ascending order to hierarchy, e.g. ["Class"=0, "Subclass"=1, "cluster"=2]
+  ##   --- Also apply some checks for previous versions
+  if(is.character(hierarchy))
+    hierarchy = as.list(hierarchy)
+  if(class(hierarchy[[1]])=="character")
+    ordered_hierarchy = setNames(as.list(seq_along(hierarchy)-1), unlist(hierarchy))
   if(!all(hierarchy %in% names(ordered_hierarchy))) {
     stop("Hierarchy must be supplied as an unnamed list with ascending order to heirarchy, e.g. ['Class', 'Subclass', 'cluster']")
   }
@@ -187,6 +193,9 @@ buildTaxonomy = function(title,
       schema_version = as.character(packageVersion("scrattch.taxonomy"))
     )
   )
+  
+  ## Ensure the hierarchy is correctly ordered and not alphabetical (this shouldn't be necessary)
+  AIT_anndata$uns$hierarchy <- AIT_anndata$uns$hierarchy[order(as.numeric(AIT_anndata$uns$hierarchy))]
 
   ## highly_variable_genes is a data.frame with gene names in rows and various sets in columns
   if(!is.null(highly_variable_genes)){
@@ -277,7 +286,7 @@ buildTaxonomy = function(title,
     print("===== Adding MapMyCells (hierarchical mapping) functionality =====")
     tryCatch({
       AIT.anndata = mappingMode(AIT.anndata, mode="standard")
-      AIT.anndata = addMapMyCells(AIT.anndata, names(hierarchy), force=TRUE)
+      AIT.anndata = addMapMyCells(AIT.anndata, AIT_anndata$uns$hierarchy, force=TRUE)
     }, error = function(e) {
       print("===== Error adding MapMyCells functionality. Skipping this step. =====")
       print(e)
@@ -287,7 +296,7 @@ buildTaxonomy = function(title,
   ## Check whether the taxonomy is a valid scrattch.taxonomy format
   if(check.taxonomy){
     print("===== Checking taxonomy for adherence to schema =====")
-    AIT.anndata = checkTaxonomy(AIT.anndata, print.messages=TRUE)
+    AIT.anndata = checkTaxonomy(AIT.anndata, print.messages=print.messages)
   }
   
   ## Return the anndata object

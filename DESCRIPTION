@@ -45,7 +45,9 @@ Depends: feather,
     BiocNeighbors,
     RANN,
     jsonlite,
-    reticulate
+    reticulate,
+    stringdist,
+    data.table
 Suggests: knitr,
     rmarkdown, 
     testthat,

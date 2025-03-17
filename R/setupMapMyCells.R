@@ -31,6 +31,10 @@ addMapMyCells = function(AIT_anndata,
     {
       ## move to zzz try catch
       cell_type_mapper <- import("cell_type_mapper")
+      
+      ## If not provided, set default for anndata_path
+      if(is.null(anndata_path))
+        anndata_path = file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad"))
 
       if ((length(AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]]) > 0) && force==FALSE) {
         stop(paste0(paste0("ERROR: mode provided '", AIT_anndata$uns$mode), 
@@ -84,7 +88,7 @@ addMapMyCells = function(AIT_anndata,
       AIT_anndata_calc = save_query_markers_to_uns(AIT_anndata_calc, query_markers_output_path) # Move back to original file
       
       # (NEW!) Move stats from calculation anndata to actual anndata
-      AIT_anndata$uns$hierarchical[[AIT_anndata$uns$mode]] <- list()
+      AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]] <- list()
       AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]][["precomp_stats"]] <- AIT_anndata_calc$uns$mapmycells[[AIT_anndata$uns$mode]][["precomp_stats"]]
       AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]][["query_markers"]] <- AIT_anndata_calc$uns$mapmycells[[AIT_anndata$uns$mode]][["query_markers"]]
       

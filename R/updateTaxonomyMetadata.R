@@ -117,6 +117,7 @@ updateTaxonomyMetadata = function(metadata,
   if("anatomical_region" %in% compute.ontology.terms){
     num.characters = mean(as.numeric(lapply(as.character(metadata[,"anatomical_region"]),nchar)),na.rm=TRUE)
     # frac.lowercase = mean(as.numeric(lapply(as.character(metadata[,"anatomical_region"]),function(x) stringdist(x,tolower(x))/nchar(x))),na.rm=TRUE) # Not used since several abbreviations in DHBA are all lowercase.
+    is.region.abbreviations = FALSE
     if(num.characters<10) is.region.abbreviations = TRUE
     
     # If regions are abbreviations, convert to full names (we will convert BACK later if convert.regions.to.names=FALSE)
