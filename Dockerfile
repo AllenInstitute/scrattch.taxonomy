@@ -85,12 +85,12 @@ COPY scrattch.taxonomy_1.1.0.tar.gz ./scrattch.taxonomy_1.1.0.tar.gz
 RUN R -e 'install.packages("scrattch.taxonomy_1.1.0.tar.gz", repos=NULL, type="source")'
 
 ## scrattch-mapping install from local source
-# COPY scrattch.mapping_0.7.1.tar.gz ./scrattch.mapping_0.7.1.tar.gz
-# RUN R -e 'install.packages("scrattch.mapping_0.7.1.tar.gz", repos=NULL, type="source")'
+COPY scrattch.mapping_0.7.1.tar.gz ./scrattch.mapping_0.7.1.tar.gz
+RUN R -e 'install.packages("scrattch.mapping_0.7.1.tar.gz", repos=NULL, type="source")'
 
 # ## scrattch-patchseq install from local source
-# COPY scrattch.patchseq_0.7.1.tar.gz ./scrattch.patchseq_0.7.1.tar.gz
-# RUN R -e 'install.packages("scrattch.patchseq_0.7.1.tar.gz", repos=NULL, type="source")'
+COPY scrattch.patchseq_0.1.1.tar.gz ./scrattch.patchseq_0.1.1.tar.gz
+RUN R -e 'install.packages("scrattch.patchseq_0.1.1.tar.gz", repos=NULL, type="source")'
 
 ## 
 RUN R -e 'install.packages("https://cran.r-project.org/src/contrib/Archive/matrixStats/matrixStats_1.1.0.tar.gz", repos=NULL, type="source")'

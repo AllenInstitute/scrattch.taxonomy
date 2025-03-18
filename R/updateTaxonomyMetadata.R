@@ -205,9 +205,14 @@ updateTaxonomyMetadata = function(metadata,
     # NO CHECKS NOW
     # Should be standard values provided from upstream BKP processing
     
-    ## self_reported_ethnicity
-    # NO CHECKS NOW
-    # Might be standard values provided from upstream BKP processing, but also likely lot's of blanks.
+    column.name = "self_reported_ethnicity"  
+    # Deal with "unknown" and "multiethnic" entries.
+    if(column.name %in% schema.columns) if("self_reported_ethnicity_ontology_term_id" %in% colnames(metadata)) {
+      metadata[,"self_reported_ethnicity_ontology_term_id"] <- as.character(metadata[,"self_reported_ethnicity_ontology_term_id"])
+      metadata[tolower(metadata[,column.name])=="unknown","self_reported_ethnicity_ontology_term_id"] <- "unknown"
+      if (sum(grepl(",", as.character(metadata[,column.name]), fixed = TRUE))>0)
+        messages = c(messages, paste0("\nWARNING: some self_reported_ethnicity values contains commas; consider manually setting self_reported_ethnicity_ontology_term_id = 'multiethnic' as appropriate."))
+    }
     
     ## disease
     # Should add a check to convert anything likely healthy, control, normal, etc. to a single term (e.g., "control"?)

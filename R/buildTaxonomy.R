@@ -195,7 +195,7 @@ buildTaxonomy = function(title="AIT",
   )
   
   ## Ensure the hierarchy is correctly ordered and not alphabetical (this shouldn't be necessary)
-  AIT_anndata$uns$hierarchy <- AIT_anndata$uns$hierarchy[order(as.numeric(AIT_anndata$uns$hierarchy))]
+  AIT.anndata$uns$hierarchy <- AIT.anndata$uns$hierarchy[order(as.numeric(AIT.anndata$uns$hierarchy))]
 
   ## highly_variable_genes is a data.frame with gene names in rows and various sets in columns
   if(!is.null(highly_variable_genes)){
@@ -286,7 +286,7 @@ buildTaxonomy = function(title="AIT",
     print("===== Adding MapMyCells (hierarchical mapping) functionality =====")
     tryCatch({
       AIT.anndata = mappingMode(AIT.anndata, mode="standard")
-      AIT.anndata = addMapMyCells(AIT.anndata, AIT_anndata$uns$hierarchy, force=TRUE)
+      AIT.anndata = addMapMyCells(AIT.anndata, AIT.anndata$uns$hierarchy, force=TRUE)
     }, error = function(e) {
       print("===== Error adding MapMyCells functionality. Skipping this step. =====")
       print(e)

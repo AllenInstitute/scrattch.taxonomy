@@ -445,7 +445,7 @@ checkTaxonomy = function(AIT.anndata,
   hancestro <- c(hancestro,"NA")
   column[is.na(column)] = "NA"
   # Now do the test
-  if(column_def$Key == "organism_ontology_term_id"){
+  if(column_def$Key == "self_reported_ethnicity_ontology_term_id"){
     if(!all(column %in% hancestro)){
       messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must all be valid HANCESTRO terms, or 'multiethnic' or 'unknown'."))
       isValid = FALSE
@@ -471,9 +471,9 @@ checkTaxonomy = function(AIT.anndata,
   mondo <- c(mondo,"NA")
   column[is.na(column)] = "NA"
   # Now do the test
-  if(column_def$Key == "organism_ontology_term_id"){
+  if(column_def$Key == "disease_ontology_term_id"){
     if(!all(column %in% mondo)){
-      messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must all be valid HANCESTRO terms, or 'multiethnic' or 'unknown'."))
+      messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must all be valid MONDO terms, or 'PATO:0000461'."))
       isValid = FALSE
     }
   }
