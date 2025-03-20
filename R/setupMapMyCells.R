@@ -58,6 +58,7 @@ addMapMyCells = function(AIT_anndata,
         anndata_calc_path = taxonomy_anndata_path
         AIT_anndata_calc  = AIT_anndata
       } else {
+        mode_dir <- file.path(AIT.anndata$uns$taxonomyDir,AIT_anndata$uns$mode)
         anndata_calc_path <- file.path(mode_dir, paste0(AIT_anndata$uns$title, ".h5ad"))
         dir.create(mode_dir)
         keep <- !(AIT_anndata$uns$filter[[AIT_anndata$uns$mode]])

@@ -12,6 +12,11 @@ loadTaxonomy = function(taxonomyDir,
                         log.file.path=getwd(),
                         force=FALSE){
 
+  ## Allow for h5ad as the first/only input
+  if(grepl("h5ad", taxonomyDir)){
+    anndata_file = taxonomyDir
+    taxonomyDir  = getwd()
+  }
   ## Make sure the taxonomy path is an absolute path
   taxonomyDir = normalizePath(taxonomyDir, winslash = "/")
   ## Load from directory name input 

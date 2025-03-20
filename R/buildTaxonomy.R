@@ -17,7 +17,7 @@
 #' @param default_embedding A string indicating which embedding to use for calculations.  Default (NULL) is to take the first one provided in embeddings.
 #' @param uns.variables If provided, a list of additional variables to be included in the uns.  See Notes for schema variables not otherwise accounted for.
 #' @param reorder.dendrogram Should dendogram attempt to match a preset order? (Default = FALSE).  If TRUE, the dendrogram attempts to match the celltype factor order as closely as possible (if celltype is a character vector rather than a factor, this will sort clusters alphabetically, which is not ideal).
-#' @param add.dendrogram.markers If TRUE (default), will also add dendrogram markers to prep the taxonomy for tree mapping
+#' @param add.dendrogram.markers If TRUE (default=FALSE), will also add dendrogram markers to prep the taxonomy for tree mapping
 #' @param addMapMyCells If TRUE (default), will also prep this taxonomy for hierarchical mapping
 #' @param check.taxonomy Should the taxonomy be checked to see if it follows the AIT schema (default=TRUE)
 #' @param print.messages If check.taxonomy occurs, should any messages be written to the screen in addition to the log file (default=TRUE)
@@ -70,8 +70,23 @@ buildTaxonomy = function(title="AIT",
                          print.messages = TRUE,
                          ...){
 
+  ## Ensure that hierarchy is a named list with ascending order to hierarchy, e.g. ["Class"=0, "Subclass"=1, "cluster"=2]
+  ##   --- Also apply some checks for previous versions
+  if(is.character(hierarchy))
+    hierarchy = as.list(hierarchy)
+  if(class(hierarchy[[1]])=="character"){
+    ordered_hierarchy = setNames(as.list(seq_along(hierarchy)-1), unlist(hierarchy))
+  } else {
+    ordered_hierarchy = hierarchy
+  }
+  if(!all(names(ordered_hierarchy) %in% colnames(meta.data))) {
+    stop("Hierarchy values must all be included as column names in the metadata.")
+  }
+  hierarchy = ordered_hierarchy
+  
   ## Pull the finest level cell type column
-  celltypeColumn = hierarchy[length(hierarchy)][[1]]
+  celltypeColumn = names(hierarchy)[length(hierarchy)][[1]]
+  if(celltypeColumn!="cluster_id") warning("AIT schema requires clusters to be in 'cluster_id' slot. We recommend calling the finest level of the hierarchy as 'cluster_id'.")
 
   ## Sanity check and cleaning of parameters
   clean.params = .checkBuildTaxonomyParams(counts, 
@@ -85,17 +100,6 @@ buildTaxonomy = function(title="AIT",
                                             taxonomyDir, 
                                             title, 
                                             dend)
-
-  ## Ensure that hierarchy is a named list with ascending order to hierarchy, e.g. ["Class"=0, "Subclass"=1, "cluster"=2]
-  ##   --- Also apply some checks for previous versions
-  if(is.character(hierarchy))
-    hierarchy = as.list(hierarchy)
-  if(class(hierarchy[[1]])=="character")
-    ordered_hierarchy = setNames(as.list(seq_along(hierarchy)-1), unlist(hierarchy))
-  if(!all(hierarchy %in% names(ordered_hierarchy))) {
-    stop("Hierarchy must be supplied as an unnamed list with ascending order to heirarchy, e.g. ['Class', 'Subclass', 'cluster']")
-  }
-  hierarchy = ordered_hierarchy
 
   ## ----------
   ## Subsample nuclei per cluster, max of subsample cells per cluster
@@ -195,7 +199,7 @@ buildTaxonomy = function(title="AIT",
   )
   
   ## Ensure the hierarchy is correctly ordered and not alphabetical (this shouldn't be necessary)
-  AIT.anndata$uns$hierarchy <- AIT.anndata$uns$hierarchy[order(as.numeric(AIT.anndata$uns$hierarchy))]
+  #AIT.anndata$uns$hierarchy <- AIT.anndata$uns$hierarchy[order(as.numeric(AIT.anndata$uns$hierarchy))]
 
   ## highly_variable_genes is a data.frame with gene names in rows and various sets in columns
   if(!is.null(highly_variable_genes)){
@@ -258,11 +262,11 @@ buildTaxonomy = function(title="AIT",
      AIT.anndata$uns[[nm]] <- uns.variables[[nm]]
   }
 
-  ## Write the Allen Institute Taxonomy object
+  ## Write the Allen Institute Taxonomy object  # THIS SEEMS UNNECESSARY!
   print("===== Writing taxonomy anndata =====")
   AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
 
-  ## Read in the AIT object to confirm it was written correctly and to set parameters for the next steps
+  ## Read in the AIT object to confirm it was written correctly and to set parameters for the next steps  # THIS SEEMS UNNECESSARY!
   AIT.anndata = read_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
   
   ## Add dendrogram markers and membership tables, if requested
