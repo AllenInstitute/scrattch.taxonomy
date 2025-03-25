@@ -126,6 +126,7 @@ AIT.anndata = buildTaxonomyMode(AIT.anndata,
                                 highly_variable_genes = 1000,
                                 embeddings = "highly_variable_genes_neurons",
                                 retain.cells = neuron.cells, 
+                                add.dendrogram.markers = TRUE,  # Very slow, but required for downstream patch-seq analysis.
                                 subsample = 100, 
                                 overwrite = TRUE)
 ```

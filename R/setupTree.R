@@ -1,23 +1,23 @@
 #' Add marker genes to reference dendrogram for tree mapping
 #'
 #' @param AIT.anndata A reference taxonomy anndata object.
-#' @param mode Taxonomy mode to determine which version of filtering to use.
-#' @param celltypeColumn Column name correspond to the cell type names in the dendrogram (default = "cluster_label"). At least two cells per cell type in the dendrogram must be included.
+#' @param mode.name Taxonomy mode to determine which version of filtering to use.
+#' @param celltypeColumn Column name correspond to the cell type names in the dendrogram. At least two cells per cell type in the dendrogram must be included. Default is to take the highest resolution level of the hierarchy
 #' @param subsample The number of cells to retain per cluster (default = 100)
 #' @param num.markers The maximum number of markers to calculate per pairwise differential calculation per direction (default = 20)
 #' @param de.param Differential expression (DE) parameters for genes and clusters used to define marker genes.  By default the values are set to the 10x nuclei defaults from scrattch.hicat, except with min.cells=2 (see notes below).
 #' @param calculate.de.genes Default=TRUE. If set to false, the function will search for "de_genes" in a file called "de_genes.RData" in the folder taxonomyDir, and will use those if available.
-#' @param save.shiny.output Should standard output files be generated and saved to the directory (default=TRUE).  These are not required for tree mapping, but are required for building a patch-seq shiny instance.  This is only tested in a UNIX environment.  See notes.
+#' @param save.shiny.output Should standard output files be generated and saved to the AIT file (default=TRUE).  These are not required for tree mapping, but are required for building a patch-seq shiny instance. See notes.
 #' @param mc.cores Number of cores to use for running this function to speed things up.  Default = 1.  Values>1 are only supported in an UNIX environment and require `foreach` and `doParallel` R libraries.
 #' @param bs.num Number of bootstrap runs for creating the dendrogram (default of 100)
 #' @param p proportion of marker genes to include in each iteration of the mapping algorithm.
 #' @param low.th the minimum difference in Pearson correlation required to decide on which branch
 #' @param overwriteMarkers If markers already are calculated a tree, should they be overwritten (default = TRUE)
-#' @param taxonomyDir The location to create the directory with taxonomy mode information (default is as a subdirectory of the taxonomy location stored in the anndata object).
+#' @param taxonomyDir The location to create the directory with taxonomy information. Both the taxonomy and the de.genes_[mode.name].RData get saved here.
 #'
 #' By default VERY loose parameters are set for de_param in an effort to get extra marker genes for each node.  The defaults previously proposed for 10x nuclei are the following `de_param(low.th = 1, padj.th = 0.01, lfc.th = 1, q1.th = 0.3, q2.th = NULL, q.diff.th = 0.7, de.score.th = 100, min.cells = 2, min.genes = 5)`. See the function `de_param` in the scrattch.hicat for more details.  
 #'
-#' If save.shiny.output=TRUE, membership_information_reference.rda will be generated, which includes two variables
+#' If save.shiny.output=TRUE, the following two values will get saved to the uns:
 #'       `memb.ref`   - matrix indicating how much confusion there is the mapping between each cell all of the nodes in the tree (including all cell types) when comparing clustering and mapping results with various subsamplings of the data
 #'       `map.df.ref` - Result of tree mapping for each cell in the reference against the clustering tree, including various statistics and marker gene evidence.  This is the same output that comes from tree mapping.#'
 #' 
@@ -30,8 +30,9 @@
 #'
 #' @export
 addDendrogramMarkers = function(AIT.anndata,
-                                mode = AIT.anndata$uns$mode,
-                                celltypeColumn = "cluster_label",
+                                mode.name = NULL,
+                                mode = AIT.anndata$uns$mode, # For back compatibility. Will be used if mode.name is not provided
+                                celltypeColumn = NULL, 
                                 subsample = 100,
                                 num.markers = 20,
                                 de.param=scrattch.hicat::de_param(low.th = 0.1,
@@ -53,24 +54,33 @@ addDendrogramMarkers = function(AIT.anndata,
                                 taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir)){
   suppressWarnings({ # wrapping the whole function in suppressWarnings to avoid having this printed a zillion times: 'useNames = NA is deprecated. Instead, specify either useNames = TRUE or useNames = FALSE.'
   
-  print(celltypeColumn)
+  ## Deal with back compatibility of mode
+  if(is.null(mode.name)) mode.name = mode
+  rm(mode)
 
-  ## We should already know this? Clean up in future.
-  if(!is.element(celltypeColumn, colnames(AIT.anndata$obs))){ stop(paste(celltypeColumn, "is not a column in the metadata data frame.")) }
+  ## File name for de_genes_file
+  de_genes_file <- file.path(taxonomyDir,paste0("de_genes_",mode.name,".RData"))
 
-  ##
-  if(mode == "standard"){ taxonomyModeDir = file.path(taxonomyDir) } else { taxonomyModeDir = file.path(taxonomyDir, mode) }
+  ## Create the taxonomyDir if somehow it doesn't exist yet
+  if(!dir.exists(taxonomyDir)){ dir.create(taxonomyDir) }
 
-  if(!dir.exists(taxonomyModeDir)){ stop("Taxonomy version doesn't exist, please run `buildPatchseqTaxonomy()` then retry.") }
-
+  ## Determine the cluster column if not provided
+  if(is.null(celltypeColumn)){
+    hierarchy = AIT.anndata$uns$hierarchy
+    if(is.null(hierarchy)) {stop("Either a cell type column or a hierarchy must be provided to addDendrogramMarkers")}
+    hierarchy = hierarchy[order(unlist(hierarchy))]
+    if(is.null(hierarchy)) stop("Hierarchy must be included in the standard AIT mode in proper format to create a mode.  Please run checkTaxonomy().")
+    celltypeColumn = names(hierarchy)[length(hierarchy)][[1]]
+  }
+  
   ##
   if(is.null(AIT.anndata$X)){ stop("No data found in AIT.anndata$X. The full count matrix is required for determining marker genes.") }
 
   ## Filter and Subsample
-  keep.samples = ((!AIT.anndata$uns$filter[[mode]]) & subsampleCells(AIT.anndata$obs[[celltypeColumn]], subsample)) ##  & is.element(cluster.vector, labels(dend))
+  keep.samples = ((!AIT.anndata$uns$filter[[mode.name]]) & subsampleCells(AIT.anndata$obs[[celltypeColumn]], subsample)) ##  & is.element(cluster.vector, labels(dend))
 
   ## Checks and data formatting
-  dend = json_to_dend(AIT.anndata$uns$dend[[mode]])
+  dend = json_to_dend(AIT.anndata$uns$dend[[mode.name]])
 
   ## norm.data
   norm.data = Matrix::t(AIT.anndata$X[AIT.anndata$obs_names[keep.samples],])
@@ -92,12 +102,11 @@ addDendrogramMarkers = function(AIT.anndata,
   
   ## CHECK IF THIS IS NEEDED
   ## We might need to relabel the dendrogram from 1 to #clusters in order
-  labels(dend) = names(cl.label)[match(labels(dend), cl.label)]
+  #labels(dend) = names(cl.label)[match(labels(dend), cl.label)]
   
   ## Compute markers
   print("Define marker genes and gene scores for the tree")
   if((sum(!is.na(get_nodes_attr(dend, "markers"))) == 0) | (overwriteMarkers == TRUE)){
-    de_genes_file <- file.path(taxonomyDir,"de_genes.RData")
     if(calculate.de.genes){
       print("=== NOTE: This step can be very slow (several minute to many hours).")
       print("      To speed up the calculation (or if it crashes) try decreasing the value of subsample.")
@@ -107,12 +116,10 @@ addDendrogramMarkers = function(AIT.anndata,
                                 de.param = de.param, 
                                 de.genes = NULL)$de.genes
 
-      #AIT.anndata$uns$QC_markers[[mode]][["de_genes"]] = de.genes  # Do not save to anndata, as it makes files MUCH slower to access
       save(de.genes, file=de_genes_file)
     } else {
       ## Check that file exists before loading
       load(de_genes_file)
-      #de.genes = AIT.anndata$uns$QC_markers[[mode]][["de_genes"]]  # Do not save to anndata, as it makes files MUCH slower to access
     }
 
     ## Check number of markers for each leaf
@@ -154,11 +161,11 @@ addDendrogramMarkers = function(AIT.anndata,
     reference$dend = revert_dend_label(reference$dend,get_nodes_attr(reference$dend, "original_label"),"label")
   }
 
-  print("Save the reference dendrogram for this mode")
-  dend = reference$dend
-  saveRDS(dend, file.path(taxonomyModeDir, "dend.RData"))
+  #print("Save the reference dendrogram for this mode")  # NOTE: we don't need to save thie dendrogram, as it is staved within the AIT file
+  #dend = reference$dend
+  #saveRDS(dend, file.path(taxonomyModeDir, "dend.RData"))
   ## Note, this overwrites the initial dendrogram but has slightly different formatting from the read, which could cause issues
-  ## dend = readRDS(AIT.anndata$uns$dend[[mode]])
+  ## dend = readRDS(AIT.anndata$uns$dend[[mode.name]])
     
   ##
   if(save.shiny.output){
@@ -180,14 +187,14 @@ addDendrogramMarkers = function(AIT.anndata,
     memb.ref   = memb.ref[AIT.anndata$obs_names[keep.samples],]
     map.df.ref = map.df.ref[AIT.anndata$obs_names[keep.samples],]
     
-    AIT.anndata$uns$memb[[mode]]$memb.ref = as.data.frame.matrix(memb.ref)
-    AIT.anndata$uns$memb[[mode]]$map.df.ref = map.df.ref
-    save(memb.ref, map.df.ref, file=file.path(taxonomyModeDir, "membership_information_reference.rda"))
+    AIT.anndata$uns$memb[[mode.name]]$memb.ref = as.data.frame.matrix(memb.ref)
+    AIT.anndata$uns$memb[[mode.name]]$map.df.ref = map.df.ref
+    #save(memb.ref, map.df.ref, file=file.path(taxonomyModeDir, "membership_information_reference.rda")) # No need to save this to a file either
   }
 
   ##
   print("Save the dendrogram into .h5ad")
-  AIT.anndata$uns$dend[[mode]] = toJSON(dend_to_json(reference$dend))
+  AIT.anndata$uns$dend[[mode.name]] = toJSON(dend_to_json(reference$dend))
   AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
   
   ##
