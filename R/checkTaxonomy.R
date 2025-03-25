@@ -5,6 +5,16 @@
 #' @param AIT.anndata A reference taxonomy anndata object to be tested
 #' @param log.file.path The directory to output the logfile of errors and warnings (if any; default getwd())
 #' @param print.messages Print messages only to a log file (FALSE; default) or also to the screen (TRUE)
+#' @param pull_ensembl If FALSE (default) loads the list of Ensembl terms from NCBI; otherwise, pulls from NCBI (VERY slow)
+#' @param validate_percent_ensembl Percent of entries that must correspond to valid Ensembl terms to validate
+#' @param pull_assay If FALSE (default) loads the list of EFO terms (assays); otherwise pulls from EBI (VERY slow) 
+#' @param pull_cl If FALSE (default) loads a preset list of CL terms from OBO; otherwise pulls from OBO
+#' @param validate_percent_cl Percent of entries that must correspond to valid CL terms to validate
+#' @param pull_ncbitaxon If FALSE (default) loads the list of species with gene information at NCBI; otherwise pulls from OBO (VERY slow) 
+#' @param pull_uberon If FALSE (default) loads the list of anatomical regions from UBERON; otherwise pulls from OBO
+#' @param pull_brain_atlases If FALSE (default) loads the list of brain atlas ids; otherwise pulls from brain-bican
+#' @param pull_hancestro If FALSE (default) loads the list of HANCESTRO terms; otherwise, pulls from OBO 
+#' @param pull_mondo If FALSE (default) loads the list of MONDO terms; otherwise, pulls from OBO 
 #' @param ... Additional parameters for ._validate_schema_elements and .validate_var_elements (can be ignored in most cases)
 #' 
 #' @import anndata
@@ -13,10 +23,17 @@
 #'
 #' @export
 checkTaxonomy = function(AIT.anndata, 
-                          log.file.path=getwd(), 
-                          print.messages=FALSE, 
-                          validate_percent_ensembl=60, 
-                          pull_ensembl=FALSE, ...){
+                         log.file.path=getwd(), 
+                         print.messages=FALSE, 
+                         pull_ensembl=FALSE, validate_percent_ensembl=60,
+                         pull_assay = FALSE,
+                         pull_cl = FALSE, validate_percent_cl = 80,            # cell_type_ontology_term variables
+                         pull_ncbitaxon = FALSE,                               # organism_ontology_term_id variables
+                         pull_uberon = FALSE,                                  # anatomical_region_ontology_term_id variables
+                         pull_brain_atlases = FALSE,                           # brain_region_ontology_term_id variables
+                         pull_hancestro = FALSE,                               # self_reported_ethnicity_ontology_term_id variables
+                         pull_mondo = FALSE,                                   # disease_ontology_term_id variables
+                         ...){                                  
   
   #########################################
   ## Initial general check and set up
@@ -76,7 +93,11 @@ checkTaxonomy = function(AIT.anndata,
   tovalidate.schema.columns = setdiff(required.schema.columns, missing.schema.columns)
   for(element in tovalidate.schema.columns){
     column_def = ._get_schema_def(element)
-    validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid, ...)
+    validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid, pull_assay = pull_assay, 
+                                           pull_cl = pull_cl, pull_ncbitaxon = pull_ncbitaxon, pull_uberon = pull_uberon, 
+                                           pull_brain_atlases = pull_brain_atlases, pull_hancestro = pull_hancestro, 
+                                           pull_mondo = pull_mondo,  ...)
+    pull_assay  <- pull_cl <- pull_ncbitaxon <- pull_uberon <- pull_brain_atlases <- pull_hancestro <- pull_mondo <- FALSE
     messages = validation[["messages"]]; isValid = validation[["isValid"]]
   }
 
@@ -85,7 +106,11 @@ checkTaxonomy = function(AIT.anndata,
   for(element in recommended.schema.columns){
     if(is.element(element, colnames(AIT.anndata$obs))){
       column_def = ._get_schema_def(element)
-      validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid, ...)
+      validation = ._validate_schema_element(AIT.anndata$obs[[element]], column_def, messages, isValid, pull_assay = pull_assay, 
+                                             pull_cl = pull_cl, pull_ncbitaxon = pull_ncbitaxon, pull_uberon = pull_uberon, 
+                                             pull_brain_atlases = pull_brain_atlases, pull_hancestro = pull_hancestro, 
+                                             pull_mondo = pull_mondo,  ...)
+      pull_assay  <- pull_cl <- pull_ncbitaxon <- pull_uberon <- pull_brain_atlases <- pull_hancestro <- pull_mondo <- FALSE
       messages = validation[["messages"]]; isValid = validation[["isValid"]]
     }
   }
@@ -110,7 +135,10 @@ checkTaxonomy = function(AIT.anndata,
   tovalidate.schema.columns = setdiff(required.schema.columns, missing.schema.columns)
   for(element in tovalidate.schema.columns){
     column_def = ._get_schema_def(element)
-    validation = ._validate_schema_element(AIT.anndata$uns[[element]], column_def, messages, isValid, ...)
+    validation = ._validate_schema_element(AIT.anndata$uns[[element]], column_def, messages, isValid, pull_assay = pull_assay, 
+                                           pull_cl = pull_cl, pull_ncbitaxon = pull_ncbitaxon, pull_uberon = pull_uberon, 
+                                           pull_brain_atlases = pull_brain_atlases, pull_hancestro = pull_hancestro, 
+                                           pull_mondo = pull_mondo,  ...)
     messages = validation[["messages"]]; isValid = validation[["isValid"]]
   }
 
@@ -120,7 +148,10 @@ checkTaxonomy = function(AIT.anndata,
   for(element in tovalidate.schema.columns){
     if(is.element(elemenet, names(AIT.anndata$uns))){
       column_def = ._get_schema_def(element)
-      validation = ._validate_schema_element(AIT.anndata$uns[[element]], column_def, messages, isValid, ...)
+      validation = ._validate_schema_element(AIT.anndata$uns[[element]], column_def, messages, isValid, pull_assay = pull_assay, 
+                                             pull_cl = pull_cl, pull_ncbitaxon = pull_ncbitaxon, pull_uberon = pull_uberon, 
+                                             pull_brain_atlases = pull_brain_atlases, pull_hancestro = pull_hancestro, 
+                                             pull_mondo = pull_mondo,  ...)
       messages = validation[["messages"]]; isValid = validation[["isValid"]]
     }
   }
@@ -376,7 +407,7 @@ checkTaxonomy = function(AIT.anndata,
   data(brain_atlases)
   if(pull_brain_atlases){
     # Developing human brain atlas
-    file <- try(download.file("https://github.com/brain-bican/developing_human_brain_atlas_ontology/raw/refs/heads/main/dhbao-simple-non-classified.obo","dhbao.obo"))
+    file <- try(download.file("https://github.com/brain-bican/developing_human_brain_atlas_ontology/raw/refs/heads/main/dhbao-base.obo","dhbao.obo"))
     if("try-error" %in% class(file)){
       messages = c(messages, paste0("\nWARNING: DHBA terms not accessible via https://github.com/brain-bican/ and not updated."))
     } else {
@@ -384,7 +415,7 @@ checkTaxonomy = function(AIT.anndata,
       brain_atlases <- c(brain_atlases, dhbao_obo$id[substr(dhbao_obo$id,1,4)=="DHBA"])
     }
     # Human brain atlas
-    file <- try(download.file("https://github.com/brain-bican/human_brain_atlas_ontology/raw/refs/heads/main/hbao-simple-non-classified.obo","hbao.obo"))
+    file <- try(download.file("https://github.com/brain-bican/human_brain_atlas_ontology/raw/refs/heads/main/hbao-base.obo","hbao.obo"))
     if("try-error" %in% class(file)){
       messages = c(messages, paste0("\nWARNING: HBA terms not accessible via https://github.com/brain-bican/ and not updated."))
     } else {
@@ -392,7 +423,7 @@ checkTaxonomy = function(AIT.anndata,
       brain_atlases <- c(brain_atlases, hbao_obo$id[substr(hbao_obo$id,1,3)=="HBA"])
     }
     # Mouse brain atlas
-    file <- try(download.file("https://github.com/brain-bican/mouse_brain_atlas_ontology/raw/refs/heads/main/mbao-simple-non-classified.obo","mbao.obo"))
+    file <- try(download.file("https://github.com/brain-bican/mouse_brain_atlas_ontology/raw/refs/heads/main/mbao-base.obo","mbao.obo"))
     if("try-error" %in% class(file)){
       messages = c(messages, paste0("\nWARNING: MBA terms not accessible via https://github.com/brain-bican/ and not updated."))
     } else {
@@ -496,7 +527,7 @@ checkTaxonomy = function(AIT.anndata,
 #' @param isValid The current call for whether the taxonomy is valid.
 #' @param isWarning The current call for whether the taxonomy is valid.
 #' @param print.messages Print messages only to a log file (FALSE; default) or also to the screen (TRUE)
-#' @param ... Additional parameters for ._validate_schema_elements and .validate_var_elements (can be ignored in most cases)
+#' @param ... Additional parameters for ._validate_schema_element and .validate_var_elements (can be ignored in most cases)
 #' 
 #' @import anndata
 #'
@@ -522,8 +553,12 @@ checkMetadata = function(meta.data, schema, messages=c(), isValid=FALSE, isWarni
     tovalidate.schema.columns = setdiff(required.schema.columns, missing.schema.columns)
     for(element in tovalidate.schema.columns){
       column_def = ._get_schema_def(element)
-      validation = ._validate_schema_element(meta.data[[element]], column_def, messages, isValid, ...)
+      validation = ._validate_schema_element(meta.data[[element]], column_def, messages, isValid, pull_assay = pull_assay, 
+                                             pull_cl = pull_cl, pull_ncbitaxon = pull_ncbitaxon, pull_uberon = pull_uberon, 
+                                             pull_brain_atlases = pull_brain_atlases, pull_hancestro = pull_hancestro, 
+                                             pull_mondo = pull_mondo,  ...)
       messages = validation[["messages"]]; isValid = validation[["isValid"]]
+      pull_assay  <- pull_cl <- pull_ncbitaxon <- pull_uberon <- pull_brain_atlases <- pull_hancestro <- pull_mondo <- FALSE
     }
 
     ## Now we will check any RECOMMENDED schema elements that are present in obs
@@ -531,8 +566,12 @@ checkMetadata = function(meta.data, schema, messages=c(), isValid=FALSE, isWarni
     for(element in tovalidate.schema.columns){
       if(is.element(element, colnames(meta.data))){
         column_def = ._get_schema_def(element)
-        validation = ._validate_schema_element(meta.data[[element]], column_def, messages, isValid, ...)
+        validation = ._validate_schema_element(meta.data[[element]], column_def, messages, isValid, pull_assay = pull_assay, 
+                                               pull_cl = pull_cl, pull_ncbitaxon = pull_ncbitaxon, pull_uberon = pull_uberon, 
+                                               pull_brain_atlases = pull_brain_atlases, pull_hancestro = pull_hancestro, 
+                                               pull_mondo = pull_mondo,  ...)
         messages = validation[["messages"]]; isValid = validation[["isValid"]]
+        pull_assay  <- pull_cl <- pull_ncbitaxon <- pull_uberon <- pull_brain_atlases <- pull_hancestro <- pull_mondo <- FALSE
       }
     }
     print(messages)

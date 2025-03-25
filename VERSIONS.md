@@ -1,3 +1,22 @@
+## scrattch.taxonomy v1.1.1
+
+Update to better integrate the Allen Institute schema and downstream scrattch.mapping and scrattch.patchseq functionality.
+
+### Major changes
+* Creation of buildTaxonomyMode function for adding flexible modes/subsets/children (without adding patchseq QC)
+* Update dendrogram and MapMyCells handling with schema
+* Allow computing of binary genes and UMAP within buildTaxonomy and buildTaxonomyMode
+* Creation of a new example using buildTaxonomyMode with human MTG
+
+### Minor changes
+* Bug fixes
+* Speed up for geneSymbolToEnsembl function
+* Update of brain region atlases to correct ontology links
+* Update self_reported_ethnicity_ontology_term_id to deal with "unknown" and "multiethnic" entries
+* Minor changes to error handling 
+
+--
+
 ## scrattch.taxonomy v0.9.1
 
 Major update to integrate the new Allen Institute schema

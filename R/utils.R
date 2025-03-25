@@ -73,7 +73,21 @@ geneSymbolToEnsembl <- function (gene.symbols, ncbi.taxid = 9606, use.synonyms =
   # Explore synonyms for values that are NA, if requested
   ensembl  <- ensembl.true
   synonyms <- geneInfo$Synonyms
-  ens <- as.character(lapply(gene.symbols[is.na(ensembl.true)], function(x) ensembl.all[grep(x,synonyms)[1]]))
+  
+  #ens <- as.character(lapply(gene.symbols[is.na(ensembl.true)], function(x) ensembl.all[grep(x,synonyms)[1]])) # This line is very slow
+  
+  # Start faster replacement for above line
+  syn <- apply(cbind(ensembl.all,synonyms),1,function(x) { 
+    a <- as.character(x)
+    if(sum(is.na(x))>0) return(NULL)
+    y = strsplit(x[2],"\\|")[[1]];
+    as.data.frame(cbind(rep(x[1],length(y)),y))
+  })
+  syn2  <- list_rbind(syn)
+  merge <- setNames(syn2[,1],syn2[,2])
+  ens   <- merge[gene.symbols[is.na(ensembl.true)]]
+  # End faster replacement for above line
+  
   ensembl[is.na(ensembl.true)] <- ens
   if(!remove.duplicates) return(ensembl)
   
@@ -83,6 +97,7 @@ geneSymbolToEnsembl <- function (gene.symbols, ncbi.taxid = 9606, use.synonyms =
   ensembl[is.element(ensembl,names(table(ensembl)[table(ensembl)>1]))] = NA  # Remove duplicates in gene symbol values
   ensembl
 }
+
 
 
 #' Determine the NCBITaxon ID for a species from the scientific name
@@ -127,6 +142,7 @@ getNCBITaxon <- function(species,
 #' @param AIT.anndata A reference taxonomy anndata object.
 #' @param variable.genes Set of variable genes to add to the list.name slot in obs. Can be provided as a logical or character vector.
 #' @param list.name Which slot in obs to should the highly variable genes go?  Default is highly_variable_genes_[mode]
+#' @param default.list.name Which slot should highly variable genes be copied from if none are provided? Default is highly_variable_genes_standard
 #'
 #' @return an AIT.anndata object with the updated/additional vector of highly variable genes
 #'
@@ -134,25 +150,33 @@ getNCBITaxon <- function(species,
 updateHighlyVariableGenes = function(AIT.anndata,
                                      variable.genes=NULL,
                                      mode = AIT.anndata$uns$mode,
-                                     list.name = paste0("highly_variable_genes_",AIT.anndata$uns$mode) ){
+                                     list.name = paste0("highly_variable_genes_",AIT.anndata$uns$mode),
+                                     default.list.name = "highly_variable_genes_standard"){
   
   if(is.null(variable.genes)){
-    if(is.null(AIT.anndata$var$highly_variable_genes)){
-       print("Returning the starting object since AIT.anndata$var$highly_variable_genes is unspecified.")
+    if(is.null(AIT.anndata$var[,default.list.name])){
+       print(paste0("updateHighlyVariableGenes is returning the starting object since AIT.anndata$var$",default.list.name," is unspecified."))
      } else {
        print("Setting the mode-specific variable genes as the global variable genes since variable.genes=NULL.")
-       AIT.anndata$var[,paste0("highly_variable_genes_",mode)] = AIT.anndata$var$highly_variable_genes
+       AIT.anndata$var[,list.name] = AIT.anndata$var[,default.list.name]
      }
     return(AIT.anndata)
   } else if (is.logical(variable.genes)) {
-    if (length(variable.genes)!=dim(AIT.anndata)[2]) stop("If variable.genes is logical it must be the same length as the total number of genes in AIT.anndata.")
+    if (length(variable.genes)!=dim(AIT.anndata)[2]) {
+      warning("If variable.genes is logical it must be the same length as the total number of genes in AIT.anndata. updateHighlyVariableGenes is returning the starting object.")
+      return(AIT.anndata)
+    }
     variable.genes.vector = variable.genes
   } else if (is.character(variable.genes)){
     variable.genes <- intersect(variable.genes,AIT.anndata$var_names)
-    if (length(variable.genes)<=2) stop("More than 2 valid gene names must be provided in variable.genes.")
+    if (length(variable.genes)<=2){
+      warning("More than 2 valid gene names must be provided in variable.genes. updateHighlyVariableGenes is returning the starting object.")
+      return(AIT.anndata)
+    } 
     variable.genes.vector <- is.element(AIT.anndata$var_names,variable.genes)
   } else {
-    stop("variable.genes must be a character or logical vector.")
+    warning("variable.genes must be a character or logical vector. updateHighlyVariableGenes is returning the starting object.")
+    return(AIT.anndata)
   }
   AIT.anndata$var[,list.name] = variable.genes.vector
   AIT.anndata
@@ -164,6 +188,7 @@ updateHighlyVariableGenes = function(AIT.anndata,
 #' @param AIT.anndata A reference taxonomy anndata object.
 #' @param variable.genes Set of variable genes to add to the list.name slot in obs.
 #' @param list.name Which slot in obs to should the highly variable genes go?  Default is marker_genes_[mode]
+#' @param default.list.name Which slot should highly variable genes be copied from if none are provided? Default is marker_genes_standard
 #'
 #' @return an AIT.anndata object with the updated/additional vector of marker genes
 #'
@@ -172,10 +197,12 @@ updateHighlyVariableGenes = function(AIT.anndata,
 #' @export
 updateMarkerGenes = function(AIT.anndata,
                              marker.genes=NULL,
-                             list.name = paste0("marker_genes_",AIT.anndata$uns$mode)){
-  updateHighlyVariableGenes(AIT.anndata=AIT.anndata, variable.genes=marker.genes, list.name=list.name)
+                             list.name = paste0("marker_genes_",AIT.anndata$uns$mode),
+                             default.list.name = "marker_genes_standard"){
+  updateHighlyVariableGenes(AIT.anndata=AIT.anndata, variable.genes=marker.genes, list.name=list.name, default.list.name=default.list.name)
 }
-                             
+    
+                         
 #' Function to update meta.data
 #'
 #' @param meta.data A data.frame with cell metadata

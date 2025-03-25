@@ -4,11 +4,12 @@
 #' @param meta.data Meta.data corresponding to count matrix. Rownames must be equal to colnames of counts. "clusters" must be provided (see hierarchy[[-1]] and notes).
 #' @param title The file name to assign for the Taxonomy h5ad (default="AIT"; recommended to create your own title!).
 #' @param counts A count matrix in sparse format: dgCMatrix.
-#' @param highly_variable_genes Set of features defined as highly variable genes. Provide either as a named list of vectors, or as a single vector (in which case the name "highly_variable_genes_standard" will be used).
-#' @param marker_genes Set of features defined as marker genes. Provide either as a named list of vectors, or as a single vector (in which case the name "marker_genes_standard" will be used).
+#' @param highly_variable_genes Set of features defined as highly variable genes OR a number of binary genes to calculate (we recommend ~1000 - ~5000, for <100 to ~5000 cell types). If a feature list is provided, provide either as a named list of vectors, or as a single vector (in which case the name "highly_variable_genes_standard" will be used). "highly_variable_genes_standard" will also be used for calculated variable genes. Optional input, but for proper mapping we strongly recommend including either highly_variable_genes or marker_genes. 
+#' @param marker_genes Set of features defined as marker genes. Provide either as a named list of vectors, or as a single vector (in which case the name "marker_genes_[mode.name]" will be used).
 #' @param ensembl_id A vector of ensemble ids corresponding to the gene symbols in counts.
 #' @param cluster_stats A matrix of median gene expression by cluster. Cluster names must exactly match meta.data$cluster.  If provided, will get saved to "varm$cluster_id_median_expr_[mode]"
-#' @param embeddings Dimensionality reduction coordinate data.frame with 2 columns. Rownames must be equal to colnames of counts.  Either provide as a named list or as a single data.frame (in which case the name "default_standard" will be used).
+#' @param embeddings Dimensionality reduction coordinate data.frame with 2 columns or a string with the column name for marker_genes or variable_genes from which a UMAP should be calculated. If coordinates are provided, rownames must be equal to colnames of counts.  Either provide as a named list or as a single data.frame (in which case the name "default_standard" will be used). embeddings are not required, but inclusion of at least one embedding is strongly recommended.#' 
+#' @param number.of.pcs Number of principle components to use for calculating UMAP coordinates (default=30). This is only used in embeddings corresponds to a variable gene column from which a UMAP should be calculated.
 #' @param dend Existing dendrogram associated with this taxonomy (e.g., one calculated elsewhere).  If NULL (default) a new dendrogram will be calculated based on the input `feature.set`
 #' @param taxonomyDir The location to save Shiny objects, e.g. "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/NHP_BG_20220104/"
 #' @param hierarchy List of term_set_labels in the Taxonomy ordered from most gross to most fine (e.g., neighborhood, class, subclass, supertype).
@@ -54,6 +55,7 @@ buildTaxonomy = function(title="AIT",
                          cluster_stats = NULL,
                          ## obsm
                          embeddings = NULL,
+                         number.of.pcs = 30, 
                          ## uns
                          dend = NULL,
                          taxonomyDir = getwd(),
@@ -198,11 +200,17 @@ buildTaxonomy = function(title="AIT",
     )
   )
   
-  ## Ensure the hierarchy is correctly ordered and not alphabetical (this shouldn't be necessary)
-  #AIT.anndata$uns$hierarchy <- AIT.anndata$uns$hierarchy[order(as.numeric(AIT.anndata$uns$hierarchy))]
+  ## Ensure the hierarchy is correctly ordered and not alphabetical (this shouldn't be necessary, but is, and still might not take)
+  AIT.anndata$uns$hierarchy <- AIT.anndata$uns$hierarchy[order(as.numeric(AIT.anndata$uns$hierarchy))]
 
   ## highly_variable_genes is a data.frame with gene names in rows and various sets in columns
   if(!is.null(highly_variable_genes)){
+    # If numeric, calculating the top N binary genes and save as a list first
+    if(is.numeric(highly_variable_genes)){
+      highly_variable_genes <- round(max(min(dim(counts)[1],highly_variable_genes[1]),100))  # Make sure the numeric value is legal
+      binary.genes          <- top_binary_genes(counts, meta.data[[celltypeColumn]], highly_variable_genes)
+      highly_variable_genes <- list("highly_variable_genes_standard" = binary.genes)
+    }
     for(feature_set in names(highly_variable_genes)){
       AIT.anndata$var[[feature_set]] = rownames(AIT.anndata$var) %in% highly_variable_genes[[feature_set]]
     }
@@ -215,7 +223,7 @@ buildTaxonomy = function(title="AIT",
     }
   }
 
-  ## Add ensemble_id into AIT object
+  ## Add ensembl_id into AIT object
   if(!is.null(ensembl_id)){
     if(dim(AIT.anndata$var)[1]==length(ensembl_id)){
       AIT.anndata$var$ensembl_id = as.character(ensembl_id)
@@ -224,21 +232,38 @@ buildTaxonomy = function(title="AIT",
     }
   }
   
+  ## Calculate embeddings if requested
+  if(is.character(embeddings)){
+    embeddings <- intersect(embeddings,colnames(AIT.anndata$var))
+    if((!is.null(embeddings))&(!is.null(normalized.expr))){
+      embeddings = embeddings[1]
+      print(paste0("===== Computing UMAP using ",embeddings,". ====="))
+      umap.genes <- AIT.anndata$var[[embeddings]]
+      pcs        <- prcomp(normalized.expr[umap.genes,], scale = TRUE)$rotation
+      embeddings <- umap(pcs[,1:number.of.pcs])$layout
+      embeddings <- as.data.frame(embeddings)
+      rownames(embeddings) <- colnames(counts)
+    }
+  }
+  
   ## Add embeddings (dealing with the "X_" header)
   if(!is.null(embeddings)){
     print("===== Adding provided embeddings. =====")
+    if(is.matrix(embeddings))
+      embeddings <- as.data.frame(embeddings)
     if(is.list(embeddings)){
+      if(is.data.frame(embeddings)){
+        AIT.anndata$obsm[["X_default_standard"]] = embeddings
+      } else {
       # Check the names and add "X_" if needed
       nm <- names(embeddings)
       for (i in 1:length(nm)) if(substr(nm[i],1,2)!="X_") nm[i] = paste0("X_",nm[i])
       names(embeddings) <- nm
       for(embedding in names(embeddings))
         AIT.anndata$obsm[[embedding]] = embeddings[[embedding]]
-    } else {
-      if(is.data.frame(embeddings))
-        AIT.anndata$obsm[["X_default_standard"]] = embeddings
+      }
     }
-  
+
     ## Set default_embedding
     if(is.null(default_embedding)){
       AIT.anndata$uns$default_embedding = names(AIT.anndata$obsm)[1]
@@ -290,7 +315,7 @@ buildTaxonomy = function(title="AIT",
     print("===== Adding MapMyCells (hierarchical mapping) functionality =====")
     tryCatch({
       AIT.anndata = mappingMode(AIT.anndata, mode="standard")
-      AIT.anndata = addMapMyCells(AIT.anndata, AIT.anndata$uns$hierarchy, force=TRUE)
+      AIT.anndata = addMapMyCells(AIT.anndata, hierarchy, force=TRUE)
     }, error = function(e) {
       print("===== Error adding MapMyCells functionality. Skipping this step. =====")
       print(e)

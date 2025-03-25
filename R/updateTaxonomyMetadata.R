@@ -88,9 +88,9 @@ updateTaxonomyMetadata = function(metadata,
   # Now list the available brain region atlas ontologies listed here
   brain_atlas_terms = c("DHBA", "HBA", "MBA")
   brain_atlas_prefix= setNames(c("DHBA", "HBA", "MBA"),brain_atlas_terms)
-  brain_atlas_urls  = setNames(c("https://github.com/brain-bican/developing_human_brain_atlas_ontology/raw/refs/heads/main/dhbao-simple-non-classified.obo",
-                                 "https://github.com/brain-bican/human_brain_atlas_ontology/raw/refs/heads/main/hbao-simple-non-classified.obo",
-                                 "https://github.com/brain-bican/mouse_brain_atlas_ontology/raw/refs/heads/main/mbao-simple-non-classified.obo"),
+  brain_atlas_urls  = setNames(c("https://github.com/brain-bican/developing_human_brain_atlas_ontology/raw/refs/heads/main/dhbao-base.obo",
+                                 "https://github.com/brain-bican/human_brain_atlas_ontology/raw/refs/heads/main/hbao-base.obo",
+                                 "https://github.com/brain-bican/mouse_brain_atlas_ontology/raw/refs/heads/main/mbao-base.obo"),
                                brain_atlas_terms)
   brain_atlas_files = setNames(c("dhbao.obo","hbao.obo","mbao.obo"),brain_atlas_terms)
   
@@ -205,14 +205,13 @@ updateTaxonomyMetadata = function(metadata,
     # NO CHECKS NOW
     # Should be standard values provided from upstream BKP processing
     
-    column.name = "self_reported_ethnicity"  
-    # Deal with "unknown" and "multiethnic" entries.
-    if(column.name %in% schema.columns) if("self_reported_ethnicity_ontology_term_id" %in% colnames(metadata)) {
-      metadata[,"self_reported_ethnicity_ontology_term_id"] <- as.character(metadata[,"self_reported_ethnicity_ontology_term_id"])
-      metadata[tolower(metadata[,column.name])=="unknown","self_reported_ethnicity_ontology_term_id"] <- "unknown"
-      if (sum(grepl(",", as.character(metadata[,column.name]), fixed = TRUE))>0)
+    ## self_reported_ethnicity
+    # Deal with "multiethnic" entries.
+    if("self_reported_ethnicity_ontology_term_id" %in% colnames(metadata)) {
+      if (sum(grepl(",", as.character(metadata[,"self_reported_ethnicity"]), fixed = TRUE))>0)
         messages = c(messages, paste0("\nWARNING: some self_reported_ethnicity values contains commas; consider manually setting self_reported_ethnicity_ontology_term_id = 'multiethnic' as appropriate."))
     }
+
     
     ## disease
     # Should add a check to convert anything likely healthy, control, normal, etc. to a single term (e.g., "control"?)
@@ -375,6 +374,12 @@ updateTaxonomyMetadata = function(metadata,
     } else {
       messages = c(messages, paste0("\nWARNING: column name ",compute.cl.terms[1]," is not found so cell_type_ontology_term compute is being skipped."))
     }
+  }
+  
+  # Deal with "unknown" entries for "self_reported_ethnicity_ontology_term_id"
+  if("self_reported_ethnicity_ontology_term_id" %in% colnames(metadata)) {
+    metadata[,"self_reported_ethnicity_ontology_term_id"] <- as.character(metadata[,"self_reported_ethnicity_ontology_term_id"])
+    metadata[tolower(metadata[,"self_reported_ethnicity"])=="unknown","self_reported_ethnicity_ontology_term_id"] <- "unknown"
   }
   
   

@@ -14,7 +14,7 @@
 #' 
 #' @import anndata
 #'
-#' @return AIT.anndata, a reference taxonomy with hierarchical files, such as precompute stats and query markers saved in uns.
+#' @return AIT_anndata, a reference taxonomy with hierarchical files, such as precompute stats and query markers saved in uns.
 #'
 #' @export
 addMapMyCells = function(AIT_anndata,
@@ -34,7 +34,7 @@ addMapMyCells = function(AIT_anndata,
       
       ## If not provided, set default for anndata_path
       if(is.null(anndata_path))
-        anndata_path = file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad"))
+        anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
 
       if ((length(AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]]) > 0) && force==FALSE) {
         stop(paste0(paste0("ERROR: mode provided '", AIT_anndata$uns$mode), 
@@ -58,7 +58,7 @@ addMapMyCells = function(AIT_anndata,
         anndata_calc_path = taxonomy_anndata_path
         AIT_anndata_calc  = AIT_anndata
       } else {
-        mode_dir <- file.path(AIT.anndata$uns$taxonomyDir,AIT_anndata$uns$mode)
+        mode_dir <- file.path(AIT_anndata$uns$taxonomyDir,AIT_anndata$uns$mode)
         anndata_calc_path <- file.path(mode_dir, paste0(AIT_anndata$uns$title, ".h5ad"))
         dir.create(mode_dir)
         keep <- !(AIT_anndata$uns$filter[[AIT_anndata$uns$mode]])
@@ -125,6 +125,9 @@ addMapMyCells = function(AIT_anndata,
         # (NEW!) removes the mode temp directory
         unlink(mode_dir, recursive = TRUE)
       }
+      # Remove any missing empty directories
+      folder.remove = file.remove(dir()[substr(dir(),1,8)=="tmp_dir_"])
+      
       return(AIT_anndata)
     }
   )
@@ -284,7 +287,7 @@ save_query_markers_to_uns = function(AIT_anndata, query_markers_output_path) {
 #' @keywords internal
 get_anndata_path = function(AIT_anndata, anndata_path, tmp_dir) {
   if (is.null(anndata_path) || !file.exists(anndata_path)){
-    # Use AIT path stored in AIT.anndata$uns, if not null.
+    # Use AIT path stored in AIT_anndata$uns, if not null.
     if (!is.null(AIT_anndata$uns$taxonomyDir) && !is.null(AIT_anndata$uns$title)){
       # Check if the file name already ends with .h5ad, if not, append it
       anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, 
@@ -293,8 +296,8 @@ get_anndata_path = function(AIT_anndata, anndata_path, tmp_dir) {
     }
     # Check if anndata path exists; if does not, write it out to temp - show WARNING.
     if (is.null(anndata_path) || !file.exists(anndata_path)) {
-      print(paste0(paste("WARNING: INVALID FILE PATH, ERROR in AIT.anndata$uns taxonomyDir and taxonomyName:", anndata_path),
-            ". Writing the AIT.anndata to temperary location, SAVE anndata or FIX path to OPTIMIZE this step."))
+      print(paste0(paste("WARNING: INVALID FILE PATH, ERROR in AIT_anndata$uns taxonomyDir and taxonomyName:", anndata_path),
+            ". Writing the AIT_anndata to temperary location, SAVE anndata or FIX path to OPTIMIZE this step."))
       anndata_filename <- paste0(paste0("temp_anndata_", format(Sys.time(), "%Y%m%d-%H%M%S")), ".h5ad")
       anndata_path <- file.path(tmp_dir, anndata_filename)
       AIT_anndata$write_h5ad(anndata_path)

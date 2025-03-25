@@ -28,6 +28,8 @@ This strategy **might not work** due to complicated dependencies. Also note that
 ## Usage examples
 
 1. [**Build a Shiny taxonomy**](https://github.com/AllenInstitute/scrattch.taxonomy/blob/main/examples/build_taxonomy.md) This example provides the basics for creating a new taxonomy compatible with scrattch.mapping mapping functions and (internal Allen Institute) MolGen Shiny tools.
+2. [**Check a Shiny taxonomy and convert to AIT**](https://github.com/AllenInstitute/scrattch.taxonomy/blob/main/examples/checktaxonomy.md) This example shows how you can use `checkTaxonomy` to see what does not abide by the AIT schema, and then use the resulting information to convert to AIT format. *(Note that this example will only work for Allen Institute employees as it points to a private file.)*
+3. [**Create a human MTG taxonomy in AIT format with a neuron only 'child' taxonomy**](https://github.com/AllenInstitute/scrattch.taxonomy/blob/main/examples/build_MTG_taxonomy.md) This example provides a step-by-step process for downloading human MTG data from adult neurotypical humans along with the associated SEA-AD taxonomy [(from here)](https://portal.brain-map.org/atlases-and-data/rnaseq/human-mtg-10x_sea-ad), converting it to an AIT file that aligns with the AIT schema, and adding a child taxonomy subsetting to only neuronal types for use with Patch-seq mapping (see scrattch.patchseq library).
    
 ## Reporting issues
 
