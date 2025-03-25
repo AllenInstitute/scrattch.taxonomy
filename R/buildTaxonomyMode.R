@@ -105,7 +105,7 @@ buildTaxonomyMode = function(AIT.anndata,
     if(is.numeric(highly_variable_genes)){
       counts <- AIT.anndata$raw$X
       highly_variable_genes <- round(max(min(dim(counts)[1],highly_variable_genes[1]),100))  # Make sure the numeric value is legal
-      counts <- t(counts[retain,]) # Transpose again.  NOT IDEAL!
+      counts <- BiocGenerics::t(counts[retain,]) # Transpose again.  NOT IDEAL!
       counts <- as(counts, "dgCMatrix")
       rownames(counts) <- rownames(AIT.anndata$var)
       colnames(counts) <- rownames(AIT.anndata$obs)[retain]
