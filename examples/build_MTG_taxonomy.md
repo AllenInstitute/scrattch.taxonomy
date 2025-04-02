@@ -41,10 +41,6 @@ taxonomy.metadata = seaad_data$obs[keepCells,cn]
 ## Ensure count matrix and annotations are in the same order (this shouldn't be needed)
 taxonomy.metadata = taxonomy.metadata[match(rownames(taxonomy.counts), taxonomy.metadata$sample_name),]
 colnames(taxonomy.metadata) <- gsub("_label","",colnames(taxonomy.metadata))
-
-## Transpose the counts matrix (... for now; future versions of scrattch.taxonomy will not need to transpose large matrices)
-taxonomy.counts <- t(taxonomy.counts)
-taxonomy.counts <- as(taxonomy.counts, "dgCMatrix")
 ```
 
 #### Align to AIT schema
@@ -93,7 +89,7 @@ AIT.anndata = buildTaxonomy(title="SEAAD_MTG",
                             meta.data = taxonomy.anno,
                             hierarchy = hierarchy,
                             ## --- Optional parameters ---
-                            counts = as(taxonomy.counts, "dgCMatrix"),
+                            counts = taxonomy.counts,
                             normalized.expr = NULL,
                             highly_variable_genes = 1000, ## Select top 1000 binary genes
                             marker_genes = NULL,
@@ -103,8 +99,9 @@ AIT.anndata = buildTaxonomy(title="SEAAD_MTG",
                             ##
                             dend = seaad_dend, ## Pre-computed dendrogram
                             taxonomyDir = getwd(), ## This is where our taxonomy will be created
-							addMapMyCells = TRUE, 
+                            addMapMyCells = TRUE, 
                             ##
+                            add.dendrogram.markers = TRUE,  # Allow tree mapping. Very slow, but required for downstream patch-seq analysis.
                             subsample=100)
 
 ## Check whether the taxonomy file is valid (This happens within buildTaxonomy and is not strictly necessary)
@@ -126,7 +123,6 @@ AIT.anndata = buildTaxonomyMode(AIT.anndata,
                                 highly_variable_genes = 1000,
                                 embeddings = "highly_variable_genes_neurons",
                                 retain.cells = neuron.cells, 
-                                add.dendrogram.markers = TRUE,  # Very slow, but required for downstream patch-seq analysis.
                                 subsample = 100, 
                                 overwrite = TRUE)
 ```

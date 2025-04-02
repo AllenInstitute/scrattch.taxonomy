@@ -1,3 +1,18 @@
+## scrattch.taxonomy v1.1.2
+
+Update to allow counts to be provided as cellxgene or genexcell.
+
+### Major changes
+* Creation of logCPM_byRows to allow counts to be input as cellxgene or genexcell and to avoid multiple large matrix transpositions
+* Update loadTaxonomy to auto-calulate normalized counts so these don't need to be saved in h5ad files
+
+### Minor changes
+* A few additional bug fixes from v1.1.1
+* Minor updates to the MTG example 
+
+
+--
+
 ## scrattch.taxonomy v1.1.1
 
 Update to better integrate the Allen Institute schema and downstream scrattch.mapping and scrattch.patchseq functionality.

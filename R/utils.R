@@ -1107,6 +1107,11 @@ logCPM <- function (counts,
                     cells.as.rows=FALSE,
                     ...) 
 {
+  # Run log2CPM_byRow if cells are rows and counts is sparse
+  if((as.character(class(counts))=="dgCMatrix")&(cells.as.rows))
+    return(log2CPM_byRow(counts=counts, sf=sf, denom=denom, offset=offset))
+  
+  # Otherwise run standard function
   norm.dat <- cpm(counts, sf=sf, denom=denom, cells.as.rows=cells.as.rows)
   if (is.matrix(norm.dat)) {
     norm.dat <- log2(norm.dat + offset)
@@ -1115,5 +1120,33 @@ logCPM <- function (counts,
     norm.dat@x <- log2(norm.dat@x + offset)
   }
   norm.dat
+}
+
+
+#' Convert a matrix of raw counts to a matrix of log2(Counts per Million + 1) values
+#' 
+#' The input can be a base R matrix or a sparse matrix from the Matrix package.
+#' 
+#' This function expects that columns correspond to genes, and rows to samples by default and is equivalent to running logCPM with cells.as.rows=TRUE (but a bit faster).  By default the offset is 1, but to calculate just log2(counts per Million) set offset to 0.
+#' 
+#' @param counts A matrix, dgCMatrix, or dgTMatrix of count values
+#' @param sf vector of numeric values representing the total number of reads. If count matrix includes all genes, value calulated by default (sf=NULL) will be accurate; however, if count matrix represents only a small fraction of genes, we recommend also providing this value.
+#' @param denom Denominator that all counts will be scaled to. The default (1 million) is commonly used, but 10000 is also common for sparser droplet-based sequencing methods.
+#' @param offset The constant offset to add to each cpm value prior to taking log2 (default = 1)
+#' 
+#' @return a dgCMatrix of log2(CPM + 1) values
+#' 
+#' @export 
+log2CPM_byRow <- function (counts, sf = NULL, denom = 1e+06, offset=1){
+  if(!(as.character(class(counts))=="dgCMatrix"))
+    counts <- as(counts, "dgCMatrix")
+  if (is.null(sf)) {
+    sf <- Matrix::rowSums(counts)
+  }
+  sf <- sf/denom
+  normalized.expr   <- counts
+  normalized.expr@x <- counts@x/sf[as.integer(counts@i + offset)]
+  normalized.expr@x <- log2(normalized.expr@x+1)
+  return(normalized.expr)
 }
 
