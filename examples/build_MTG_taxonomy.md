@@ -4,7 +4,7 @@ In this tutorial we demonstrate how to setup an Allen Institute Taxonomy object 
 
 These data are already QCed and nicely packaged in h5ad (counts and metadata) and an associated dendrogram files. "cluster_label", "subclass_label", and "class_label" correspond to SEA-AD supertype, subclass, and class, respectively, and are used for defining the hierarchy.  
 
-*We strongly encourage running this code within the scrattch docker environment.  This example was created using docker://jeremyinseattle/scrattch:1.1.1 and will likely fail if run using any earlier scrattch versions.*
+*We strongly encourage running this code within the scrattch docker environment.  This example was created using docker://jeremyinseattle/scrattch:1.1.2 and will likely fail if run using any earlier scrattch versions.*
 
 #### Prepare taxonomy data set:
 
