@@ -4,7 +4,7 @@ In this tutorial we demonstrate how to setup an Allen Institute Taxonomy object 
 
 These data are already QCed and nicely packaged in h5ad (counts and metadata) and an associated dendrogram files. "cluster_label", "subclass_label", and "class_label" correspond to SEA-AD supertype, subclass, and class, respectively, and are used for defining the hierarchy.  
 
-*We strongly encourage running this code within the scrattch docker environment.  This example was created using docker://jeremyinseattle/scrattch:1.1.1 and will likely fail if run using any earlier scrattch versions.*
+*We strongly encourage running this code within the scrattch docker environment.  This example was created using docker://jeremyinseattle/scrattch:1.1.2 and will likely fail if run using any earlier scrattch versions.*
 
 #### Prepare taxonomy data set:
 
@@ -55,7 +55,7 @@ hierarchy = list("class", "subclass", "cluster_id")
 
 ## Identify Ensembl IDs 
 # Common NCBI taxIDs: Human = 9606; Mouse = 10090; Macaque (rhesus) = 9544; Marmoset = 9483
-ensembl_id <- geneSymbolToEnsembl(gene.symbols = rownames(taxonomy.counts), ncbi.taxid = 9606)
+ensembl_id <- geneSymbolToEnsembl(gene.symbols = colnames(taxonomy.counts), ncbi.taxid = 9606)
 
 ## Update the metadata to align with AIT schema
 colnames(taxonomy.metadata)[colnames(taxonomy.metadata)=="cluster"]             = "cluster_id"

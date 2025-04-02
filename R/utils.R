@@ -273,7 +273,7 @@ updateMarkerGenes = function(AIT.anndata,
                                       title, 
                                       dend){
   if(sum(is.element(celltypeColumn, colnames(meta.data)))==0){stop("cluster column must be defined in the meta.data object")}
-  if(!all(colnames(counts) == rownames(meta.data))){stop("Colnames of `counts` and rownames of `meta.data` do not match.")}
+  if(!all(rownames(counts) == rownames(meta.data))){stop("Colnames of `counts` and rownames of `meta.data` do not match.")}
   if(!is.data.frame(meta.data)){stop("meta.data must be a data.frame, convert using as.data.frame(meta.data)")}
 
   ## Sanity checks on data matrices
@@ -281,7 +281,7 @@ updateMarkerGenes = function(AIT.anndata,
     if(!is(counts, 'sparseMatrix')){stop("`counts` must be a sparse matrix.")}
     if(!is.null(normalized.expr)){
       if(!is(normalized.expr, 'sparseMatrix')){stop("`normalized.expr` must be a sparse matrix.")}
-      if(!all(rownames(counts) == rownames(normalized.expr))){stop("Rownames of `counts` and `normalized.expr` do not match.")}
+      if(!all(colnames(counts) == colnames(normalized.expr))){stop("Rownames of `counts` and `normalized.expr` do not match.")}
     }
   }
 
@@ -305,7 +305,7 @@ updateMarkerGenes = function(AIT.anndata,
   if(!is.null(cluster_stats)){
     print("===== Checking cluster_stats =====")
     if(!is.null(counts)){
-      if(!all(rownames(cluster_stats) %in% rownames(counts))){
+      if(!all(rownames(cluster_stats) %in% colnames(counts))){
         stop("Cluster stats must have the same columns as the normalized expression matrix.")
       }
     }

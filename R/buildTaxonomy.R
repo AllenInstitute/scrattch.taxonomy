@@ -91,8 +91,10 @@ buildTaxonomy = function(title="AIT",
   if(celltypeColumn!="cluster_id") warning("AIT schema requires clusters to be in 'cluster_id' slot. We recommend calling the finest level of the hierarchy as 'cluster_id'.")
 
   ## Transpose counts and convert to dgCMatrix if needed
-  if(dim(counts)[2]==dim(meta.data)[1])
-    counts <- Matrix::t(counts)
+  if(dim(counts)[2]==dim(meta.data)[1]){
+    t.counts <- counts
+    counts   <- Matrix::t(counts)
+  }
   if((!is.null(counts))&(!(as.character(class(counts))=="dgCMatrix")))
     counts <- as(counts, "dgCMatrix")
   
@@ -120,7 +122,6 @@ buildTaxonomy = function(title="AIT",
   ## Computing TPM matrix if count matrix exists
   if(!is.null(counts) & is.null(normalized.expr)){
     print("===== Normalizing count matrix to log2(CPM+1) =====")
-    #normalized.expr = as(scrattch.bigcat::logCPM(counts), "dgCMatrix") # Replaced by new function
     normalized.expr = log2CPM_byRow(counts)
   }else{
     print("===== No provided count matrix. Skipping TPM calculation. =====")
@@ -132,7 +133,9 @@ buildTaxonomy = function(title="AIT",
       print("===== Computing median expr. at taxonomy leaves =====")
       ## Get cluster medians
       cluster   = meta.data[[celltypeColumn]]; names(cluster) = rownames(meta.data)
-      cluster_stats = scrattch.bigcat::get_cl_medians(normalized.expr, cluster)
+      t.normalized.expr <- Matrix::t(normalized.expr)  # We still need to transpose this matrix since get_cl_medians is SUPER complicated code
+      t.normalized.expr <- as(t.normalized.expr,"dgCMatrix")
+      cluster_stats = scrattch.bigcat::get_cl_medians(t.normalized.expr, cluster)
     }
   }
 
@@ -180,7 +183,7 @@ buildTaxonomy = function(title="AIT",
   ## Build the AIT object
   print("===== Building taxonomy anndata =====")
   AIT.anndata = AnnData(
-    X = if(!is.null(normalized.expr)) normalized.expr else NULL, ## logCPM will already be in sparse column format, if provided
+    X = if(!is.null(normalized.expr)) (normalized.expr) else NULL, ## logCPM will already be in sparse column format, if provided
     raw = if(!is.null(counts)) list(X = counts, var = data.frame("gene" = colnames(counts))) else NULL, ## Store counts if provided
     obs = meta.data,
     var = if(!is.null(counts))
@@ -214,8 +217,13 @@ buildTaxonomy = function(title="AIT",
   if(!is.null(highly_variable_genes)){
     # If numeric, calculating the top N binary genes and save as a list first
     if(is.numeric(highly_variable_genes)){
-      highly_variable_genes <- round(max(min(dim(counts)[1],highly_variable_genes[1]),100))  # Make sure the numeric value is legal
-      binary.genes          <- top_binary_genes(counts, meta.data[[celltypeColumn]], highly_variable_genes)
+      highly_variable_genes <- round(max(min(dim(counts)[2],highly_variable_genes[1]),100))  # Make sure the numeric value is legal
+      print(paste0("===== Computing ",highly_variable_genes," binary genes as highly variable genes. ====="))
+      if(!exists("t.counts")){
+        t.counts <- Matrix::t(counts)         # Still need to take the transpose here because get_cl_props is really complicated code
+        t.counts <- as(t.counts,"dgCMatrix")
+      }
+      binary.genes          <- top_binary_genes(t.counts, meta.data[[celltypeColumn]], highly_variable_genes)
       highly_variable_genes <- list("highly_variable_genes_standard" = binary.genes)
     }
     for(feature_set in names(highly_variable_genes)){
@@ -246,10 +254,14 @@ buildTaxonomy = function(title="AIT",
       embeddings = embeddings[1]
       print(paste0("===== Computing UMAP using ",embeddings,". ====="))
       umap.genes <- AIT.anndata$var[[embeddings]]
-      pcs        <- prcomp(normalized.expr[umap.genes,], scale = TRUE)$rotation
+      if(!exists("t.normalized.expr")){
+        t.normalized.expr <- Matrix::t(normalized.expr)         
+        t.normalized.expr <- as(t.normalized.expr,"dgCMatrix")
+      }
+      pcs        <- prcomp(t.normalized.expr[umap.genes,], scale = TRUE)$rotation
       embeddings <- umap(pcs[,1:number.of.pcs])$layout
       embeddings <- as.data.frame(embeddings)
-      rownames(embeddings) <- colnames(counts)
+      rownames(embeddings) <- rownames(counts)
     }
   }
   
