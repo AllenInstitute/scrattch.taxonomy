@@ -46,6 +46,12 @@ loadTaxonomy = function(taxonomyDir,
   }else{
     stop("Required files to load Allen Institute taxonomy are missing.")
   }
+  
+  ## If counts are included but normalized counts are not, calculate normalized counts
+  if((!is.null(AIT.anndata$raw$X))&(is.null(AIT.anndata$X))){
+    normalized.expr = log2CPM_byRow(AIT.anndata$raw$X)
+    AIT.anndata$X   = normalized.expr 
+  }
 
   ## Set scrattch.mapping to default standard mapping mode
   AIT.anndata$uns$mode = "standard"

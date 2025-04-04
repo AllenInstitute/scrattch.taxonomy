@@ -1,12 +1,13 @@
 #' This function builds the minimum files required for Shiny
-#' Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If hierarchy[[-1]] is anything other than cluster, then any existing "cluster" column will be overwritten by hierarchy[[-1]].  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.
+#' Precomputed clusters must be provided.  In the anndata object these will be stored using the term "cluster".  If hierarchy[[-1]] is anything other than cluster, then any existing "cluster" column will be overwritten by hierarchy[[-1]].  Values can be provided without colors and ids (e.g., "cluster") or with them (e.g., "cluster_label" + "cluster_color" + "cluster_id").  In this case cluster_colors is ignored and colors are taken directly from the metadata.  Cluster_id's will be overwritten to match dendrogram order.  (NOTE: Some functionality with metadata colors is still under development.)
 #'
 #' @param meta.data Meta.data corresponding to count matrix. Rownames must be equal to colnames of counts. "clusters" must be provided (see hierarchy[[-1]] and notes).
 #' @param title The file name to assign for the Taxonomy h5ad (default="AIT"; recommended to create your own title!).
-#' @param counts A count matrix in sparse format: dgCMatrix.
+#' @param counts A count matrix in sparse format: dgCMatrix. buildTaxonomy can work with count matrices that have cells are rows or columns, so long as counts has both row names AND column names.
 #' @param highly_variable_genes Set of features defined as highly variable genes OR a number of binary genes to calculate (we recommend ~1000 - ~5000, for <100 to ~5000 cell types). If a feature list is provided, provide either as a named list of vectors, or as a single vector (in which case the name "highly_variable_genes_standard" will be used). "highly_variable_genes_standard" will also be used for calculated variable genes. Optional input, but for proper mapping we strongly recommend including either highly_variable_genes or marker_genes. 
 #' @param marker_genes Set of features defined as marker genes. Provide either as a named list of vectors, or as a single vector (in which case the name "marker_genes_[mode.name]" will be used).
-#' @param ensembl_id A vector of ensemble ids corresponding to the gene symbols in counts.
+#' @param ensembl_id A vector of ensembl ids corresponding to the gene symbols in counts.
+#' @param gene.meta.data Either NULL (default) or a data frame of additional gene information to include in the var component of anndata
 #' @param cluster_stats A matrix of median gene expression by cluster. Cluster names must exactly match meta.data$cluster.  If provided, will get saved to "varm$cluster_id_median_expr_[mode]"
 #' @param embeddings Dimensionality reduction coordinate data.frame with 2 columns or a string with the column name for marker_genes or variable_genes from which a UMAP should be calculated. If coordinates are provided, rownames must be equal to colnames of counts.  Either provide as a named list or as a single data.frame (in which case the name "default_standard" will be used). embeddings are not required, but inclusion of at least one embedding is strongly recommended.#' 
 #' @param number.of.pcs Number of principle components to use for calculating UMAP coordinates (default=30). This is only used in embeddings corresponds to a variable gene column from which a UMAP should be calculated.
@@ -51,6 +52,7 @@ buildTaxonomy = function(title="AIT",
                          highly_variable_genes = NULL, ## named list
                          marker_genes = NULL, ## named list
                          ensembl_id = NULL,
+                         gene.meta.data = NULL,
                          ## varm
                          cluster_stats = NULL,
                          ## obsm
@@ -90,18 +92,26 @@ buildTaxonomy = function(title="AIT",
   celltypeColumn = names(hierarchy)[length(hierarchy)][[1]]
   if(celltypeColumn!="cluster_id") warning("AIT schema requires clusters to be in 'cluster_id' slot. We recommend calling the finest level of the hierarchy as 'cluster_id'.")
 
+  ## Transpose counts and convert to dgCMatrix if needed
+  if(dim(counts)[2]==dim(meta.data)[1]){
+    t.counts <- as(counts, "dgCMatrix")
+    counts   <- Matrix::t(counts)
+  }
+  if((!is.null(counts))&(!("dgCMatrix" %in% as.character(class(taxonomy.counts)))))
+    counts <- as(counts, "dgCMatrix")
+  
   ## Sanity check and cleaning of parameters
   clean.params = .checkBuildTaxonomyParams(counts, 
-                                            normalized.expr,
-                                            meta.data, 
-                                            highly_variable_genes,
-                                            marker_genes,
-                                            embeddings, 
-                                            celltypeColumn,
-                                            cluster_stats,
-                                            taxonomyDir, 
-                                            title, 
-                                            dend)
+                                           normalized.expr,
+                                           meta.data, 
+                                           highly_variable_genes,
+                                           marker_genes,
+                                           embeddings, 
+                                           celltypeColumn,
+                                           cluster_stats,
+                                           taxonomyDir, 
+                                           title, 
+                                           dend)
 
   ## ----------
   ## Subsample nuclei per cluster, max of subsample cells per cluster
@@ -113,8 +123,8 @@ buildTaxonomy = function(title="AIT",
 
   ## Computing TPM matrix if count matrix exists
   if(!is.null(counts) & is.null(normalized.expr)){
-    print("===== Normalizing count matrix to log2(CPM) =====")
-    normalized.expr = as(scrattch.bigcat::logCPM(counts), "dgCMatrix")
+    print("===== Normalizing count matrix to log2(CPM+1) =====")
+    normalized.expr = log2CPM_byRow(counts)
   }else{
     print("===== No provided count matrix. Skipping TPM calculation. =====")
   }
@@ -125,7 +135,9 @@ buildTaxonomy = function(title="AIT",
       print("===== Computing median expr. at taxonomy leaves =====")
       ## Get cluster medians
       cluster   = meta.data[[celltypeColumn]]; names(cluster) = rownames(meta.data)
-      cluster_stats = scrattch.bigcat::get_cl_medians(normalized.expr, cluster)
+      t.normalized.expr <- Matrix::t(normalized.expr)  # We still need to transpose this matrix since get_cl_medians is SUPER complicated code
+      t.normalized.expr <- as(t.normalized.expr,"dgCMatrix")
+      cluster_stats = scrattch.bigcat::get_cl_medians(t.normalized.expr, cluster)
     }
   }
 
@@ -173,12 +185,12 @@ buildTaxonomy = function(title="AIT",
   ## Build the AIT object
   print("===== Building taxonomy anndata =====")
   AIT.anndata = AnnData(
-    X = if(!is.null(normalized.expr)) Matrix::t(normalized.expr) else NULL, ## logCPM ensured to be in sparse column format
-    raw = if(!is.null(counts)) list(X = as(Matrix::t(counts), "dgCMatrix"), var = data.frame("gene" = rownames(counts))) else NULL, ## Store counts matrix
+    X = if(!is.null(normalized.expr)) (normalized.expr) else NULL, ## logCPM will already be in sparse column format, if provided
+    raw = if(!is.null(counts)) list(X = counts, var = data.frame("gene" = colnames(counts))) else NULL, ## Store counts if provided
     obs = meta.data,
     var = if(!is.null(counts))
-                    data.frame("gene" = rownames(counts), 
-                               row.names = rownames(counts))
+                    data.frame("gene" = colnames(counts), 
+                               row.names = colnames(counts))
           else data.frame(),
     varm = list(
       "cluster_id_median_expr_standard" = cluster_stats ## Median expression by cluster
@@ -187,7 +199,7 @@ buildTaxonomy = function(title="AIT",
     ),  
     uns = list(
       dend       = list("standard" = toJSON(dend_to_json(dend.result$dend))), ## JSON dendrogram
-      filter     = list("standard" = !(colnames(counts) %in% kpSub)), ## Filtered cells
+      filter     = list("standard" = !(rownames(counts) %in% kpSub)), ## Filtered cells
       mapmycells = list("standard" = list()),
       mode = "standard", ## Default mode to standard
       cellSet = rownames(meta.data),
@@ -207,8 +219,13 @@ buildTaxonomy = function(title="AIT",
   if(!is.null(highly_variable_genes)){
     # If numeric, calculating the top N binary genes and save as a list first
     if(is.numeric(highly_variable_genes)){
-      highly_variable_genes <- round(max(min(dim(counts)[1],highly_variable_genes[1]),100))  # Make sure the numeric value is legal
-      binary.genes          <- top_binary_genes(counts, meta.data[[celltypeColumn]], highly_variable_genes)
+      highly_variable_genes <- round(max(min(dim(counts)[2],highly_variable_genes[1]),100))  # Make sure the numeric value is legal
+      print(paste0("===== Computing ",highly_variable_genes," binary genes as highly variable genes. ====="))
+      if(!exists("t.counts")){
+        t.counts <- Matrix::t(counts)         # Still need to take the transpose here because get_cl_props is really complicated code
+        t.counts <- as(t.counts,"dgCMatrix")
+      }
+      binary.genes          <- top_binary_genes(t.counts, meta.data[[celltypeColumn]], highly_variable_genes)
       highly_variable_genes <- list("highly_variable_genes_standard" = binary.genes)
     }
     for(feature_set in names(highly_variable_genes)){
@@ -218,6 +235,7 @@ buildTaxonomy = function(title="AIT",
 
   ## marker_genes is a data.frame with gene names in rows and various sets in columns
   if(!is.null(marker_genes)){
+    print(length(marker_genes))
     for(feature_set in names(marker_genes)){
       AIT.anndata$var[[feature_set]] = rownames(AIT.anndata$var) %in% marker_genes[[feature_set]]
     }
@@ -226,9 +244,20 @@ buildTaxonomy = function(title="AIT",
   ## Add ensembl_id into AIT object
   if(!is.null(ensembl_id)){
     if(dim(AIT.anndata$var)[1]==length(ensembl_id)){
+      print("===== Adding provided ensembl_id vector. =====")
       AIT.anndata$var$ensembl_id = as.character(ensembl_id)
     } else {
       print("===== Provided ensembl_id vector of different length from gene length in var. Skipping adding ensembl_ids. =====")
+    }
+  }
+  
+  ## Add other gene information fields, if provided
+  if(!is.null(gene.meta.data)){
+    if(dim(AIT.anndata$var)[1]==dim(gene.meta.data)[1]){
+      print("===== Adding provided gene.meta.data. =====")
+      AIT.anndata$var = cbind(AIT.anndata$var,gene.meta.data)
+    } else {
+      print("===== Provided gene.meta.data data frame has different row dimensions from other gene fields. Skipping. =====")
     }
   }
   
@@ -239,10 +268,14 @@ buildTaxonomy = function(title="AIT",
       embeddings = embeddings[1]
       print(paste0("===== Computing UMAP using ",embeddings,". ====="))
       umap.genes <- AIT.anndata$var[[embeddings]]
-      pcs        <- prcomp(normalized.expr[umap.genes,], scale = TRUE)$rotation
+      if(!exists("t.normalized.expr")){
+        t.normalized.expr <- Matrix::t(normalized.expr)         
+        t.normalized.expr <- as(t.normalized.expr,"dgCMatrix")
+      }
+      pcs        <- prcomp(t.normalized.expr[umap.genes,], scale = TRUE)$rotation
       embeddings <- umap(pcs[,1:number.of.pcs])$layout
       embeddings <- as.data.frame(embeddings)
-      rownames(embeddings) <- colnames(counts)
+      rownames(embeddings) <- rownames(counts)
     }
   }
   
@@ -322,6 +355,15 @@ buildTaxonomy = function(title="AIT",
     })
   }
 
+  ## Write the Allen Institute Taxonomy object without the normalized data (it can be recalculated on load)
+  if(!is.null(AIT.anndata$X)){
+    print("===== Writing taxonomy anndata without saved normalized data=====")
+    X <- AIT.anndata$X
+    AIT.anndata$X = NULL
+    AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
+    AIT.anndata$X <- X
+  }
+  
   ## Check whether the taxonomy is a valid scrattch.taxonomy format
   if(check.taxonomy){
     print("===== Checking taxonomy for adherence to schema =====")
