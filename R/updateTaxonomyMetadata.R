@@ -189,7 +189,14 @@ updateTaxonomyMetadata = function(metadata,
     # For now converting to sentence case since this is how organism scientific names are stored in NCBI
     if(column.name %in% schema.columns){
       # data(species) # this is in case we need a way to convert from common ("human") to scientific ("homo sapiens") names
-      metadata[,column.name] <- tosentence(metadata[,column.name])  # will convert back to factor later
+      out = as.character(metadata[,column.name])  # will convert back to factor later
+      metadata[,column.name] <- tosentence(metadata[,column.name]) 
+      if(sum(metadata[,column.name]!=out)>0){
+        kp       = metadata[,column.name]!=out
+        updates  = paste(unique(paste(out[kp],metadata[kp,column.name],sep="->")),collapse=", ")
+        messages = c(messages, paste0("\nWARNING: some updates to organism: ",updates))
+      }
+      
     }
     
     ## donor_age
@@ -198,12 +205,28 @@ updateTaxonomyMetadata = function(metadata,
     column.name = "anatomical_region"
     # Convert the first character to lowercase - this is the way the vast majority of UBERON terms look and will make it easier to look up ontology terms
     if(column.name %in% schema.columns){
-      metadata[,column.name] <- firsttolower(metadata[,column.name])  # will convert back to factor later
+      out = as.character(metadata[,column.name])  # will convert back to factor later
+      metadata[,column.name] <- firsttolower(metadata[,column.name])
+      if(sum(metadata[,column.name]!=out)>0){
+        kp       = metadata[,column.name]!=out
+        updates  = paste(unique(paste(out[kp],metadata[kp,column.name],sep="->")),collapse=", ")
+        messages = c(messages, paste0("\nWARNING: some updates to anatomical_region: ",updates))
+      }
     }
     
-    ## self_reported_sex
-    # NO CHECKS NOW
-    # Should be standard values provided from upstream BKP processing
+    column.name = "self_reported_sex"
+    # Correct common modifications of "Male" and "Female"
+    if(column.name %in% schema.columns){
+      value <- out <- as.character(metadata[,column.name])  # will convert back to factor later
+      value[is.element(tolower(value),c("male","m","man"))] = "Male"
+      value[is.element(tolower(value),c("female","f","woman"))] = "Female"
+      metadata[,column.name] <- value
+      if(sum(metadata[,column.name]!=out)>0){
+        kp       = metadata[,column.name]!=out
+        updates  = paste(unique(paste(out[kp],metadata[kp,column.name],sep="->")),collapse=", ")
+        messages = c(messages, paste0("\nWARNING: some updates to self_reported_sex: ",updates))
+      }
+    }
     
     ## self_reported_ethnicity
     # Deal with "multiethnic" entries.
@@ -212,14 +235,10 @@ updateTaxonomyMetadata = function(metadata,
         messages = c(messages, paste0("\nWARNING: some self_reported_ethnicity values contains commas; consider manually setting self_reported_ethnicity_ontology_term_id = 'multiethnic' as appropriate."))
     }
 
-    
-    ## disease
-    # Should add a check to convert anything likely healthy, control, normal, etc. to a single term (e.g., "control"?)
-    
     column.name = "suspension_type"
     # First convert to lower case, then check if the distance of the values to "cell" or "nucleus" are less than 2 (to account for misspellings) and set everything else to "na"
     if(column.name %in% schema.columns){
-      value    <-  as.character(metadata[,column.name])
+      value    <- out <- as.character(metadata[,column.name])
       value    <- tolower(value)
       celldist <- stringdist("cell", value, method = "lv")
       nucdist  <- stringdist("nucleus", value, method = "lv")
@@ -227,6 +246,13 @@ updateTaxonomyMetadata = function(metadata,
       value[nucdist<=2]      <- "nucleus"
       value[!is.element(value,c("cell","nucleus"))] = "na"
       metadata[,column.name] <- value  # will convert back to factor later
+      
+      if(sum(metadata[,column.name]!=out)>0){
+        kp       = metadata[,column.name]!=out
+        updates  = paste(unique(paste(out[kp],metadata[kp,column.name],sep="->")),collapse=", ")
+        messages = c(messages, paste0("\nWARNING: some updates to suspension_type: ",updates))
+      }
+      
     }
     
     column.name = "is_primary_data"
@@ -234,11 +260,17 @@ updateTaxonomyMetadata = function(metadata,
     if(column.name %in% schema.columns){
       # Do nothing if it's a logical... this is what we want!
       if(!is.logical(metadata[,column.name])){
-        value     <-  as.character(metadata[,column.name])
+        value     <- out <- as.character(metadata[,column.name])
         value     <- tolower(value)
         falsedist <- stringdist("false", value, method = "lv")
         value[falsedist<=2]    <- "false"
         metadata[,column.name] <- (value!="false") # if "false" set to FALSE, otherwise set to TRUE
+        
+        if(sum(metadata[,column.name]!=out)>0){
+          kp       = metadata[,column.name]!=out
+          updates  = paste(unique(paste(out[kp],metadata[kp,column.name],sep="->")),collapse=", ")
+          messages = c(messages, paste0("\nWARNING: some updates to is_primary_data: ",updates))
+        }
       }
     }
   }
@@ -269,6 +301,12 @@ updateTaxonomyMetadata = function(metadata,
           ontology_conversion <- as.data.frame(data.table::rbindlist(lapply(unique_onto_terms,._find_best_ontology_match,ontology)))
           ontology_conversion <- ontology_conversion[match(ontology_vector,unique_onto_terms),]
           ontology_conversion$original_name <- ontology_vector
+          
+          ## Address 'unknown' and 'control' edge cases
+          donotchange <- is.element(tolower(ontology_conversion$original_name),c("control","unknown"))
+          ontology_conversion[donotchange,"distance"] = 0
+          ontology_conversion[donotchange,2] = "(ontology term not provided)"
+          
           ## Save the returned ID, returned name, string distance from original name, and original name for each item
           output[[onto_term]] = ontology_conversion
           ## Add a new column to the metadata table for the ontology ID terms
@@ -380,6 +418,12 @@ updateTaxonomyMetadata = function(metadata,
   if("self_reported_ethnicity_ontology_term_id" %in% colnames(metadata)) {
     metadata[,"self_reported_ethnicity_ontology_term_id"] <- as.character(metadata[,"self_reported_ethnicity_ontology_term_id"])
     metadata[tolower(metadata[,"self_reported_ethnicity"])=="unknown","self_reported_ethnicity_ontology_term_id"] <- "unknown"
+  }
+  
+  # Set disease_ontology_term_id to "PATO:0000461" if disease = "control"
+  if("disease_ontology_term_id" %in% colnames(metadata)) {
+    metadata[,"disease_ontology_term_id"] <- as.character(metadata[,"disease_ontology_term_id"])
+    metadata[tolower(metadata[,"disease"])=="control","disease_ontology_term_id"] <- "PATO:0000461"
   }
   
   

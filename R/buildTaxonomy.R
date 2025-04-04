@@ -6,7 +6,8 @@
 #' @param counts A count matrix in sparse format: dgCMatrix. buildTaxonomy can work with count matrices that have cells are rows or columns, so long as counts has both row names AND column names.
 #' @param highly_variable_genes Set of features defined as highly variable genes OR a number of binary genes to calculate (we recommend ~1000 - ~5000, for <100 to ~5000 cell types). If a feature list is provided, provide either as a named list of vectors, or as a single vector (in which case the name "highly_variable_genes_standard" will be used). "highly_variable_genes_standard" will also be used for calculated variable genes. Optional input, but for proper mapping we strongly recommend including either highly_variable_genes or marker_genes. 
 #' @param marker_genes Set of features defined as marker genes. Provide either as a named list of vectors, or as a single vector (in which case the name "marker_genes_[mode.name]" will be used).
-#' @param ensembl_id A vector of ensemble ids corresponding to the gene symbols in counts.
+#' @param ensembl_id A vector of ensembl ids corresponding to the gene symbols in counts.
+#' @param gene.meta.data Either NULL (default) or a data frame of additional gene information to include in the var component of anndata
 #' @param cluster_stats A matrix of median gene expression by cluster. Cluster names must exactly match meta.data$cluster.  If provided, will get saved to "varm$cluster_id_median_expr_[mode]"
 #' @param embeddings Dimensionality reduction coordinate data.frame with 2 columns or a string with the column name for marker_genes or variable_genes from which a UMAP should be calculated. If coordinates are provided, rownames must be equal to colnames of counts.  Either provide as a named list or as a single data.frame (in which case the name "default_standard" will be used). embeddings are not required, but inclusion of at least one embedding is strongly recommended.#' 
 #' @param number.of.pcs Number of principle components to use for calculating UMAP coordinates (default=30). This is only used in embeddings corresponds to a variable gene column from which a UMAP should be calculated.
@@ -51,6 +52,7 @@ buildTaxonomy = function(title="AIT",
                          highly_variable_genes = NULL, ## named list
                          marker_genes = NULL, ## named list
                          ensembl_id = NULL,
+                         gene.meta.data = NULL,
                          ## varm
                          cluster_stats = NULL,
                          ## obsm
@@ -92,10 +94,10 @@ buildTaxonomy = function(title="AIT",
 
   ## Transpose counts and convert to dgCMatrix if needed
   if(dim(counts)[2]==dim(meta.data)[1]){
-    t.counts <- counts
+    t.counts <- as(counts, "dgCMatrix")
     counts   <- Matrix::t(counts)
   }
-  if((!is.null(counts))&(!(as.character(class(counts))=="dgCMatrix")))
+  if((!is.null(counts))&(!("dgCMatrix" %in% as.character(class(taxonomy.counts)))))
     counts <- as(counts, "dgCMatrix")
   
   ## Sanity check and cleaning of parameters
@@ -233,6 +235,7 @@ buildTaxonomy = function(title="AIT",
 
   ## marker_genes is a data.frame with gene names in rows and various sets in columns
   if(!is.null(marker_genes)){
+    print(length(marker_genes))
     for(feature_set in names(marker_genes)){
       AIT.anndata$var[[feature_set]] = rownames(AIT.anndata$var) %in% marker_genes[[feature_set]]
     }
@@ -241,9 +244,20 @@ buildTaxonomy = function(title="AIT",
   ## Add ensembl_id into AIT object
   if(!is.null(ensembl_id)){
     if(dim(AIT.anndata$var)[1]==length(ensembl_id)){
+      print("===== Adding provided ensembl_id vector. =====")
       AIT.anndata$var$ensembl_id = as.character(ensembl_id)
     } else {
       print("===== Provided ensembl_id vector of different length from gene length in var. Skipping adding ensembl_ids. =====")
+    }
+  }
+  
+  ## Add other gene information fields, if provided
+  if(!is.null(gene.meta.data)){
+    if(dim(AIT.anndata$var)[1]==dim(gene.meta.data)[1]){
+      print("===== Adding provided gene.meta.data. =====")
+      AIT.anndata$var = cbind(AIT.anndata$var,gene.meta.data)
+    } else {
+      print("===== Provided gene.meta.data data frame has different row dimensions from other gene fields. Skipping. =====")
     }
   }
   
@@ -344,10 +358,10 @@ buildTaxonomy = function(title="AIT",
   ## Write the Allen Institute Taxonomy object without the normalized data (it can be recalculated on load)
   if(!is.null(AIT.anndata$X)){
     print("===== Writing taxonomy anndata without saved normalized data=====")
-    AIT.anndata2 = AIT.anndata
-    AIT.anndata2$X = NULL
-    AIT.anndata2$write_h5ad(file.path(AIT.anndata2$uns$taxonomyDir, paste0(AIT.anndata2$uns$title, ".h5ad")))
-    rm(AIT.anndata2)
+    X <- AIT.anndata$X
+    AIT.anndata$X = NULL
+    AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
+    AIT.anndata$X <- X
   }
   
   ## Check whether the taxonomy is a valid scrattch.taxonomy format
