@@ -666,7 +666,6 @@ checkMetadata = function(meta.data, schema, messages=c(), isValid=FALSE, isWarni
 
       ## Now check that each embedding is what we would expect
       if((class(dim(AIT.anndata$obsm[[embedding]])) != "integer") | 
-          (class(AIT.anndata$obsm[[embedding]])[1]=="data.frame") |
           (!is.element(class(AIT.anndata$obsm[[embedding]][1,1]), c("integer","numeric","character")))){
         isWarning = TRUE
         messages = c(messages, paste0("\nWARNING: An embedding: ", embedding, " is invalid."))
