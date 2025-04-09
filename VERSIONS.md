@@ -6,6 +6,7 @@ Update to allow counts to be provided as cellxgene or genexcell.
 * Creation of logCPM_byRows to allow counts to be input as cellxgene or genexcell and to avoid multiple large matrix transpositions
 * Update loadTaxonomy to auto-calulate normalized counts so these don't need to be saved in h5ad files
 * Addition of a gene.meta.data slot in buildTaxonomy for gene information
+* Improve treatment of dendrograms (precomputed dendrograms were being ignored and non-ideal genes were being used to compute)
 
 ### Minor changes
 * A few additional bug fixes from v1.1.1

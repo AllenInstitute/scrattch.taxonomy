@@ -395,7 +395,7 @@ checkTaxonomy = function(AIT.anndata,
   # Now do the test
   if(column_def$Key == "anatomical_region_ontology_term_id"){
     if(!all(column %in% uberon)){
-      messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must all be valid NCBITaxons."))
+      messages = c(messages, paste0("\nERROR: The anndata.obs element: ", column_def$Key, " must all be valid UBERON terms."))
       isValid = FALSE
     }
   }

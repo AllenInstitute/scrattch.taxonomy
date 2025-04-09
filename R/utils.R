@@ -286,9 +286,12 @@ updateMarkerGenes = function(AIT.anndata,
   }
 
   ## Now check the dendrogram clusters and formatting, if dendrogram is provided
-  if(!is.null(dend)){
+  if((!is.null(dend))&(!all(is.na(dend)))){
     ## Check that dend is of class dendrogram
     if(!is.element("dendrogram",class(dend))){stop("If provided, dend must be of R class dendrogram.")}
+    
+    ## Check that dend is a binary tree (conversion to JSON only works for binary trees)
+    if(is.element("try-error",class(try(as.hclust(dend))))){stop("If provided, dend must be a binary tree.")}
 
     ## Check that dend and meta.data match in labels
     extra_labels <- setdiff(labels(dend), unique(as.character(meta.data[,celltypeColumn])))
@@ -336,7 +339,7 @@ updateMarkerGenes = function(AIT.anndata,
 subsample_taxonomy = function(cluster.names, cell_ids, dend=NULL, subsample=2000){
   
   kpClusters <- rep(TRUE,length(cluster.names))
-  if(!is.null(dend)){
+  if((!is.null(dend))&(!all(is.na(dend)))){
     kpClusters <- is.element(cluster.names, labels(dend)) # exclude missing clusters, if any
     if(mean(kpClusters)<1) print("===== Omitting cells from missing clusters =====")
   }
@@ -422,7 +425,9 @@ mappingMode <- function(AIT.anndata, mode){
 #' 
 #' @export
 dend_to_json = function(dend){
-    # Convert dendrogram to hclust
+    ## Return NULL if NULL is provided
+    if (is.null(dend)) return(NULL)
+    ## Convert dendrogram to hclust
     hclust_obj <- as.hclust(dend)
     ## Record information in list
     dendrogram_json <- list(
@@ -450,7 +455,10 @@ dend_to_json = function(dend){
 #' @export
 json_to_dend = function(json){
     ## 
-    hclust.tmp <- list()  # initialize empty object
+    if(is.null(json)) return(NULL)  # Return NULL if NULL is provided
+    if(nchar(json)<5) return(NULL)  # Return NULL if a blank json is provided 
+  
+  hclust.tmp <- list()  # initialize empty object
     # define merging pattern: 
     #    negative numbers are leaves, 
     #    positive are merged clusters (defined by row number in $merge)

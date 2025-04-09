@@ -11,7 +11,7 @@
 #' @param cluster_stats A matrix of median gene expression by cluster. Cluster names must exactly match meta.data$cluster.  If provided, will get saved to "varm$cluster_id_median_expr_[mode]"
 #' @param embeddings Dimensionality reduction coordinate data.frame with 2 columns or a string with the column name for marker_genes or variable_genes from which a UMAP should be calculated. If coordinates are provided, rownames must be equal to colnames of counts.  Either provide as a named list or as a single data.frame (in which case the name "default_standard" will be used). embeddings are not required, but inclusion of at least one embedding is strongly recommended.#' 
 #' @param number.of.pcs Number of principle components to use for calculating UMAP coordinates (default=30). This is only used in embeddings corresponds to a variable gene column from which a UMAP should be calculated.
-#' @param dend Existing dendrogram associated with this taxonomy (e.g., one calculated elsewhere).  If NULL (default) a new dendrogram will be calculated based on the input `feature.set`
+#' @param dend Existing dendrogram associated with this taxonomy (e.g., one calculated elsewhere). If provided, dend must be a BINARY tree. Can also input a string with the column name for marker_genes or variable_genes from which a dendrogram should be calculated. If NULL or if the function can't figure out what gene set you want, no dendrogram will be calculated. Failure to define a dendrogram will prevent some mapping algorithms from working properly! The default is to build a dendrogram using the first highly_variable_genes or marker_genes set.
 #' @param taxonomyDir The location to save Shiny objects, e.g. "/allen/programs/celltypes/workgroups/rnaseqanalysis/shiny/10x_seq/NHP_BG_20220104/"
 #' @param hierarchy List of term_set_labels in the Taxonomy ordered from most gross to most fine (e.g., neighborhood, class, subclass, supertype).
 #' @param subsample The number of cells to retain per cluster (default = 2000)
@@ -59,20 +59,28 @@ buildTaxonomy = function(title="AIT",
                          embeddings = NULL,
                          number.of.pcs = 30, 
                          ## uns
-                         dend = NULL,
+                         dend = NA,  # This default is to choose a sensible gene set
                          taxonomyDir = getwd(),
                          cluster_colors = NULL, ## @Jeremy please handle this.
                          default_embedding = NULL,
                          uns.variables = list(),  ## @Nelson: this is my inelegant way of handling Additional uns.variables (see notes above... feel free to edit)
                          ## Additional parameters
                          subsample=2000,
-                         features.dendrogram = NULL,
                          reorder.dendrogram = FALSE,
                          add.dendrogram.markers = FALSE,
                          addMapMyCells = TRUE,
                          check.taxonomy = TRUE,
                          print.messages = TRUE,
                          ...){
+  
+  ## Setting NA values to 0 the meta.data; otherwise write.h5ad will crash
+  if(sum(is.na(meta.data))>0) {
+    warning("Attempting to set 'NA' meta.data values to 0; otherwise, write.h5ad will crash. If error occurs at the'===== Writing taxonomy anndata =====', this step failed and NA values must be removed prior to running buildTaxonomy.")
+    meta.data[is.na(meta.data)] = 0 
+  }
+  
+  ## Prime features.dendrogram (this may not be needed)
+  features.dendrogram = NULL
 
   ## Ensure that hierarchy is a named list with ascending order to hierarchy, e.g. ["Class"=0, "Subclass"=1, "cluster"=2]
   ##   --- Also apply some checks for previous versions
@@ -99,6 +107,12 @@ buildTaxonomy = function(title="AIT",
   }
   if((!is.null(counts))&(!("dgCMatrix" %in% as.character(class(taxonomy.counts)))))
     counts <- as(counts, "dgCMatrix")
+  
+  ## Deal with character dendrograms
+  if(is.character(dend)){
+    features.dendrogram = dend
+    dend = NULL
+  }
   
   ## Sanity check and cleaning of parameters
   clean.params = .checkBuildTaxonomyParams(counts, 
@@ -140,40 +154,20 @@ buildTaxonomy = function(title="AIT",
       cluster_stats = scrattch.bigcat::get_cl_medians(t.normalized.expr, cluster)
     }
   }
-
-  ##  Build the dendrogram
-  print("===== Building dendrogram =====")
-  if(!is.null(schema$dendrogram)){
-    print("...using provided dendrogram.")
-    # FOR FUTURE UPDATE: should check here whether dendrogram colors match what is in meta-data.
-  } else {
-    ## Dendrogram parameters and gene sets
-    # use.color = setNames(clusterInfo$cluster_color, clusterInfo[[celltypeColumn]])[colnames(cluster_stats)] @Jeremy please handle this.
-    if(reorder.dendrogram){
-      l.rank = setNames(meta.data[[celltypeColumn]][match(clusterInfo[[celltypeColumn]], meta.data[[celltypeColumn]])], clusterInfo[[celltypeColumn]])
-      l.rank = sort(l.rank)
-    } else { 
-      l.rank = NULL 
+  
+  ## Calculate binary genes as highly variable genes, if requested
+  # If numeric, calculating the top N binary genes and save as a list first
+  if(is.numeric(highly_variable_genes)){
+    highly_variable_genes <- round(max(min(dim(counts)[2],highly_variable_genes[1]),100))  # Make sure the numeric value is legal
+    print(paste0("===== Computing ",highly_variable_genes," binary genes as highly variable genes. ====="))
+    if(!exists("t.counts")){
+      t.counts <- Matrix::t(counts)         # Still need to take the transpose here because get_cl_props is really complicated code
+      t.counts <- as(t.counts,"dgCMatrix")
     }
-    ## Figure out feature set to use 
-    if(is.null(features.dendrogram)){
-      feature.set = rownames(cluster_stats)
-    } else {
-      feature.set = features.dendrogram
-    }
-    ## Build the dendrogram
-    invisible(capture.output({  # Avoid printing lots of numbers to the screen
-      dend.result = build_dend(
-        cl.dat  = cluster_stats[feature.set,],
-        cl.cor  = NULL,
-        # l.color = use.color, @Jeremy please handle this.
-        l.rank  = l.rank, 
-        nboot   = 1,
-        ncores  = 1)
-    }))
-    print("...dendrogram built.")
+    binary.genes          <- top_binary_genes(t.counts, meta.data[[celltypeColumn]], highly_variable_genes)
+    highly_variable_genes <- list("highly_variable_genes_standard" = binary.genes)
   }
-
+  
   ## If highly_variable_genes and/or marker genes are provided as vectors (as with previous versions of scrattch.taxonomy, convert to named lists)
   if(is.character(highly_variable_genes)){
     highly_variable_genes <- list(highly_variable_genes_standard = highly_variable_genes)
@@ -198,7 +192,6 @@ buildTaxonomy = function(title="AIT",
     obsm = list(  ## A data frame with cell_id, and 2D coordinates for umap (or comparable) representation(s)
     ),  
     uns = list(
-      dend       = list("standard" = toJSON(dend_to_json(dend.result$dend))), ## JSON dendrogram
       filter     = list("standard" = !(rownames(counts) %in% kpSub)), ## Filtered cells
       mapmycells = list("standard" = list()),
       mode = "standard", ## Default mode to standard
@@ -212,22 +205,13 @@ buildTaxonomy = function(title="AIT",
     )
   )
   
+  print(".... Adjusting a few variables")
+  
   ## Ensure the hierarchy is correctly ordered and not alphabetical (this shouldn't be necessary, but is, and still might not take)
   AIT.anndata$uns$hierarchy <- AIT.anndata$uns$hierarchy[order(as.numeric(AIT.anndata$uns$hierarchy))]
 
   ## highly_variable_genes is a data.frame with gene names in rows and various sets in columns
   if(!is.null(highly_variable_genes)){
-    # If numeric, calculating the top N binary genes and save as a list first
-    if(is.numeric(highly_variable_genes)){
-      highly_variable_genes <- round(max(min(dim(counts)[2],highly_variable_genes[1]),100))  # Make sure the numeric value is legal
-      print(paste0("===== Computing ",highly_variable_genes," binary genes as highly variable genes. ====="))
-      if(!exists("t.counts")){
-        t.counts <- Matrix::t(counts)         # Still need to take the transpose here because get_cl_props is really complicated code
-        t.counts <- as(t.counts,"dgCMatrix")
-      }
-      binary.genes          <- top_binary_genes(t.counts, meta.data[[celltypeColumn]], highly_variable_genes)
-      highly_variable_genes <- list("highly_variable_genes_standard" = binary.genes)
-    }
     for(feature_set in names(highly_variable_genes)){
       AIT.anndata$var[[feature_set]] = rownames(AIT.anndata$var) %in% highly_variable_genes[[feature_set]]
     }
@@ -235,12 +219,78 @@ buildTaxonomy = function(title="AIT",
 
   ## marker_genes is a data.frame with gene names in rows and various sets in columns
   if(!is.null(marker_genes)){
-    print(length(marker_genes))
     for(feature_set in names(marker_genes)){
       AIT.anndata$var[[feature_set]] = rownames(AIT.anndata$var) %in% marker_genes[[feature_set]]
     }
   }
-
+  
+  ## Determine feature set for the dendrogram and then define the dendrogram, if requested
+  if((is.null(dend))&(!((all(is.na(dend))&(length(dend[1])==1))))){
+    print(".... determining gene set for calculating dendrogram.")
+    dend = features.dendrogram
+    features.dendrogram = NULL
+    if(is.character(dend)){
+      if(length(dend)>1){
+        features.dendrogram <- intersect(features.dendrogram,colnames(AIT.anndata$raw$X))
+        print(".... Setting dendrogram features as the set of input genes overlapping with available genes.")
+      }
+      if(length(dend)==1){
+        dend <- intersect(dend,colnames(AIT.anndata$var))
+        print(paste("Setting dendrogram features as",dend))
+        if(!is.null(dend))
+          features.dendrogram <- AIT.anndata$var[[dend]]
+      }
+    }
+    if(length(features.dendrogram)<10) 
+      features.dendrogram = NULL  # In this case, we cannot figure out which genes to use so all genes will be used
+    dend=NULL
+  }
+  
+  ##  Build the dendrogram
+  print("===== Building dendrogram =====")
+  if(!is.null(dend)){
+    print("...using provided dendrogram.")
+    # FOR FUTURE UPDATE: should check here whether dendrogram colors match what is in meta-data.
+  } else {
+    ## Dendrogram parameters and gene sets
+    # use.color = setNames(clusterInfo$cluster_color, clusterInfo[[celltypeColumn]])[colnames(cluster_stats)] @Jeremy please handle this.
+    if(reorder.dendrogram){
+      l.rank = setNames(meta.data[[celltypeColumn]][match(clusterInfo[[celltypeColumn]], meta.data[[celltypeColumn]])], clusterInfo[[celltypeColumn]])
+      l.rank = sort(l.rank)
+    } else { 
+      l.rank = NULL 
+    }
+    ## Figure out feature set to use 
+    if(is.null(features.dendrogram)){
+      feature.set = rownames(cluster_stats)
+    } else {
+      feature.set = features.dendrogram
+    }
+    ## Build the dendrogram
+    if(all(is.na(dend))&(length(dend)==1)){
+      dend = NULL
+      print("...dendrogram IS NOT BUILT. This may cause issues for mapping!")
+      warning("Dendrogram IS NOT BUILT. This may cause issues for mapping!")
+    } else {
+      invisible(capture.output({  # Avoid printing lots of numbers to the screen
+        dend.result = build_dend(
+          cl.dat  = cluster_stats[feature.set,],
+          cl.cor  = NULL,
+          # l.color = use.color, @Jeremy please handle this.
+          l.rank  = l.rank, 
+          nboot   = 1,
+          ncores  = 1)
+      }))
+      dend <- dend.result$dend
+      print("...dendrogram built.")
+    }
+  }
+  
+  ## Add the dendrogram to the AIT file, if available
+  if(!is.null(dend))
+    AIT.anndata$uns$dend = list("standard" = toJSON(dend_to_json(dend))) ## JSON dendrogram
+  
+  
   ## Add ensembl_id into AIT object
   if(!is.null(ensembl_id)){
     if(dim(AIT.anndata$var)[1]==length(ensembl_id)){
