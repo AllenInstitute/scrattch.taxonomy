@@ -207,8 +207,8 @@ updateTaxonomyMetadata = function(metadata,
     if(column.name %in% schema.columns){
       out = as.character(metadata[,column.name])  # will convert back to factor later
       metadata[,column.name] <- firsttolower(metadata[,column.name])
-      if(sum(metadata[,column.name]!=out)>0){
-        kp       = metadata[,column.name]!=out
+      kp  = tolower(metadata[,column.name])!=tolower(out)
+      if(sum(kp)>0){
         updates  = paste(unique(paste(out[kp],metadata[kp,column.name],sep="->")),collapse=", ")
         messages = c(messages, paste0("\nWARNING: some updates to anatomical_region: ",updates))
       }
@@ -312,10 +312,12 @@ updateTaxonomyMetadata = function(metadata,
           ## Add a new column to the metadata table for the ontology ID terms
           metadata[,paste0(onto_term,"_ontology_term_id")] = ontology_conversion$id
           ## Report any changed names
-          if(sum(ontology_conversion$distance)>0){
+          reported_match = tolower(ontology_conversion[,4])==tolower(ontology_conversion[,2])
+          reported_match = reported_match|(sum(ontology_conversion$distance)==0)
+          if(sum(!reported_match)>0){
             change <- paste0(ontology_conversion[,1],"('",ontology_conversion[,4],"'==>'",ontology_conversion[,2],"')")
             messages = c(messages, paste0("\nWARNING: the following ontology terms do not correspond perfectly with inputted values:\n"))
-            messages = c(messages, paste0("-----",paste(sort(unique(change[ontology_conversion$distance>0])),collapse="\n-----")))
+            messages = c(messages, paste0("-----",paste(sort(unique(change[!reported_match])),collapse="\n-----")))
           }
         }
       } else {
@@ -367,10 +369,12 @@ updateTaxonomyMetadata = function(metadata,
       ## Add a new column to the metadata table for the ontology ID terms
       metadata[,"brain_region_ontology_term_id"] = ontology_conversion$id
       ## Report any changed names
-      if(sum(ontology_conversion$distance)>0){
+      reported_match = tolower(ontology_conversion[,4])==tolower(ontology_conversion[,2])
+      reported_match = reported_match|(sum(ontology_conversion$distance)==0)
+      if(sum(!reported_match)>0){
         change <- paste0(ontology_conversion[,1],"('",ontology_conversion[,4],"'==>'",ontology_conversion[,2],"')")
         messages = c(messages, paste0("\nWARNING: the following ontology terms do not correspond perfectly with inputted values:\n"))
-        messages = c(messages, paste0("-----",paste(sort(unique(change[ontology_conversion$distance>0])),collapse="\n-----")))
+        messages = c(messages, paste0("-----",paste(sort(unique(change[!reported_match])),collapse="\n-----")))
       }
     }
   }
@@ -403,10 +407,12 @@ updateTaxonomyMetadata = function(metadata,
         ## Add a new column to the metadata table for the ontology ID terms
         metadata[,"cell_type_ontology_term"] = ontology_conversion$id
         ## Report any changed names
-        if(sum(ontology_conversion$distance)>0){
+        reported_match = tolower(ontology_conversion[,4])==tolower(ontology_conversion[,2])
+        reported_match = reported_match|(sum(ontology_conversion$distance)==0)
+        if(sum(!reported_match)>0){
           change <- paste0(ontology_conversion[,1],"('",ontology_conversion[,4],"'==>'",ontology_conversion[,2],"')")
           messages = c(messages, paste0("\nWARNING: the following ontology terms do not correspond perfectly with inputted values:\n"))
-          messages = c(messages, paste0("-----",paste(sort(unique(change[ontology_conversion$distance>0])),collapse="\n-----")))
+          messages = c(messages, paste0("-----",paste(sort(unique(change[!reported_match])),collapse="\n-----")))
         }
       }
     } else {
