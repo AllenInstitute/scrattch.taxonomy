@@ -197,15 +197,6 @@ buildTaxonomyMode = function(AIT.anndata,
   ## MAPMYCELLS FUNCTIONALITY
   
   ## Add MapMyCells (hierarchical mapping) functionality, if requested
-  #if(addMapMyCells) {
-  #  current.mode = AIT.anndata$uns$mode
-  #  AIT.anndata  = mappingMode(AIT.anndata, mode=mode.name)
-  #  AIT.anndata  = addMapMyCells(AIT.anndata, hierarchy, force=TRUE)
-  #  AIT.anndata  = mappingMode(AIT.anndata, mode=current.mode)
-  #  # NOTE: statistics used to be saved in 'uns', but are being moved to 'varm'
-  #}
-  
-  ## Add MapMyCells (hierarchical mapping) functionality, if requested
   if(addMapMyCells) {
     print("===== Adding MapMyCells (hierarchical mapping) functionality =====")
     tryCatch({
@@ -219,12 +210,12 @@ buildTaxonomyMode = function(AIT.anndata,
     })
   }
   
-  
-  
-  ## If not yet written in add.dendrogram.markers or addMapMyCells, write h5ad
-  if(!(addMapMyCells|add.dendrogram.markers)){
-    AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
-  }
+  ## Write the Allen Institute Taxonomy object without the normalized data (it can be recalculated on load)
+  print("===== Writing taxonomy anndata without saved normalized data=====")
+  AIT.anndata2 = AIT.anndata
+  AIT.anndata2$X = NULL
+  AIT.anndata2$write_h5ad(file.path(AIT.anndata2$uns$taxonomyDir, paste0(AIT.anndata2$uns$title, ".h5ad")))
+  rm(AIT.anndata2)
   
   ##
   return(AIT.anndata)

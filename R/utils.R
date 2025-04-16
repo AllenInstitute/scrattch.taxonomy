@@ -273,7 +273,7 @@ updateMarkerGenes = function(AIT.anndata,
                                       title, 
                                       dend){
   if(sum(is.element(celltypeColumn, colnames(meta.data)))==0){stop("cluster column must be defined in the meta.data object")}
-  if(!all(colnames(counts) == rownames(meta.data))){stop("Colnames of `counts` and rownames of `meta.data` do not match.")}
+  if(!all(rownames(counts) == rownames(meta.data))){stop("Colnames of `counts` and rownames of `meta.data` do not match.")}
   if(!is.data.frame(meta.data)){stop("meta.data must be a data.frame, convert using as.data.frame(meta.data)")}
 
   ## Sanity checks on data matrices
@@ -281,14 +281,17 @@ updateMarkerGenes = function(AIT.anndata,
     if(!is(counts, 'sparseMatrix')){stop("`counts` must be a sparse matrix.")}
     if(!is.null(normalized.expr)){
       if(!is(normalized.expr, 'sparseMatrix')){stop("`normalized.expr` must be a sparse matrix.")}
-      if(!all(rownames(counts) == rownames(normalized.expr))){stop("Rownames of `counts` and `normalized.expr` do not match.")}
+      if(!all(colnames(counts) == colnames(normalized.expr))){stop("Rownames of `counts` and `normalized.expr` do not match.")}
     }
   }
 
   ## Now check the dendrogram clusters and formatting, if dendrogram is provided
-  if(!is.null(dend)){
+  if((!is.null(dend))&(!all(is.na(dend)))){
     ## Check that dend is of class dendrogram
     if(!is.element("dendrogram",class(dend))){stop("If provided, dend must be of R class dendrogram.")}
+    
+    ## Check that dend is a binary tree (conversion to JSON only works for binary trees)
+    if(is.element("try-error",class(try(as.hclust(dend))))){stop("If provided, dend must be a binary tree.")}
 
     ## Check that dend and meta.data match in labels
     extra_labels <- setdiff(labels(dend), unique(as.character(meta.data[,celltypeColumn])))
@@ -305,7 +308,7 @@ updateMarkerGenes = function(AIT.anndata,
   if(!is.null(cluster_stats)){
     print("===== Checking cluster_stats =====")
     if(!is.null(counts)){
-      if(!all(rownames(cluster_stats) %in% rownames(counts))){
+      if(!all(rownames(cluster_stats) %in% colnames(counts))){
         stop("Cluster stats must have the same columns as the normalized expression matrix.")
       }
     }
@@ -336,7 +339,7 @@ updateMarkerGenes = function(AIT.anndata,
 subsample_taxonomy = function(cluster.names, cell_ids, dend=NULL, subsample=2000){
   
   kpClusters <- rep(TRUE,length(cluster.names))
-  if(!is.null(dend)){
+  if((!is.null(dend))&(!all(is.na(dend)))){
     kpClusters <- is.element(cluster.names, labels(dend)) # exclude missing clusters, if any
     if(mean(kpClusters)<1) print("===== Omitting cells from missing clusters =====")
   }
@@ -422,7 +425,9 @@ mappingMode <- function(AIT.anndata, mode){
 #' 
 #' @export
 dend_to_json = function(dend){
-    # Convert dendrogram to hclust
+    ## Return NULL if NULL is provided
+    if (is.null(dend)) return(NULL)
+    ## Convert dendrogram to hclust
     hclust_obj <- as.hclust(dend)
     ## Record information in list
     dendrogram_json <- list(
@@ -450,7 +455,10 @@ dend_to_json = function(dend){
 #' @export
 json_to_dend = function(json){
     ## 
-    hclust.tmp <- list()  # initialize empty object
+    if(is.null(json)) return(NULL)  # Return NULL if NULL is provided
+    if(nchar(json)<5) return(NULL)  # Return NULL if a blank json is provided 
+  
+  hclust.tmp <- list()  # initialize empty object
     # define merging pattern: 
     #    negative numbers are leaves, 
     #    positive are merged clusters (defined by row number in $merge)
@@ -1107,6 +1115,11 @@ logCPM <- function (counts,
                     cells.as.rows=FALSE,
                     ...) 
 {
+  # Run log2CPM_byRow if cells are rows and counts is sparse
+  if((as.character(class(counts))=="dgCMatrix")&(cells.as.rows))
+    return(log2CPM_byRow(counts=counts, sf=sf, denom=denom, offset=offset))
+  
+  # Otherwise run standard function
   norm.dat <- cpm(counts, sf=sf, denom=denom, cells.as.rows=cells.as.rows)
   if (is.matrix(norm.dat)) {
     norm.dat <- log2(norm.dat + offset)
@@ -1115,5 +1128,33 @@ logCPM <- function (counts,
     norm.dat@x <- log2(norm.dat@x + offset)
   }
   norm.dat
+}
+
+
+#' Convert a matrix of raw counts to a matrix of log2(Counts per Million + 1) values
+#' 
+#' The input can be a base R matrix or a sparse matrix from the Matrix package.
+#' 
+#' This function expects that columns correspond to genes, and rows to samples by default and is equivalent to running logCPM with cells.as.rows=TRUE (but a bit faster).  By default the offset is 1, but to calculate just log2(counts per Million) set offset to 0.
+#' 
+#' @param counts A matrix, dgCMatrix, or dgTMatrix of count values
+#' @param sf vector of numeric values representing the total number of reads. If count matrix includes all genes, value calulated by default (sf=NULL) will be accurate; however, if count matrix represents only a small fraction of genes, we recommend also providing this value.
+#' @param denom Denominator that all counts will be scaled to. The default (1 million) is commonly used, but 10000 is also common for sparser droplet-based sequencing methods.
+#' @param offset The constant offset to add to each cpm value prior to taking log2 (default = 1)
+#' 
+#' @return a dgCMatrix of log2(CPM + 1) values
+#' 
+#' @export 
+log2CPM_byRow <- function (counts, sf = NULL, denom = 1e+06, offset=1){
+  if(!(as.character(class(counts))=="dgCMatrix"))
+    counts <- as(counts, "dgCMatrix")
+  if (is.null(sf)) {
+    sf <- Matrix::rowSums(counts)
+  }
+  sf <- sf/denom
+  normalized.expr   <- counts
+  normalized.expr@x <- counts@x/sf[as.integer(counts@i + offset)]
+  normalized.expr@x <- log2(normalized.expr@x+1)
+  return(normalized.expr)
 }
 
