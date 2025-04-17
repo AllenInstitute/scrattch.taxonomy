@@ -4,7 +4,7 @@ In this tutorial we demonstrate how to setup an Allen Institute Taxonomy object 
 
 These data are already QCed and nicely packaged in h5ad (counts and metadata) and an associated dendrogram files. "cluster_label", "subclass_label", and "class_label" correspond to SEA-AD supertype, subclass, and class, respectively, and are used for defining the hierarchy.  
 
-*We strongly encourage running this code within the scrattch docker environment.  This example was created using docker://jeremyinseattle/scrattch:1.1.1 and will likely fail if run using any earlier scrattch versions.*
+*We strongly encourage running this code within the scrattch docker environment.  This example was created using docker://jeremyinseattle/scrattch:1.1.2 and will likely fail if run using any earlier scrattch versions.*
 
 #### Prepare taxonomy data set:
 
@@ -41,10 +41,6 @@ taxonomy.metadata = seaad_data$obs[keepCells,cn]
 ## Ensure count matrix and annotations are in the same order (this shouldn't be needed)
 taxonomy.metadata = taxonomy.metadata[match(rownames(taxonomy.counts), taxonomy.metadata$sample_name),]
 colnames(taxonomy.metadata) <- gsub("_label","",colnames(taxonomy.metadata))
-
-## Transpose the counts matrix (... for now; future versions of scrattch.taxonomy will not need to transpose large matrices)
-taxonomy.counts <- t(taxonomy.counts)
-taxonomy.counts <- as(taxonomy.counts, "dgCMatrix")
 ```
 
 #### Align to AIT schema
@@ -59,7 +55,7 @@ hierarchy = list("class", "subclass", "cluster_id")
 
 ## Identify Ensembl IDs 
 # Common NCBI taxIDs: Human = 9606; Mouse = 10090; Macaque (rhesus) = 9544; Marmoset = 9483
-ensembl_id <- geneSymbolToEnsembl(gene.symbols = rownames(taxonomy.counts), ncbi.taxid = 9606)
+ensembl_id <- geneSymbolToEnsembl(gene.symbols = colnames(taxonomy.counts), ncbi.taxid = 9606)
 
 ## Update the metadata to align with AIT schema
 colnames(taxonomy.metadata)[colnames(taxonomy.metadata)=="cluster"]             = "cluster_id"
@@ -93,7 +89,7 @@ AIT.anndata = buildTaxonomy(title="SEAAD_MTG",
                             meta.data = taxonomy.anno,
                             hierarchy = hierarchy,
                             ## --- Optional parameters ---
-                            counts = as(taxonomy.counts, "dgCMatrix"),
+                            counts = taxonomy.counts,
                             normalized.expr = NULL,
                             highly_variable_genes = 1000, ## Select top 1000 binary genes
                             marker_genes = NULL,
@@ -103,8 +99,9 @@ AIT.anndata = buildTaxonomy(title="SEAAD_MTG",
                             ##
                             dend = seaad_dend, ## Pre-computed dendrogram
                             taxonomyDir = getwd(), ## This is where our taxonomy will be created
-							addMapMyCells = TRUE, 
+                            addMapMyCells = TRUE, 
                             ##
+                            add.dendrogram.markers = TRUE,  # Allow tree mapping. Very slow, but required for downstream patch-seq analysis.
                             subsample=100)
 
 ## Check whether the taxonomy file is valid (This happens within buildTaxonomy and is not strictly necessary)
