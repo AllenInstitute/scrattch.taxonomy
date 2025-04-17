@@ -8,6 +8,7 @@ Improvements for mapping and patch-seq for schema.
 ### Minor changes
 * Bug fixes
 * Updated documentation
+* Correct setup for tree mapping (fixes a breaking error)
 
 --
 
