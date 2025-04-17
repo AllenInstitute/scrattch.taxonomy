@@ -1116,7 +1116,7 @@ logCPM <- function (counts,
                     ...) 
 {
   # Run log2CPM_byRow if cells are rows and counts is sparse
-  if((as.character(class(counts))=="dgCMatrix")&(cells.as.rows))
+  if(("dgCMatrix" %in% as.character(class(counts)))&(cells.as.rows))
     return(log2CPM_byRow(counts=counts, sf=sf, denom=denom, offset=offset))
   
   # Otherwise run standard function
@@ -1146,7 +1146,7 @@ logCPM <- function (counts,
 #' 
 #' @export 
 log2CPM_byRow <- function (counts, sf = NULL, denom = 1e+06, offset=1){
-  if(!(as.character(class(counts))=="dgCMatrix"))
+  if(!("dgCMatrix" %in% as.character(class(counts))))
     counts <- as(counts, "dgCMatrix")
   if (is.null(sf)) {
     sf <- Matrix::rowSums(counts)

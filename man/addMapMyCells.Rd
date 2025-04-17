@@ -19,7 +19,7 @@ addMapMyCells(
 \arguments{
 \item{AIT_anndata}{A reference taxonomy anndata object.}
 
-\item{hierarchy}{List of term_set_labels in the reference taxonomy ordered from most gross to most fine. Will default to list included in AIT_anndata, if any.}
+\item{hierarchy}{Named list of term_set_labels in the reference taxonomy ordered from most gross to most fine. Will default to list included in AIT_anndata, if any. E.g. \link{"Class" = 0, "Subclass"=  1}}
 
 \item{anndata_path}{Local file path of the AIT reference taxonomy (h5ad file).}
 
@@ -36,7 +36,7 @@ addMapMyCells(
 \item{user_query_markers_path}{Alternative path to the user provided query markers JSON file. Will be generated, if not provided.}
 }
 \value{
-AIT.anndata, a reference taxonomy with hierarchical files, such as precompute stats and query markers saved in uns.
+AIT_anndata, a reference taxonomy with hierarchical files, such as precompute stats and query markers saved in uns.
 }
 \description{
 This hierarchical mapping is a wrapper around cell_type_mapper and call's it's functions to generate needed files needed for mapping.

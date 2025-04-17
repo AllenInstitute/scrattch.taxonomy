@@ -1,17 +1,19 @@
 #' Read in a reference data set in Allen taxonomy format
 #'
-#' @param taxonomyDir Directory containing the Shiny taxonomy -OR- a direct h5ad file name.
-#' @param anndata_file File name of the anndata object (.h5ad) to be loaded.
+#' @param taxonomyDir Directory containing the AIT file -OR- a direct h5ad file name -OR- a URL of a publicly accessible AIT file.
+#' @param anndata_file If taxonomyDir is a directory, anndata_file must be the file name of the anndata object (.h5ad) to be loaded in that directory. If taxonomyDir is a file name or a URL, then anndata_file is ignored.
 #' @param log.file.path Path to write log file to. Defaults to current working directory. 
 #'
 #' @return Organized reference object ready for mapping against.
+#' 
+#' @import anndata
 #'
 #' @export
-loadTaxonomy = function(taxonomyDir, 
+loadTaxonomy = function(taxonomyDir = getwd(), 
                         anndata_file = "AI_taxonomy.h5ad",
                         log.file.path=getwd(),
                         force=FALSE){
-
+  
   ## Allow for h5ad as the first/only input
   if(grepl("h5ad", taxonomyDir)){
     anndata_file = taxonomyDir
@@ -19,6 +21,19 @@ loadTaxonomy = function(taxonomyDir,
   }
   ## Make sure the taxonomy path is an absolute path
   taxonomyDir = normalizePath(taxonomyDir, winslash = "/")
+  
+  ## If anndata_file is a URL, (1) parse the bucket out, (2) check whether the file is currently in the working directory, 
+  ##   (3) download it if not, and then (4) rename anndata_file to the file name.
+  # https://allen-cell-type-taxonomies.s3.us-west-2.amazonaws.com/Mouse_VISp_ALM_SMART_seq_04042025.h5ad
+  if(grepl("http", anndata_file)&grepl("s3",anndata_file)){
+    anndata_parts  <- strsplit(anndata_file, "/")[[1]]
+    anndata_object <- anndata_parts[length(anndata_parts)]
+    if(!file.exists(anndata_object)){
+      download.file(anndata_file, file.path(taxonomyDir, anndata_object), timeout=9000)
+    }
+    anndata_file = anndata_object
+  }
+  
   ## Load from directory name input 
   if(file.exists(file.path(taxonomyDir, anndata_file))){
     print("Loading reference taxonomy into memory from .h5ad")

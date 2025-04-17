@@ -1,3 +1,16 @@
+## scrattch.taxonomy v1.2
+
+Improvements for mapping and patch-seq for schema.
+
+### Major changes
+* Allow for direct download and loading of taxonomies from AWS with `loadTaxonomy`
+
+### Minor changes
+* Bug fixes
+* Updated documentation
+
+--
+
 ## scrattch.taxonomy v1.1.2
 
 Update to allow counts to be provided as cellxgene or genexcell.
