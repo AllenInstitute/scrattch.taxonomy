@@ -6,7 +6,7 @@
 #' @param subsample The number of cells to retain per cluster (default = 100)
 #' @param num.markers The maximum number of markers to calculate per pairwise differential calculation per direction (default = 20)
 #' @param de.param Differential expression (DE) parameters for genes and clusters used to define marker genes.  By default the values are set to the 10x nuclei defaults from scrattch.hicat, except with min.cells=2 (see notes below).
-#' @param calculate.de.genes Default=TRUE. If set to false, the function will search for "de_genes" in a file called "de_genes.RData" in the folder taxonomyDir, and will use those if available.
+#' @param calculate.de.genes Default=TRUE. If set to false, the function will search for "de_genes" in a file called "de_genes_[mode].RData" in the folder taxonomyDir, and will use those if available.
 #' @param save.shiny.output Should standard output files be generated and saved to the AIT file (default=TRUE).  These are not required for tree mapping, but are required for building a patch-seq shiny instance. See notes.
 #' @param mc.cores Number of cores to use for running this function to speed things up.  Default = 1.  Values>1 are only supported in an UNIX environment and require `foreach` and `doParallel` R libraries.
 #' @param bs.num Number of bootstrap runs for creating the dendrogram (default of 100)
@@ -100,14 +100,16 @@ addDendrogramMarkers = function(AIT.anndata,
   cl.label  = as.factor(setNames(cl.df$cluster_label, rownames(cl.df)))
   select.cl = droplevels(as.factor(setNames(match(metadata[,celltypeColumn], cl.label), AIT.anndata$obs_names[keep.samples])))
   
-  ## CHECK IF THIS IS NEEDED
+  ## CHECK IF THIS IS NEEDED - CONFIRMED. THIS WILL BREAK IF NOT INCLUDED
   ## We might need to relabel the dendrogram from 1 to #clusters in order
-  #labels(dend) = names(cl.label)[match(labels(dend), cl.label)]
+  labels(dend) = names(cl.label)[match(labels(dend), cl.label)]
   
   ## Compute markers
   print("Define marker genes and gene scores for the tree")
   if((sum(!is.na(get_nodes_attr(dend, "markers"))) == 0) | (overwriteMarkers == TRUE)){
-    if(calculate.de.genes){
+    if(calculate.de.genes|(!file.exists(de_genes_file))){
+      if(calculate.de.genes&(!file.exists(de_genes_file)))
+        print(paste(de_genes_file,"does not exist.  Need to define marker genes!"))
       print("=== NOTE: This step can be very slow (several minute to many hours).")
       print("      To speed up the calculation (or if it crashes) try decreasing the value of subsample.")
       de.genes = scrattch.hicat::select_markers(norm.dat=norm.data, 
@@ -119,6 +121,7 @@ addDendrogramMarkers = function(AIT.anndata,
       save(de.genes, file=de_genes_file)
     } else {
       ## Check that file exists before loading
+      print("...using precomputed marker genes.")
       load(de_genes_file)
     }
 
