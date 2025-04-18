@@ -2,48 +2,54 @@
 % Please edit documentation in R/buildTaxonomyMode.R
 \name{buildTaxonomyMode}
 \alias{buildTaxonomyMode}
-\title{Save marker genes for patchSeqQC}
+\title{Create a taxonomy mode for mapping to taxonomy subset (or child)}
 \usage{
-buildTaxonomyMode(AIT.anndata, ...)
+buildTaxonomyMode(
+  AIT.anndata,
+  mode.name,
+  retain.cells = NULL,
+  retain.clusters = NULL,
+  subsample = 100,
+  highly_variable_genes = NULL,
+  marker_genes = NULL,
+  embeddings = NULL,
+  number.of.pcs = 30,
+  add.dendrogram.markers = FALSE,
+  addMapMyCells = TRUE,
+  overwrite = FALSE,
+  ...
+)
 }
 \arguments{
 \item{AIT.anndata}{A reference taxonomy anndata object.}
 
-\item{...}{Additional variables to be passed to \code{addDendrogramMarkers}
-
-The following variables are added to AIT.anndata$uns:
-$dend[\link{mode.name}]
-$filter[\link{mode.name}]
-$QC_markers[\link{mode.name}]
-...$markers,
-...$countsQC,
-...$cpmQC,
-...$classBr,
-...$subclassF,
-...$allMarkers
-$memb[\link{mode.name}]
-...$memb.ref,
-...$map.df.ref}
-
-\item{subsample}{The number of cells to retain per cluster (default = 100).}
-
-\item{subclass.column}{Column name corresponding to the moderate-resolution cell types used for the cell types of interest (default = "subclass_label").}
-
-\item{class.column}{Column name corresponding to the low-resolution cell types used for the off-target cell types (default = "class_label").}
-
-\item{off.target.types}{A character vector of off-target (also known as 'contamination') cell types.  This must include at least one of the cell types found in "class.column" and/or "subclass.column" (both columns are checked)}
-
 \item{mode.name}{A name to identify the new taxonomy version.}
 
-\item{subclass.subsample}{The number of cells to retain for PatchseqQC contamination calculation (default = 100, probably no need to change).}
+\item{retain.cells}{A boolean vector of length \link{number of cells} indicating which cells should be retained (TRUE) or filtered (FALSE) -OR- a character vector with sample names indicating which cells should be retained. Default is to retain the cells included in "stadard" mode.}
 
-\item{num.markers}{The maximum number of markers to calculate per node per direction (default = 50)}
+\item{retain.clusters}{A character vector with cluster names (e.g., values in the "cluster_id" column) indicating which clusters should be retained. Default is to retain all clusters with at least 2 retained cells (clusters with exactly 1 cell can cause some functions to crash).}
 
-\item{taxonomyDir}{The location to save shiny output (default = current working directory).}
+\item{subsample}{The number of cells to retain per cluster (default = 100). Note that subsampling happens AFTER retain.cells and retail.clusters filtering.}
+
+\item{highly_variable_genes}{Set of features defined as highly variable genes OR a number of binary genes to calculate (we recommend ~1000 - ~5000, for <100 to ~5000 cell types). If a feature list is provided, provide either as a named list of vectors, or as a single vector (in which case the name "highly_variable_genes_\link{mode.name}" will be used). "highly_variable_genes_\link{mode.name}" will also be used for calculated variable genes. Optional input, but for proper mapping we recommend including either highly_variable_genes or marker_genes. If nothing is provided (default=NULL), standard mode markers will be used for mapping algorithms based on these gene lists and may cause problems.}
+
+\item{marker_genes}{Set of features defined as marker genes. Provide either as a named list of vectors, or as a single vector (in which case the name "marker_genes_\link{mode.name}" will be used).}
+
+\item{embeddings}{Dimensionality reduction coordinate data.frame with 2 columns or a string with the column name for marker_genes or variable_genes from which a UMAP should be calculated. If coordinates are provided, rownames must be equal to colnames of counts.  Either provide as a named list or as a single data.frame (in which case the name "default_\link{mode.name}" will be used). Optional - if nothing is provided (default=NULL) the relevant subset of the default standard embedding will be used.}
+
+\item{number.of.pcs}{Number of principle components to use for calculating UMAP coordinates (default=30). This is only used in embeddings corresponds to a variable gene column from which a UMAP should be calculated.}
+
+\item{add.dendrogram.markers}{If TRUE (default=FALSE), will also add dendrogram markers to prep the taxonomy for tree mapping}
+
+\item{addMapMyCells}{If TRUE (default), will also prep this mode of the taxonomy for hierarchical MapMyCells mapping}
+
+\item{overwrite}{If \link{mode.name} already exists, should it be overwritten (default = FALSE)}
+
+\item{...}{Additional variables to be passed to \code{addDendrogramMarkers}}
 }
 \value{
-AIT.anndata An updated AIT.anndata variable with the above content added to AIT.anndata$uns for the relevant mode.name.
+AIT.anndata An updated AIT.anndata variable with new content addded for the relevant mode.name (also called "Child taxonomy").
 }
 \description{
-This function saves all the variables required for applying the patchseq QC algorithm \code{pathseqtools} (which is an more flexible version of the \code{patchSeqQC} algorithm) to AIT.anndata$uns. This is only used for patch-seq analysis.  Requirements for input include:
+This function creates a new mode for mapping to a subset of a taxonomy. This includes filtering cells, setting new variable genes and/or marker genes, calculating mapping statistics,
 }

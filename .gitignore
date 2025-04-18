@@ -7,3 +7,7 @@ data/*.csv
 examples/build_MTG_patchseq_taxonomy_temp.Rmd
 examples/build_MTG_patchseq_taxonomy_TEMP.Rmd
 examples/patchseq.RData
+
+https://alleninstitute.github.io/scrattch.patchseq/
+https://alleninstitute.github.io/scrattch.mapping/
+https://alleninstitute.github.io/scrattch.taxonomy/

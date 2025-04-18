@@ -11,7 +11,7 @@
   highly_variable_genes,
   marker_genes,
   embeddings,
-  hierarchy,
+  celltypeColumn,
   cluster_stats,
   taxonomyDir,
   title,

@@ -5,16 +5,16 @@
 \title{Read in a reference data set in Allen taxonomy format}
 \usage{
 loadTaxonomy(
-  taxonomyDir,
+  taxonomyDir = getwd(),
   anndata_file = "AI_taxonomy.h5ad",
   log.file.path = getwd(),
   force = FALSE
 )
 }
 \arguments{
-\item{taxonomyDir}{Directory containing the Shiny taxonomy -OR- a direct h5ad file name.}
+\item{taxonomyDir}{Directory containing the AIT file -OR- a direct h5ad file name -OR- a URL of a publicly accessible AIT file.}
 
-\item{anndata_file}{File name of the anndata object (.h5ad) to be loaded.}
+\item{anndata_file}{If taxonomyDir is a directory, anndata_file must be the file name of the anndata object (.h5ad) to be loaded in that directory. If taxonomyDir is a file name or a URL, then anndata_file is ignored.}
 
 \item{log.file.path}{Path to write log file to. Defaults to current working directory.}
 }

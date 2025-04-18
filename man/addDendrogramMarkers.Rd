@@ -6,8 +6,9 @@
 \usage{
 addDendrogramMarkers(
   AIT.anndata,
+  mode.name = NULL,
   mode = AIT.anndata$uns$mode,
-  celltypeColumn = "cluster_label",
+  celltypeColumn = NULL,
   subsample = 100,
   num.markers = 20,
   de.param = scrattch.hicat::de_param(low.th = 0.1, padj.th = 1, lfc.th = 0.01, q1.th =
@@ -25,9 +26,9 @@ addDendrogramMarkers(
 \arguments{
 \item{AIT.anndata}{A reference taxonomy anndata object.}
 
-\item{mode}{Taxonomy mode to determine which version of filtering to use.}
+\item{mode.name}{Taxonomy mode to determine which version of filtering to use.}
 
-\item{celltypeColumn}{Column name correspond to the cell type names in the dendrogram (default = "cluster_label"). At least two cells per cell type in the dendrogram must be included.}
+\item{celltypeColumn}{Column name correspond to the cell type names in the dendrogram. At least two cells per cell type in the dendrogram must be included. Default is to take the highest resolution level of the hierarchy}
 
 \item{subsample}{The number of cells to retain per cluster (default = 100)}
 
@@ -37,7 +38,7 @@ addDendrogramMarkers(
 
 \item{calculate.de.genes}{Default=TRUE. If set to false, the function will search for "de_genes" in a file called "de_genes.RData" in the folder taxonomyDir, and will use those if available.}
 
-\item{save.shiny.output}{Should standard output files be generated and saved to the directory (default=TRUE).  These are not required for tree mapping, but are required for building a patch-seq shiny instance.  This is only tested in a UNIX environment.  See notes.}
+\item{save.shiny.output}{Should standard output files be generated and saved to the AIT file (default=TRUE).  These are not required for tree mapping, but are required for building a patch-seq shiny instance. See notes.}
 
 \item{mc.cores}{Number of cores to use for running this function to speed things up.  Default = 1.  Values>1 are only supported in an UNIX environment and require \code{foreach} and \code{doParallel} R libraries.}
 
@@ -49,11 +50,11 @@ addDendrogramMarkers(
 
 \item{overwriteMarkers}{If markers already are calculated a tree, should they be overwritten (default = TRUE)}
 
-\item{taxonomyDir}{The location to create the directory with taxonomy mode information (default is as a subdirectory of the taxonomy location stored in the anndata object).
+\item{taxonomyDir}{The location to create the directory with taxonomy information. Both the taxonomy and the de.genes_\link{mode.name}.RData get saved here.
 
 By default VERY loose parameters are set for de_param in an effort to get extra marker genes for each node.  The defaults previously proposed for 10x nuclei are the following \code{de_param(low.th = 1, padj.th = 0.01, lfc.th = 1, q1.th = 0.3, q2.th = NULL, q.diff.th = 0.7, de.score.th = 100, min.cells = 2, min.genes = 5)}. See the function \code{de_param} in the scrattch.hicat for more details.
 
-If save.shiny.output=TRUE, membership_information_reference.rda will be generated, which includes two variables
+If save.shiny.output=TRUE, the following two values will get saved to the uns:
 \code{memb.ref}   - matrix indicating how much confusion there is the mapping between each cell all of the nodes in the tree (including all cell types) when comparing clustering and mapping results with various subsamplings of the data
 \code{map.df.ref} - Result of tree mapping for each cell in the reference against the clustering tree, including various statistics and marker gene evidence.  This is the same output that comes from tree mapping.#'}
 }

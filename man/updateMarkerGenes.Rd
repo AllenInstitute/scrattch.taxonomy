@@ -7,13 +7,16 @@
 updateMarkerGenes(
   AIT.anndata,
   marker.genes = NULL,
-  list.name = paste0("marker_genes_", AIT.anndata$uns$mode)
+  list.name = paste0("marker_genes_", AIT.anndata$uns$mode),
+  default.list.name = "marker_genes_standard"
 )
 }
 \arguments{
 \item{AIT.anndata}{A reference taxonomy anndata object.}
 
 \item{list.name}{Which slot in obs to should the highly variable genes go?  Default is marker_genes_\link{mode}}
+
+\item{default.list.name}{Which slot should highly variable genes be copied from if none are provided? Default is marker_genes_standard}
 
 \item{variable.genes}{Set of variable genes to add to the list.name slot in obs.}
 }
