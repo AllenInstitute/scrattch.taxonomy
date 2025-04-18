@@ -4,6 +4,7 @@ Improvements for mapping and patch-seq for schema.
 
 ### Major changes
 * Allow for direct download and loading of taxonomies from AWS with `loadTaxonomy`
+* Adding html documentation for functions
 
 ### Minor changes
 * Bug fixes
