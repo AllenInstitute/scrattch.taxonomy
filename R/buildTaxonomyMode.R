@@ -127,6 +127,8 @@ buildTaxonomyMode = function(AIT.anndata,
   
   
   ## MODIFY THE DENDROGRAM AND SAVE IN THE ANNDATA
+  ### -- FUTURE UPDATE: Allow a separate dendrogram to be entered as a variable rather than automatically subsetting the existing dendrogram
+  ### -- FUTURE UPDATE: Allow for non-binary dendrograms
   
   if(!is.null(AIT.anndata$uns$dend)){
     dend = json_to_dend(AIT.anndata$uns$dend[["standard"]])

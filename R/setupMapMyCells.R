@@ -126,6 +126,7 @@ addMapMyCells = function(AIT_anndata,
         unlink(mode_dir, recursive = TRUE)
       }
       # Remove any missing empty directories
+      ## Potential future update: wrap function in try catch and delete folder if this function fails before this step
       folder.remove = file.remove(dir()[substr(dir(),1,8)=="tmp_dir_"])
       
       return(AIT_anndata)

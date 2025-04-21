@@ -19,7 +19,7 @@
 #'
 #' If save.shiny.output=TRUE, the following two values will get saved to the uns:
 #'       `memb.ref`   - matrix indicating how much confusion there is the mapping between each cell all of the nodes in the tree (including all cell types) when comparing clustering and mapping results with various subsamplings of the data
-#'       `map.df.ref` - Result of tree mapping for each cell in the reference against the clustering tree, including various statistics and marker gene evidence.  This is the same output that comes from tree mapping.#'
+#'       `map.df.ref` - Result of tree mapping for each cell in the reference against the clustering tree, including various statistics and marker gene evidence.  This is the same output that comes from tree mapping.
 #' 
 #' @import feather
 #' @import scrattch.hicat
@@ -164,7 +164,7 @@ addDendrogramMarkers = function(AIT.anndata,
     reference$dend = revert_dend_label(reference$dend,get_nodes_attr(reference$dend, "original_label"),"label")
   }
 
-  #print("Save the reference dendrogram for this mode")  # NOTE: we don't need to save thie dendrogram, as it is staved within the AIT file
+  #print("Save the reference dendrogram for this mode")  # NOTE: we don't need to save this dendrogram, as it is saved within the AIT file
   #dend = reference$dend
   #saveRDS(dend, file.path(taxonomyModeDir, "dend.RData"))
   ## Note, this overwrites the initial dendrogram but has slightly different formatting from the read, which could cause issues
