@@ -406,13 +406,13 @@ buildTaxonomy = function(title="AIT",
   }
 
   ## Write the Allen Institute Taxonomy object without the normalized data (it can be recalculated on load)
-  if(!is.null(AIT.anndata$X)){
-    print("===== Writing taxonomy anndata without saved normalized data=====")
-    X <- AIT.anndata$X
-    AIT.anndata$X = NULL
-    AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
-    AIT.anndata$X <- X
-  }
+  # if(!is.null(AIT.anndata$X)){
+  #   print("===== Writing taxonomy anndata without saved normalized data=====")
+  #   X <- AIT.anndata$X
+  #   AIT.anndata$X = NULL
+  #   AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
+  #   AIT.anndata$X <- X
+  # }
   
   ## Check whether the taxonomy is a valid scrattch.taxonomy format
   if(check.taxonomy){
