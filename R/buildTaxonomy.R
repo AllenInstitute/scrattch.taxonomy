@@ -59,7 +59,7 @@ buildTaxonomy = function(title="AIT",
                          embeddings = NULL,
                          number.of.pcs = 30, 
                          ## uns
-                         dend = NA,  # This default is to choose a sensible gene set
+                         dend = NULL,  # This default is to choose a sensible gene set
                          taxonomyDir = getwd(),
                          cluster_colors = NULL, ## @Jeremy please handle this.
                          default_embedding = NULL,
