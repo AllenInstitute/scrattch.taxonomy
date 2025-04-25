@@ -10,6 +10,7 @@ Improvements for mapping and patch-seq for schema.
 * Bug fixes
 * Updated documentation
 * Correct setup for tree mapping (fixes a breaking error)
+* Fix issues with `createShiny` introduced after v0.7
 
 --
 

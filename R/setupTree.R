@@ -73,6 +73,12 @@ addDendrogramMarkers = function(AIT.anndata,
     celltypeColumn = names(hierarchy)[length(hierarchy)][[1]]
   }
   
+  ## If counts are included but normalized counts are not, calculate normalized counts
+  if((!is.null(AIT.anndata$raw$X))&(is.null(AIT.anndata$X))){
+    normalized.expr = log2CPM_byRow(AIT.anndata$raw$X)
+    AIT.anndata$X   = normalized.expr 
+  }
+  
   ##
   if(is.null(AIT.anndata$X)){ stop("No data found in AIT.anndata$X. The full count matrix is required for determining marker genes.") }
 
