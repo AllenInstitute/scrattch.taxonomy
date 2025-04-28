@@ -216,6 +216,7 @@ buildTaxonomyMode = function(AIT.anndata,
   print("===== Writing taxonomy anndata without saved normalized data=====")
   AIT.anndata2 = AIT.anndata
   AIT.anndata2$X = NULL
+  AIT.anndata2$uns$title <- gsub(".h5ad","",AIT.anndata2$uns$title)
   AIT.anndata2$write_h5ad(file.path(AIT.anndata2$uns$taxonomyDir, paste0(AIT.anndata2$uns$title, ".h5ad")))
   rm(AIT.anndata2)
   

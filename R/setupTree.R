@@ -204,6 +204,7 @@ addDendrogramMarkers = function(AIT.anndata,
   ##
   print("Save the dendrogram into .h5ad")
   AIT.anndata$uns$dend[[mode.name]] = toJSON(dend_to_json(reference$dend))
+  AIT.anndata$uns$title <- gsub(".h5ad","",AIT.anndata$uns$title)
   AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
   
   ##
