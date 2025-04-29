@@ -14,7 +14,7 @@
 #' 
 #' @import anndata
 #'
-#' @return AIT_anndata, a reference taxonomy with hierarchical files, such as precompute stats and query markers saved in uns.
+#' @return AIT_anndata, a reference taxonomy with hierarchical files, such as precomputed stats and query markers saved in uns.
 #'
 #' @export
 addMapMyCells = function(AIT_anndata,
@@ -51,6 +51,12 @@ addMapMyCells = function(AIT_anndata,
 
       # get file path to the AIT taxonomy (h5ad)
       taxonomy_anndata_path = get_anndata_path(AIT_anndata, anndata_path, tmp_dir)
+      
+      ## If counts are included but normalized counts are not, calculate normalized counts     <= OMIT THIS PART IF NORMALIZED COUNTS AREN'T NEEDED
+      if((!is.null(AIT.anndata$raw$X))&(is.null(AIT.anndata$X))){
+        normalized.expr = log2CPM_byRow(AIT.anndata$raw$X)
+        AIT.anndata$X   = normalized.expr 
+      }  # <== End potential omission
       
       # (NEW!) write a subsetted h5ad file to the tmp_dir. This will allow proper subsetting of the compute stats and speed it up.
       if(sum(AIT_anndata$uns$filter[[AIT_anndata$uns$mode]])==0){
@@ -119,6 +125,7 @@ addMapMyCells = function(AIT_anndata,
         unlink(mode_dir, recursive = TRUE)
       }
       # Remove any missing empty directories
+      ## Potential future update: wrap function in try catch and delete folder if this function fails before this step
       folder.remove = file.remove(dir()[substr(dir(),1,8)=="tmp_dir_"])
       
       return(AIT_anndata)

@@ -29,21 +29,29 @@ createShiny = function(AIT.anndata,
   kpSub = !AIT.anndata$uns$filter[[AIT.anndata$uns$mode]]
 
   ## Get the data and metadata matrices
-  counts = Matrix::t(AIT.anndata[kpSub,]$raw[["X"]])
+  counts = as(Matrix::t(AIT.anndata[kpSub,]$raw[["X"]]),"dgCMatrix")
+  colnames(counts) = rownames(AIT.anndata$obs)
+  rownames(counts) = rownames(AIT.anndata$var)
   meta.data = AIT.anndata[kpSub,]$obs
-  umap.coords = AIT.anndata[kpSub,]$obsm$X_umap; rownames(umap.coords) = rownames(meta.data)
+  umap.coords = AIT.anndata[kpSub,]$obsm[[AIT.anndata$uns$default_embedding]];   # THIS NEEDS TO BE UPDATED when we update default_embedding to a list
+  rownames(umap.coords) = rownames(meta.data)
 
   ## Create log TPM matrix from counts
   if(!is.null(AIT.anndata$X)){
     tpm.matrix = Matrix::t(AIT.anndata[kpSub,]$X)
   }else{
-    tpm.matrix = scrattch.hicat::logCPM(counts)
+    tpm.matrix = logCPM(counts)
   }
 
+  ## If needed, set "cluster_id" as the first level of the hierarchy
+  hier = as.data.frame(AIT.anndata$uns$hierarchy)
+  meta.data$cluster_id = meta.data[,colnames(hier)[which(hier==max(hier))]]
+  
   ## Next, generate and output the data matrices. Make sure matrix class is dgCMatrix and not dgTMatrix.  
-  sample_id = colnames(tpm.matrix); meta.data$sample_id = sample_id
+  sample_id <- meta.data$sample_id <- colnames(tpm.matrix)
   gene      = rownames(tpm.matrix)
-  cluster   = meta.data$cluster_label; names(cluster) = rownames(meta.data) ## For get_cl_medians
+  cluster   = meta.data$cluster_id   
+  names(cluster) = rownames(meta.data) ## For get_cl_medians
 
   ## Counts feather - Not used for shiny, but useful for saving raw data nonetheless
   print("===== Building counts.feather =====")
@@ -68,13 +76,22 @@ createShiny = function(AIT.anndata,
   feather::write_feather(norm.data.t, file.path(shinyDir, "data.feather"))
   
   ## Output tree
-  dend = json_to_dend(AIT.anndata$uns$dend[["standard"]])
+  dend = json_to_dend(AIT.anndata$uns$dend[[AIT.anndata$uns$mode]])  # Might need to deal with modes here.  For now we write the dendrogram for the current mode
   saveRDS(dend, file.path(shinyDir, "dend.RData"))
 
   ## Output tree order
   outDend = data.frame(cluster = labels(dend), order = 1:length(labels(dend)))
   write.csv(outDend, file.path(shinyDir, "ordered_clusters.csv"))
     
+  ## Minor reformatting of metadata file, then write metadata file
+  print("===== Format the metadata =====")
+  meta.data$sample_id = colnames(counts)
+  colnames(meta.data)[colnames(meta.data)=="sample_name"] <- "sample_name_old" # Rename "sample_name" to avoid shiny crashing
+  colnames(meta.data)[colnames(meta.data)=="cluster_id"]  <- "cluster" 
+  meta.data = .formatMetadata(meta.data, cluster_colors, "sample_id")
+  meta.data$cluster_id <- as.numeric(factor(meta.data$cluster_label,levels=labels(dend))) # Reorder cluster ids to match dendrogram
+  feather::write_feather(meta.data, file.path(shinyDir,"anno.feather"))
+
   ## Write the desc file.  
   anno_desc = create_desc(meta.data, use_label_columns = TRUE)
   # Subset the desc file to match metadata_names, if provided
@@ -85,14 +102,7 @@ createShiny = function(AIT.anndata,
     anno_desc <- desc
   }
   feather::write_feather(anno_desc, file.path(shinyDir,"desc.feather"))
-
-  ## Minor reformatting of metadata file, then write metadata file
-  meta.data$cluster = meta.data$cluster_label; 
-  colnames(meta.data)[colnames(meta.data)=="sample_name"] <- "sample_name_old" # Rename "sample_name" to avoid shiny crashing
-  if(!is.element("sample_id", colnames(meta.data))){ meta.data$sample_id = meta.data$sample_name_old } ## Sanity check for sample_id
-  meta.data$cluster_id <- as.numeric(factor(meta.data$cluster_label,levels=labels(dend))) # Reorder cluster ids to match dendrogram
-  feather::write_feather(meta.data, file.path(shinyDir,"anno.feather"))
-
+  
   ## Write the UMAP coordinates.  
   print("===== Building umap/tsne feathers (precalculated) =====")
   tsne      = data.frame(sample_id = rownames(umap.coords),
@@ -100,7 +110,7 @@ createShiny = function(AIT.anndata,
                          all_y = umap.coords[,2])
   tsne      = tsne[match(meta.data$sample_id, tsne$sample_id),]
   tsne_desc = data.frame(base = "all",
-                         name = "All Cells UMAP")
+                         name = paste("Embedding:",AIT.anndata$uns$default_embedding)) # THIS NEEDS TO BE UPDATED when we update default_embedding to a list
 
   write_feather(tsne, file.path(shinyDir,"tsne.feather"))
   write_feather(tsne_desc, file.path(shinyDir,"tsne_desc.feather"))

@@ -19,7 +19,7 @@
 #'
 #' If save.shiny.output=TRUE, the following two values will get saved to the uns:
 #'       `memb.ref`   - matrix indicating how much confusion there is the mapping between each cell all of the nodes in the tree (including all cell types) when comparing clustering and mapping results with various subsamplings of the data
-#'       `map.df.ref` - Result of tree mapping for each cell in the reference against the clustering tree, including various statistics and marker gene evidence.  This is the same output that comes from tree mapping.#'
+#'       `map.df.ref` - Result of tree mapping for each cell in the reference against the clustering tree, including various statistics and marker gene evidence.  This is the same output that comes from tree mapping.
 #' 
 #' @import feather
 #' @import scrattch.hicat
@@ -71,6 +71,12 @@ addDendrogramMarkers = function(AIT.anndata,
     hierarchy = hierarchy[order(unlist(hierarchy))]
     if(is.null(hierarchy)) stop("Hierarchy must be included in the standard AIT mode in proper format to create a mode.  Please run checkTaxonomy().")
     celltypeColumn = names(hierarchy)[length(hierarchy)][[1]]
+  }
+  
+  ## If counts are included but normalized counts are not, calculate normalized counts
+  if((!is.null(AIT.anndata$raw$X))&(is.null(AIT.anndata$X))){
+    normalized.expr = log2CPM_byRow(AIT.anndata$raw$X)
+    AIT.anndata$X   = normalized.expr 
   }
   
   ##
@@ -164,7 +170,7 @@ addDendrogramMarkers = function(AIT.anndata,
     reference$dend = revert_dend_label(reference$dend,get_nodes_attr(reference$dend, "original_label"),"label")
   }
 
-  #print("Save the reference dendrogram for this mode")  # NOTE: we don't need to save thie dendrogram, as it is staved within the AIT file
+  #print("Save the reference dendrogram for this mode")  # NOTE: we don't need to save this dendrogram, as it is saved within the AIT file
   #dend = reference$dend
   #saveRDS(dend, file.path(taxonomyModeDir, "dend.RData"))
   ## Note, this overwrites the initial dendrogram but has slightly different formatting from the read, which could cause issues
@@ -198,6 +204,7 @@ addDendrogramMarkers = function(AIT.anndata,
   ##
   print("Save the dendrogram into .h5ad")
   AIT.anndata$uns$dend[[mode.name]] = toJSON(dend_to_json(reference$dend))
+  AIT.anndata$uns$title <- gsub(".h5ad","",AIT.anndata$uns$title)
   AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
   
   ##

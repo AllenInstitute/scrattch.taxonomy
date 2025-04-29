@@ -71,7 +71,7 @@ loadTaxonomy = function(taxonomyDir = getwd(),
   ## Set scrattch.mapping to default standard mapping mode
   AIT.anndata$uns$mode = "standard"
   AIT.anndata$uns$taxonomyDir = taxonomyDir
-  AIT.anndata$uns$title = anndata_file
+  AIT.anndata$uns$title <- gsub(".h5ad","",anndata_file)
 
   ## Return
   return(AIT.anndata)

@@ -4,12 +4,18 @@
 \alias{.formatMetadata}
 \title{Function to update meta.data}
 \usage{
-.formatMetadata(meta.data, cluster_colors = NULL)
+.formatMetadata(
+  meta.data,
+  cluster_colors = NULL,
+  sample_identifier = "cell_id"
+)
 }
 \arguments{
 \item{meta.data}{A data.frame with cell metadata}
 
 \item{cluster_colors}{A named vector of colors for each cluster}
+
+\item{sample_identifier}{the name of the column that contains the sample names. default = "cell_id"}
 }
 \value{
 auto_annotated meta.data

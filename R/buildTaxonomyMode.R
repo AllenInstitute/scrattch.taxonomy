@@ -127,6 +127,8 @@ buildTaxonomyMode = function(AIT.anndata,
   
   
   ## MODIFY THE DENDROGRAM AND SAVE IN THE ANNDATA
+  ### -- FUTURE UPDATE: Allow a separate dendrogram to be entered as a variable rather than automatically subsetting the existing dendrogram
+  ### -- FUTURE UPDATE: Allow for non-binary dendrograms
   
   if(!is.null(AIT.anndata$uns$dend)){
     dend = json_to_dend(AIT.anndata$uns$dend[["standard"]])
@@ -214,6 +216,7 @@ buildTaxonomyMode = function(AIT.anndata,
   print("===== Writing taxonomy anndata without saved normalized data=====")
   AIT.anndata2 = AIT.anndata
   AIT.anndata2$X = NULL
+  AIT.anndata2$uns$title <- gsub(".h5ad","",AIT.anndata2$uns$title)
   AIT.anndata2$write_h5ad(file.path(AIT.anndata2$uns$taxonomyDir, paste0(AIT.anndata2$uns$title, ".h5ad")))
   rm(AIT.anndata2)
   

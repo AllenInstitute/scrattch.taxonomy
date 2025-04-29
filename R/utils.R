@@ -207,11 +207,12 @@ updateMarkerGenes = function(AIT.anndata,
 #'
 #' @param meta.data A data.frame with cell metadata
 #' @param cluster_colors A named vector of colors for each cluster
+#' @param sample_identifier the name of the column that contains the sample names. default = "cell_id"
 #' 
 #' @return auto_annotated meta.data
 #'
 #' @keywords internal
-.formatMetadata = function(meta.data, cluster_colors=NULL){
+.formatMetadata = function(meta.data, cluster_colors=NULL, sample_identifier="cell_id"){
 
   print("===== Format metadata table for AIT schema =====")
   ## Check for duplicate columns (e.g., XXXX_label and XXXX together will crash auto_annotate)  # NEW #
@@ -224,7 +225,7 @@ updateMarkerGenes = function(AIT.anndata,
   }
 
   ## Run auto_annotate
-  meta.data = auto_annotate(meta.data, "cell_id")
+  meta.data = auto_annotate(meta.data, sample_identifier)
 
   ## Convert chars and factors to characters (moved to AFTER auto_annotate, so numbers can be assigned in correct order for factors)
   for (col in colnames(meta.data)){ 

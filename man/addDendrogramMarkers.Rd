@@ -36,7 +36,7 @@ addDendrogramMarkers(
 
 \item{de.param}{Differential expression (DE) parameters for genes and clusters used to define marker genes.  By default the values are set to the 10x nuclei defaults from scrattch.hicat, except with min.cells=2 (see notes below).}
 
-\item{calculate.de.genes}{Default=TRUE. If set to false, the function will search for "de_genes" in a file called "de_genes.RData" in the folder taxonomyDir, and will use those if available.}
+\item{calculate.de.genes}{Default=TRUE. If set to false, the function will search for "de_genes" in a file called "de_genes_\link{mode}.RData" in the folder taxonomyDir, and will use those if available.}
 
 \item{save.shiny.output}{Should standard output files be generated and saved to the AIT file (default=TRUE).  These are not required for tree mapping, but are required for building a patch-seq shiny instance. See notes.}
 
@@ -56,7 +56,7 @@ By default VERY loose parameters are set for de_param in an effort to get extra 
 
 If save.shiny.output=TRUE, the following two values will get saved to the uns:
 \code{memb.ref}   - matrix indicating how much confusion there is the mapping between each cell all of the nodes in the tree (including all cell types) when comparing clustering and mapping results with various subsamplings of the data
-\code{map.df.ref} - Result of tree mapping for each cell in the reference against the clustering tree, including various statistics and marker gene evidence.  This is the same output that comes from tree mapping.#'}
+\code{map.df.ref} - Result of tree mapping for each cell in the reference against the clustering tree, including various statistics and marker gene evidence.  This is the same output that comes from tree mapping.}
 }
 \value{
 An updated dendrogram variable that is the same as \code{dend} except with marker genes added to each node.
