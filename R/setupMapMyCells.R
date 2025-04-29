@@ -32,23 +32,22 @@ addMapMyCells = function(AIT_anndata,
       ## move to zzz try catch
       cell_type_mapper <- import("cell_type_mapper")
       
-      ## If not provided, set default for anndata_path
-      if(is.null(anndata_path))
-        anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
-
       if ((length(AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]]) > 0) && force==FALSE) {
         stop(paste0(paste0("ERROR: mode provided '", AIT_anndata$uns$mode), 
         "' already exists, choose a new mode name or use force=TRUE to overwrite."))
       }
       
+      # create a temp folder, make sure it doesn't overwrite existing one for parallel scripts
+      while ((is.null(tmp_dir) || tmp_dir == "") || dir.exists(tmp_dir)) {
+        hash <- tail(unlist(strsplit(tempfile(), "/")), 1)
+        tmp_dir <- paste0("tmp_dir_", format(Sys.time(), "%Y%m%d-%H%M%S"), "_", hash)
+        tmp_dir <- file.path(getwd(), tmp_dir)
+        print(tmp_dir)
+      }
+      dir.create(tmp_dir)
+
       # get an ordered list of taxonomy's hierarchy levels.
       taxonomy_hierarchy = names(hierarchy)
-
-      if (is.null(tmp_dir) || tmp_dir == "") {
-        tmp_dir <- paste0("tmp_dir_", format(Sys.time(), "%Y%m%d-%H%M%S"))
-        tmp_dir <- file.path(getwd(), tmp_dir)
-        dir.create(tmp_dir)
-      }      
 
       # get file path to the AIT taxonomy (h5ad)
       taxonomy_anndata_path = get_anndata_path(AIT_anndata, anndata_path, tmp_dir)
@@ -94,32 +93,26 @@ addMapMyCells = function(AIT_anndata,
       AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]][["query_markers"]] <- AIT_anndata_calc$uns$mapmycells[[AIT_anndata$uns$mode]][["query_markers"]]
       
       # Overwrite correct anndata with added query markers
-      AIT_anndata$write_h5ad(anndata_path)
+      AIT_anndata$write_h5ad(taxonomy_anndata_path)
     },
     error = function(e) {
       errorMessage <- conditionMessage(e)
       cat("Error message:", errorMessage, "\n")
     },
     finally = {
-      # remove the temp folder is it was code generated
-      if (is.null(tmp_dir) || tmp_dir == "") {
-        print(paste("Deleting temp folder", tmp_dir))
-        unlink(tmp_dir, recursive = TRUE)
+      # remove the files is they were code generated
+      if(is.null(user_precomp_stats_path) && !is.null(precomp_stats_output_path)) {
+        file.remove(precomp_stats_output_path)
       }
-      else {
-        # remove the files is they were code generated
-        if(is.null(user_precomp_stats_path) && !is.null(precomp_stats_output_path)) {
-          file.remove(precomp_stats_output_path)
-        }
-        if(is.null(user_query_markers_path)) {
-          file.remove(ref_markers_file_path)
-          file.remove(query_markers_output_path)
-        }
-        if ((is.null(anndata_path) || !file.exists(anndata_path)) && 
-            is.null(AIT_anndata$uns$taxonomyDir) && 
-            is.null(AIT_anndata$uns$title)) {
-          file.remove(taxonomy_anndata_path)
-        }
+      if(is.null(user_query_markers_path)) {
+        file.remove(ref_markers_file_path)
+        file.remove(query_markers_output_path)
+      }
+      # remove anndata if it was temporarly written (only for cell_type_mapper) b/c no valid path was found for AIT
+      if ((is.null(anndata_path) || !file.exists(anndata_path)) && 
+          is.null(AIT_anndata$uns$taxonomyDir) && 
+          is.null(AIT_anndata$uns$title)) {
+        file.remove(taxonomy_anndata_path)
       }
       if(exists("mode_dir")) if(file.exists(mode_dir)){
         # (NEW!) removes the mode temp directory

@@ -89,7 +89,7 @@ buildTaxonomy = function(title="AIT",
   if(class(hierarchy[[1]])=="character"){
     ordered_hierarchy = setNames(as.list(seq_along(hierarchy)-1), unlist(hierarchy))
   } else {
-    ordered_hierarchy = hierarchy
+    ordered_hierarchy = hierarchy[order(as.numeric(hierarchy))]
   }
   if(!all(names(ordered_hierarchy) %in% colnames(meta.data))) {
     stop("Hierarchy values must all be included as column names in the metadata.")
@@ -98,14 +98,13 @@ buildTaxonomy = function(title="AIT",
   
   ## Pull the finest level cell type column
   celltypeColumn = names(hierarchy)[length(hierarchy)][[1]]
-  if(celltypeColumn!="cluster_id") warning("AIT schema requires clusters to be in 'cluster_id' slot. We recommend calling the finest level of the hierarchy as 'cluster_id'.")
 
   ## Transpose counts and convert to dgCMatrix if needed
   if(dim(counts)[2]==dim(meta.data)[1]){
     t.counts <- as(counts, "dgCMatrix")
     counts   <- Matrix::t(counts)
   }
-  if((!is.null(counts))&(!("dgCMatrix" %in% as.character(class(taxonomy.counts)))))
+  if((!is.null(counts))&(!("dgCMatrix" %in% as.character(class(counts)))))
     counts <- as(counts, "dgCMatrix")
   
   ## Deal with character dendrograms
