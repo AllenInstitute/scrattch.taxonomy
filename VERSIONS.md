@@ -5,11 +5,15 @@ Improvements for mapping and patch-seq for schema.
 ### Major changes
 * Allow for direct download and loading of taxonomies from AWS with `loadTaxonomy`
 * Adding html documentation for functions
+* Updated example for Mouse VISp
+* Correct treatment of high variance / marker genes
 
 ### Minor changes
 * Bug fixes
 * Updated documentation
 * Correct setup for tree mapping (fixes a breaking error)
+* Fix issues with `createShiny` introduced after v0.7
+* Remove extra ".h5ad" that was being added to title
 
 --
 

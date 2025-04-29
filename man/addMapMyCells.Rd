@@ -36,7 +36,7 @@ addMapMyCells(
 \item{user_query_markers_path}{Alternative path to the user provided query markers JSON file. Will be generated, if not provided.}
 }
 \value{
-AIT_anndata, a reference taxonomy with hierarchical files, such as precompute stats and query markers saved in uns.
+AIT_anndata, a reference taxonomy with hierarchical files, such as precomputed stats and query markers saved in uns.
 }
 \description{
 This hierarchical mapping is a wrapper around cell_type_mapper and call's it's functions to generate needed files needed for mapping.

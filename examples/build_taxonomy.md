@@ -2,6 +2,8 @@
 
 In this tutorial we demonstrate how to setup an Allen Institute Taxonomy object using scrattch.taxonomy. **WARNING** As written this AIT file will not validate as `MUST` schema elements are missing, we will update this tutorial shortly. When building your own AIT file please carefully adhere to the [schema definitions](https://github.com/AllenInstitute/AllenInstituteTaxonomy/tree/main/schema). In this tutorial we will use prepackaged data from [Tasic et al 2016](https://www.nature.com/articles/nn.4216)
 
+*We strongly encourage running this code within the scrattch docker environment.  This example was created using docker://alleninst/scrattch:1.2 and will likely fail if run using scrattch versions earlier than 1.0.*
+
 #### Required inputs:
 
 * Cell type hierarchy list, from coarse to most granular annotations
@@ -49,7 +51,7 @@ rownames(umap.coords) = colnames(taxonomy.counts)
 
 ## Identify Ensembl IDs 
 # Common NCBI taxIDs: Human = 9606; Mouse = 10090; Macaque (rhesus) = 9544; Marmoset = 9483
-# ensembl_id <- geneSymbolToEnsembl(gene.symbols = rownames(taxonomy.counts), ncbi.taxid = 10090)
+ensembl_id <- geneSymbolToEnsembl(gene.symbols = rownames(taxonomy.counts), ncbi.taxid = 10090)
 
 ## Align taxonomy metadata with AIT standard
 # NOTE: for this particular example, nothing gets updated
@@ -65,7 +67,7 @@ AIT.anndata = buildTaxonomy(title = "Tasic2016",
                             normalized.expr = NULL,
                             highly_variable_genes = NULL,
                             marker_genes = list("marker_genes_binary" = binary.genes),
-                            ensembl_id = NULL,
+                            ensembl_id = ensembl_id,
                             cluster_stats = NULL, ## Pre-computed cluster stats
                             embeddings = list("X_umap" = umap.coords),
                             ##
