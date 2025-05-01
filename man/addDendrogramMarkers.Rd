@@ -20,7 +20,8 @@ addDendrogramMarkers(
   p = 0.8,
   low.th = 0.1,
   overwriteMarkers = TRUE,
-  taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir)
+  taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir),
+  ...
 )
 }
 \arguments{

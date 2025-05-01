@@ -51,7 +51,8 @@ addDendrogramMarkers = function(AIT.anndata,
                                 p=0.8, 
                                 low.th=0.1,
                                 overwriteMarkers = TRUE,
-                                taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir)){
+                                taxonomyDir = file.path(AIT.anndata$uns$taxonomyDir),
+                                ...){  # Not used, but required to include
   suppressWarnings({ # wrapping the whole function in suppressWarnings to avoid having this printed a zillion times: 'useNames = NA is deprecated. Instead, specify either useNames = TRUE or useNames = FALSE.'
   
   ## Deal with back compatibility of mode

@@ -57,7 +57,8 @@
 <span>  p <span class="op">=</span> <span class="fl">0.8</span>,</span>
 <span>  low.th <span class="op">=</span> <span class="fl">0.1</span>,</span>
 <span>  overwriteMarkers <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  taxonomyDir <span class="op">=</span> <span class="fu"><a href="file.path.html">file.path</a></span><span class="op">(</span><span class="va">AIT.anndata</span><span class="op">$</span><span class="va">uns</span><span class="op">$</span><span class="va">taxonomyDir</span><span class="op">)</span></span>
+<span>  taxonomyDir <span class="op">=</span> <span class="fu"><a href="file.path.html">file.path</a></span><span class="op">(</span><span class="va">AIT.anndata</span><span class="op">$</span><span class="va">uns</span><span class="op">$</span><span class="va">taxonomyDir</span><span class="op">)</span>,</span>
+<span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -90,7 +91,7 @@
 
 
 <dt id="arg-calculate-de-genes">calculate.de.genes<a class="anchor" aria-label="anchor" href="#arg-calculate-de-genes"></a></dt>
-<dd><p>Default=TRUE. If set to false, the function will search for "de_genes" in a file called "de_genes.RData" in the folder taxonomyDir, and will use those if available.</p></dd>
+<dd><p>Default=TRUE. If set to false, the function will search for "de_genes" in a file called "de_genes_<a href="https://rdrr.io/r/base/mode.html" class="external-link">mode</a>.RData" in the folder taxonomyDir, and will use those if available.</p></dd>
 
 
 <dt id="arg-save-shiny-output">save.shiny.output<a class="anchor" aria-label="anchor" href="#arg-save-shiny-output"></a></dt>
@@ -122,7 +123,7 @@
 <p>By default VERY loose parameters are set for de_param in an effort to get extra marker genes for each node.  The defaults previously proposed for 10x nuclei are the following <code>de_param(low.th = 1, padj.th = 0.01, lfc.th = 1, q1.th = 0.3, q2.th = NULL, q.diff.th = 0.7, de.score.th = 100, min.cells = 2, min.genes = 5)</code>. See the function <code>de_param</code> in the scrattch.hicat for more details.</p>
 <p>If save.shiny.output=TRUE, the following two values will get saved to the uns:
 <code>memb.ref</code>   - matrix indicating how much confusion there is the mapping between each cell all of the nodes in the tree (including all cell types) when comparing clustering and mapping results with various subsamplings of the data
-<code>map.df.ref</code> - Result of tree mapping for each cell in the reference against the clustering tree, including various statistics and marker gene evidence.  This is the same output that comes from tree mapping.#'</p></dd>
+<code>map.df.ref</code> - Result of tree mapping for each cell in the reference against the clustering tree, including various statistics and marker gene evidence.  This is the same output that comes from tree mapping.</p></dd>
 
 </dl></div>
     <div class="section level2">

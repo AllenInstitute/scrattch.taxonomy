@@ -21,6 +21,7 @@
 #' @param reorder.dendrogram Should dendogram attempt to match a preset order? (Default = FALSE).  If TRUE, the dendrogram attempts to match the celltype factor order as closely as possible (if celltype is a character vector rather than a factor, this will sort clusters alphabetically, which is not ideal).
 #' @param add.dendrogram.markers If TRUE (default=FALSE), will also add dendrogram markers to prep the taxonomy for tree mapping
 #' @param addMapMyCells If TRUE (default), will also prep this taxonomy for hierarchical mapping
+#' @param save.normalized.data If TRUE (default), will save normalized data when writing out h5ad file.  Otherwise, will remove normalized data to save space (in which case it will be recalculated automatically upon `loadTaxonomy`)
 #' @param check.taxonomy Should the taxonomy be checked to see if it follows the AIT schema (default=TRUE)
 #' @param print.messages If check.taxonomy occurs, should any messages be written to the screen in addition to the log file (default=TRUE)
 #' @param ... Additional variables to be passed to `addDendrogramMarkers`
@@ -69,6 +70,7 @@ buildTaxonomy = function(title="AIT",
                          reorder.dendrogram = FALSE,
                          add.dendrogram.markers = FALSE,
                          addMapMyCells = TRUE,
+                         save.normalized.data = TRUE,
                          check.taxonomy = TRUE,
                          print.messages = TRUE,
                          ...){
@@ -405,13 +407,21 @@ buildTaxonomy = function(title="AIT",
     })
   }
 
-  ## Write the Allen Institute Taxonomy object without the normalized data (it can be recalculated on load)
+  ## Write the Allen Institute Taxonomy object, potentially without the normalized data (it can be recalculated on load)
   if(!is.null(AIT.anndata$X)){
-    print("===== Writing taxonomy anndata without saved normalized data=====")
-    X <- AIT.anndata$X
-    AIT.anndata$X = NULL
+    if(save.normalized.data){
+      print("===== Writing taxonomy anndata =====")
+      AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
+    } else {
+      print("===== Writing taxonomy anndata without saved normalized data =====")
+      X <- AIT.anndata$X
+      AIT.anndata$X = NULL
+      AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
+      AIT.anndata$X <- X
+    }
+  } else{
+    print("===== Writing taxonomy anndata, which does not contain any normalized data =====")
     AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
-    AIT.anndata$X <- X
   }
   
   ## Check whether the taxonomy is a valid scrattch.taxonomy format

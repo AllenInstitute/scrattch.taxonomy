@@ -14,6 +14,7 @@
 #' @param add.dendrogram.markers If TRUE (default=FALSE), will also add dendrogram markers to prep the taxonomy for tree mapping
 #' @param addMapMyCells If TRUE (default), will also prep this mode of the taxonomy for hierarchical MapMyCells mapping
 #' @param overwrite If [mode.name] already exists, should it be overwritten (default = FALSE)
+#' @param save.normalized.data If TRUE (default), will save normalized data when writing out h5ad file.  Otherwise, will remove normalized data to save space (in which case it will be recalculated automatically upon `loadTaxonomy`)
 #' @param ... Additional variables to be passed to `addDendrogramMarkers`
 #' 
 #' @import scrattch.hicat
@@ -34,6 +35,8 @@ buildTaxonomyMode = function(AIT.anndata,
                              add.dendrogram.markers = FALSE,
                              addMapMyCells = TRUE,
                              overwrite = FALSE,
+                             save.normalized.data = TRUE,
+                             write.taxonomy = TRUE, # This should never be adjusted manually. Set to FALSE when called from "buildPatchseqTaxonomy"
                              ...){
   
   ## FIRST DO SOME CHECKS OF THE INPUT VARIABLES
@@ -212,13 +215,27 @@ buildTaxonomyMode = function(AIT.anndata,
     })
   }
   
-  ## Write the Allen Institute Taxonomy object without the normalized data (it can be recalculated on load)
-  print("===== Writing taxonomy anndata without saved normalized data=====")
-  AIT.anndata2 = AIT.anndata
-  AIT.anndata2$X = NULL
-  AIT.anndata2$uns$title <- gsub(".h5ad","",AIT.anndata2$uns$title)
-  AIT.anndata2$write_h5ad(file.path(AIT.anndata2$uns$taxonomyDir, paste0(AIT.anndata2$uns$title, ".h5ad")))
-  rm(AIT.anndata2)
+  ## WRITE AND RETURN AIT
+  
+  ## Write the Allen Institute Taxonomy object, potentially without the normalized data (it can be recalculated on load)
+  AIT.anndata$uns$title <- gsub(".h5ad","",AIT.anndata$uns$title)  # Address issue with title including .h5ad
+  if (write.taxonomy){
+    if(!is.null(AIT.anndata$X)){
+      if(save.normalized.data){
+        print("===== Writing taxonomy anndata =====")
+        AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
+      } else {
+        print("===== Writing taxonomy anndata without saved normalized data =====")
+        X <- AIT.anndata$X
+        AIT.anndata$X = NULL
+        AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
+        AIT.anndata$X <- X
+      }
+    } else{
+      print("===== Writing taxonomy anndata, which does not contain any normalized data =====")
+      AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
+    }
+  }
   
   ##
   return(AIT.anndata)
