@@ -27,6 +27,7 @@ buildTaxonomy(
   reorder.dendrogram = FALSE,
   add.dendrogram.markers = FALSE,
   addMapMyCells = TRUE,
+  save.normalized.data = TRUE,
   check.taxonomy = TRUE,
   print.messages = TRUE,
   ...
@@ -72,6 +73,8 @@ buildTaxonomy(
 \item{add.dendrogram.markers}{If TRUE (default=FALSE), will also add dendrogram markers to prep the taxonomy for tree mapping}
 
 \item{addMapMyCells}{If TRUE (default), will also prep this taxonomy for hierarchical mapping}
+
+\item{save.normalized.data}{If TRUE (default), will save normalized data when writing out h5ad file.  Otherwise, will remove normalized data to save space (in which case it will be recalculated automatically upon \code{loadTaxonomy})}
 
 \item{check.taxonomy}{Should the taxonomy be checked to see if it follows the AIT schema (default=TRUE)}
 

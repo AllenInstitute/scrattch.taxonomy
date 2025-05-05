@@ -17,6 +17,8 @@ buildTaxonomyMode(
   add.dendrogram.markers = FALSE,
   addMapMyCells = TRUE,
   overwrite = FALSE,
+  save.normalized.data = TRUE,
+  write.taxonomy = TRUE,
   ...
 )
 }
@@ -44,6 +46,8 @@ buildTaxonomyMode(
 \item{addMapMyCells}{If TRUE (default), will also prep this mode of the taxonomy for hierarchical MapMyCells mapping}
 
 \item{overwrite}{If \link{mode.name} already exists, should it be overwritten (default = FALSE)}
+
+\item{save.normalized.data}{If TRUE (default), will save normalized data when writing out h5ad file.  Otherwise, will remove normalized data to save space (in which case it will be recalculated automatically upon \code{loadTaxonomy})}
 
 \item{...}{Additional variables to be passed to \code{addDendrogramMarkers}}
 }

@@ -29,6 +29,7 @@ loadTaxonomy = function(taxonomyDir = getwd(),
     anndata_parts  <- strsplit(anndata_file, "/")[[1]]
     anndata_object <- anndata_parts[length(anndata_parts)]
     if(!file.exists(anndata_object)){
+      options(timeout = 9000) 
       download.file(anndata_file, file.path(taxonomyDir, anndata_object), timeout=9000)
     }
     anndata_file = anndata_object

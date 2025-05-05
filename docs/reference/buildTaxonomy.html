@@ -66,6 +66,7 @@ Precomputed clusters must be provided.  In the anndata object these will be stor
 <span>  reorder.dendrogram <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  add.dendrogram.markers <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  addMapMyCells <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  save.normalized.data <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  check.taxonomy <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  print.messages <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -154,6 +155,10 @@ Precomputed clusters must be provided.  In the anndata object these will be stor
 
 <dt id="arg-addmapmycells">addMapMyCells<a class="anchor" aria-label="anchor" href="#arg-addmapmycells"></a></dt>
 <dd><p>If TRUE (default), will also prep this taxonomy for hierarchical mapping</p></dd>
+
+
+<dt id="arg-save-normalized-data">save.normalized.data<a class="anchor" aria-label="anchor" href="#arg-save-normalized-data"></a></dt>
+<dd><p>If TRUE (default), will save normalized data when writing out h5ad file.  Otherwise, will remove normalized data to save space (in which case it will be recalculated automatically upon <code>loadTaxonomy</code>)</p></dd>
 
 
 <dt id="arg-check-taxonomy">check.taxonomy<a class="anchor" aria-label="anchor" href="#arg-check-taxonomy"></a></dt>
