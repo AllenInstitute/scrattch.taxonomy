@@ -91,15 +91,11 @@ buildTaxonomyMode = function(AIT.anndata,
   retain[retain] = retain.subsample
   mode.clusters  = sort(unique(cluster.vector[retain]))
   if(length(mode.clusters)<2) stop("At least two clusters are needed for a proper taxonomy. Double check filtering options in input.")
+  retain <- as.logical(retain)
   AIT.anndata$uns$filter[[mode.name]] = !retain
   AIT.anndata$uns$clusterStatsColumns[[mode.name]] = mode.clusters
 
-  
-  ## Filter stats files if they exist
-  #AIT.anndata$varm[[paste0("cluster_id_median_expr_",mode.name)]] =  AIT.anndata$varm[["cluster_id_median_expr_standard"]][,mode.clusters]
-  #  THIS IS REDUNDANT TO SAVE, SO WE WON'T.  IT CAN BE SUBSET AS NEEDED
-  
-  
+
   ## DEAL WITH MODE-SPECIFIC HIGHLY VARIABLE GENES
   
   ## highly_variable_genes is a data.frame with gene names in rows and various sets in columns
@@ -220,20 +216,21 @@ buildTaxonomyMode = function(AIT.anndata,
   ## Write the Allen Institute Taxonomy object, potentially without the normalized data (it can be recalculated on load)
   AIT.anndata$uns$title <- gsub(".h5ad","",AIT.anndata$uns$title)  # Address issue with title including .h5ad
   if (write.taxonomy){
+    h5ad.file = file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad"))
     if(!is.null(AIT.anndata$X)){
       if(save.normalized.data){
         print("===== Writing taxonomy anndata =====")
-        AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
+        AIT.anndata$write_h5ad(h5ad.file)
       } else {
         print("===== Writing taxonomy anndata without saved normalized data =====")
         X <- AIT.anndata$X
         AIT.anndata$X = NULL
-        AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
+        AIT.anndata$write_h5ad(h5ad.file)
         AIT.anndata$X <- X
       }
     } else{
       print("===== Writing taxonomy anndata, which does not contain any normalized data =====")
-      AIT.anndata$write_h5ad(file.path(AIT.anndata$uns$taxonomyDir, paste0(AIT.anndata$uns$title, ".h5ad")))
+      AIT.anndata$write_h5ad(h5ad.file)
     }
   }
   
