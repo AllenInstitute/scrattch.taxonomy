@@ -53,9 +53,9 @@ addMapMyCells = function(AIT_anndata,
       taxonomy_anndata_path = get_anndata_path(AIT_anndata, anndata_path, tmp_dir)
       
       ## If counts are included but normalized counts are not, calculate normalized counts     <= OMIT THIS PART IF NORMALIZED COUNTS AREN'T NEEDED
-      if((!is.null(AIT.anndata$raw$X))&(is.null(AIT.anndata$X))){
-        normalized.expr = log2CPM_byRow(AIT.anndata$raw$X)
-        AIT.anndata$X   = normalized.expr 
+      if((!is.null(AIT_anndata$raw$X))&(is.null(AIT_anndata$X))){
+        normalized.expr = log2CPM_byRow(AIT_anndata$raw$X)
+        AIT_anndata$X   = normalized.expr 
       }  # <== End potential omission
       
       # (NEW!) write a subsetted h5ad file to the tmp_dir. This will allow proper subsetting of the compute stats and speed it up.
