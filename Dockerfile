@@ -13,6 +13,8 @@ RUN R -e 'install.packages("reticulate")'
 RUN R -e 'install.packages("anndata", update=TRUE)'
 RUN R -e 'install.packages("ontologyIndex")'  
 RUN R -e 'install.packages("stringdist")' 
+RUN R -e 'install.packages("R.utils")'
+
 
 RUN R -e 'install.packages("BiocManager", update=FALSE)' 
 RUN R -e 'BiocManager::install(c( "AnnotationDbi", "data.table", "GO.db", \
@@ -81,15 +83,15 @@ RUN pip install -e ./cell_type_mapper
 RUN pip install anndata==0.8.0 numpy==1.26.4 
 
 ## scrattch-taxonomy install from local source
-COPY scrattch.taxonomy_1.2.tar.gz ./scrattch.taxonomy_1.2.tar.gz
+COPY scrattch.taxonomy_1.2.1.tar.gz ./scrattch.taxonomy_1.2.tar.gz
 RUN R -e 'install.packages("scrattch.taxonomy_1.2.tar.gz", repos=NULL, type="source")'
 
 ## scrattch-mapping install from local source
-COPY scrattch.mapping_1.2.tar.gz ./scrattch.mapping_1.2.tar.gz
+COPY scrattch.mapping_1.2.1.tar.gz ./scrattch.mapping_1.2.tar.gz
 RUN R -e 'install.packages("scrattch.mapping_1.2.tar.gz", repos=NULL, type="source")'
 
 # ## scrattch-patchseq install from local source
-COPY scrattch.patchseq_1.2.tar.gz ./scrattch.patchseq_1.2.tar.gz
+COPY scrattch.patchseq_1.2.1.tar.gz ./scrattch.patchseq_1.2.tar.gz
 RUN R -e 'install.packages("scrattch.patchseq_1.2.tar.gz", repos=NULL, type="source")'
 
 ## 

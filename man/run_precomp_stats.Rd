@@ -10,7 +10,7 @@ run_precomp_stats(
   n_processors,
   normalization,
   tmp_dir,
-  hierarchy
+  taxonomy_hierarchy
 )
 }
 \arguments{
