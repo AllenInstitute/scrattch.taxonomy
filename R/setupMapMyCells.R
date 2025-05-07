@@ -46,9 +46,6 @@ addMapMyCells = function(AIT_anndata,
       }
       dir.create(tmp_dir)
 
-      # get an ordered list of taxonomy's hierarchy levels.
-      taxonomy_hierarchy = names(hierarchy)
-
       # get file path to the AIT taxonomy (h5ad)
       anndata_path = get_anndata_path(AIT_anndata, anndata_path, tmp_dir)
       
@@ -80,7 +77,7 @@ addMapMyCells = function(AIT_anndata,
       # compute stats and save them to anndata.
       precomp_stats_output_path = user_precomp_stats_path
       if(is.null(precomp_stats_output_path)) {
-        precomp_stats_output_path = run_precomp_stats(anndata_calc_path, n_processors, normalization, tmp_dir, taxonomy_hierarchy)
+        precomp_stats_output_path = run_precomp_stats(anndata_calc_path, n_processors, normalization, tmp_dir, names(hierarchy))
       }
       AIT_anndata_calc = save_precomp_stats_to_uns(anndata_calc_path, precomp_stats_output_path, AIT_anndata$uns$mode)
 

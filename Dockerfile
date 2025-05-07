@@ -15,7 +15,6 @@ RUN R -e 'install.packages("ontologyIndex")'
 RUN R -e 'install.packages("stringdist")' 
 RUN R -e 'install.packages("R.utils")'
 
-
 RUN R -e 'install.packages("BiocManager", update=FALSE)' 
 RUN R -e 'BiocManager::install(c( "AnnotationDbi", "data.table", "GO.db", \
                                   "impute", "limma", "preprocessCore", "xml2", "rols"), dependencies=NA, update=TRUE)' 
