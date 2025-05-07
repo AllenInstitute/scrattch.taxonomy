@@ -100,7 +100,8 @@ buildTaxonomy = function(title="AIT",
   
   ## Pull the finest level cell type column
   celltypeColumn = names(hierarchy)[length(hierarchy)][[1]]
-
+  if(celltypeColumn!="cluster_id") warning("AIT schema requires clusters to be in 'cluster_id' slot. We recommend calling the finest level of the hierarchy as 'cluster_id'.")
+  
   ## Transpose counts and convert to dgCMatrix if needed
   if(dim(counts)[2]==dim(meta.data)[1]){
     t.counts <- as(counts, "dgCMatrix")
