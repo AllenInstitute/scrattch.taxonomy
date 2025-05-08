@@ -32,36 +32,33 @@ addMapMyCells = function(AIT_anndata,
       ## move to zzz try catch
       cell_type_mapper <- import("cell_type_mapper")
       
-      ## If not provided, set default for anndata_path
-      if(is.null(anndata_path))
-        anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, ".h5ad"))
-
       if ((length(AIT_anndata$uns$mapmycells[[AIT_anndata$uns$mode]]) > 0) && force==FALSE) {
         stop(paste0(paste0("ERROR: mode provided '", AIT_anndata$uns$mode), 
         "' already exists, choose a new mode name or use force=TRUE to overwrite."))
       }
       
-      # get an ordered list of taxonomy's hierarchy levels.
-      taxonomy_hierarchy = names(hierarchy)
-
-      if (is.null(tmp_dir) || tmp_dir == "") {
-        tmp_dir <- paste0("tmp_dir_", format(Sys.time(), "%Y%m%d-%H%M%S"))
+      # create a temp folder, make sure it doesn't overwrite existing one for parallel scripts
+      while ((is.null(tmp_dir) || tmp_dir == "") || dir.exists(tmp_dir)) {
+        hash <- tail(unlist(strsplit(tempfile(), "/")), 1)
+        tmp_dir <- paste0("tmp_dir_", format(Sys.time(), "%Y%m%d-%H%M%S"), "_", hash)
         tmp_dir <- file.path(getwd(), tmp_dir)
-        dir.create(tmp_dir)
-      }      
+        print(tmp_dir)
+      }
+      dir.create(tmp_dir)
 
       # get file path to the AIT taxonomy (h5ad)
-      taxonomy_anndata_path = get_anndata_path(AIT_anndata, anndata_path, tmp_dir)
+      anndata_path = get_anndata_path(AIT_anndata, anndata_path, tmp_dir)
       
-      ## If counts are included but normalized counts are not, calculate normalized counts     <= OMIT THIS PART IF NORMALIZED COUNTS AREN'T NEEDED
+      ## If counts are included but normalized counts are not, calculate normalized counts
       if((!is.null(AIT_anndata$raw$X))&(is.null(AIT_anndata$X))){
         normalized.expr = log2CPM_byRow(AIT_anndata$raw$X)
         AIT_anndata$X   = normalized.expr 
-      }  # <== End potential omission
+        normalization = "log2CPM"
+      }
       
       # (NEW!) write a subsetted h5ad file to the tmp_dir. This will allow proper subsetting of the compute stats and speed it up.
       if(sum(AIT_anndata$uns$filter[[AIT_anndata$uns$mode]])==0){
-        anndata_calc_path = taxonomy_anndata_path
+        anndata_calc_path = anndata_path
         AIT_anndata_calc  = AIT_anndata
       } else {
         mode_dir <- file.path(AIT_anndata$uns$taxonomyDir,AIT_anndata$uns$mode)
@@ -80,7 +77,7 @@ addMapMyCells = function(AIT_anndata,
       # compute stats and save them to anndata.
       precomp_stats_output_path = user_precomp_stats_path
       if(is.null(precomp_stats_output_path)) {
-        precomp_stats_output_path = run_precomp_stats(anndata_calc_path, n_processors, normalization, tmp_dir, taxonomy_hierarchy)
+        precomp_stats_output_path = run_precomp_stats(anndata_calc_path, n_processors, normalization, tmp_dir, names(hierarchy))
       }
       AIT_anndata_calc = save_precomp_stats_to_uns(anndata_calc_path, precomp_stats_output_path, AIT_anndata$uns$mode)
 
@@ -107,34 +104,40 @@ addMapMyCells = function(AIT_anndata,
       cat("Error message:", errorMessage, "\n")
     },
     finally = {
-      # remove the temp folder is it was code generated
-      if (is.null(tmp_dir) || tmp_dir == "") {
-        print(paste("Deleting temp folder", tmp_dir))
-        unlink(tmp_dir, recursive = TRUE)
-      }
-      else {
+      try({
         # remove the files is they were code generated
-        if(is.null(user_precomp_stats_path) && !is.null(precomp_stats_output_path)) {
+        if (is.null(user_precomp_stats_path) && 
+            file.exists(precomp_stats_output_path)) {
           file.remove(precomp_stats_output_path)
         }
+      })
+      try({
         if(is.null(user_query_markers_path)) {
-          file.remove(ref_markers_file_path)
-          file.remove(query_markers_output_path)
+          if(file.exists(ref_markers_file_path)) { 
+            file.remove(ref_markers_file_path) 
+          }
+          if(file.exists(query_markers_output_path)) { 
+            file.remove(query_markers_output_path) 
+          }
         }
-        if ((is.null(anndata_path) || !file.exists(anndata_path)) && 
-            is.null(AIT_anndata$uns$taxonomyDir) && 
-            is.null(AIT_anndata$uns$title)) {
-          file.remove(taxonomy_anndata_path)
+      })
+      try({
+        # remove anndata if it was temporarly written (only for cell_type_mapper) b/c no valid path was found for AIT
+        if (grepl("temp_anndata_", anndata_path) && 
+            file.exists(anndata_path)) {
+          file.remove(anndata_path)
         }
-      }
-      if(exists("mode_dir")) if(file.exists(mode_dir)){
-        # (NEW!) removes the mode temp directory
-        unlink(mode_dir, recursive = TRUE)
-      }
+      })
+      try({
+        if(exists("mode_dir")) if(file.exists(mode_dir)){
+          # (NEW!) removes the mode temp directory
+          unlink(mode_dir, recursive = TRUE)
+        }
+      })
       # Remove any missing empty directories
-      ## Potential future update: wrap function in try catch and delete folder if this function fails before this step
-      folder.remove = file.remove(dir()[substr(dir(),1,8)=="tmp_dir_"])
-      
+      try({
+        folder.remove = file.remove(dir()[substr(dir(),1,8)=="tmp_dir_"])
+      })
       return(AIT_anndata)
     }
   )
@@ -152,7 +155,7 @@ addMapMyCells = function(AIT_anndata,
 #' @return File path to the precompute stats file.
 #'
 #' @keywords internal
-run_precomp_stats = function(anndata_path, n_processors, normalization, tmp_dir, hierarchy) {
+run_precomp_stats = function(anndata_path, n_processors, normalization, tmp_dir, taxonomy_hierarchy) {
 
   ##
   temp_precomp_stats_name = paste0("precomp_stats_", format(Sys.time(), "%Y%m%d-%H%M%S"))
@@ -165,7 +168,7 @@ run_precomp_stats = function(anndata_path, n_processors, normalization, tmp_dir,
       'normalization' = normalization,
       'tmp_dir' = tmp_dir,
       'output_path' = precomp_stats_output_path,
-      'hierarchy' = hierarchy
+      'hierarchy' = taxonomy_hierarchy
   )
 
   precomp_stats_runner <- cell_type_mapper$cli$precompute_stats_scrattch$PrecomputationScrattchRunner(
@@ -299,13 +302,14 @@ get_anndata_path = function(AIT_anndata, anndata_path, tmp_dir) {
       # Check if the file name already ends with .h5ad, if not, append it
       anndata_path = file.path(AIT_anndata$uns$taxonomyDir, paste0(AIT_anndata$uns$title, 
                                ifelse(!grepl("\\.h5ad$", AIT_anndata$uns$title), ".h5ad", "")))
-
     }
-    # Check if anndata path exists; if does not, write it out to temp - show WARNING.
+    # Check if anndata path is valid now after the assignment in the if block above.
+    # If it is still invalid, write it out to temp - show WARNING.
     if (is.null(anndata_path) || !file.exists(anndata_path)) {
-      print(paste0(paste("WARNING: INVALID FILE PATH, ERROR in AIT_anndata$uns taxonomyDir and taxonomyName:", anndata_path),
-            ". Writing the AIT_anndata to temperary location, SAVE anndata or FIX path to OPTIMIZE this step."))
-      anndata_filename <- paste0(paste0("temp_anndata_", format(Sys.time(), "%Y%m%d-%H%M%S")), ".h5ad")
+      warning(paste("WARNING: INVALID FILE PATH, ERROR in AIT_anndata$uns taxonomyDir and taxonomyName:", anndata_path,
+                              "\nWriting the AIT_anndata to temperary location, SAVE anndata or FIX path to OPTIMIZE this step."))
+      # Note: the finally statement above looks for 'temp_anndata_' in the file name. 
+      anndata_filename <- paste0("temp_anndata_", format(Sys.time(), "%Y%m%d-%H%M%S"), ".h5ad")
       anndata_path <- file.path(tmp_dir, anndata_filename)
       AIT_anndata$write_h5ad(anndata_path)
     }

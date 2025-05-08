@@ -13,6 +13,7 @@ RUN R -e 'install.packages("reticulate")'
 RUN R -e 'install.packages("anndata", update=TRUE)'
 RUN R -e 'install.packages("ontologyIndex")'  
 RUN R -e 'install.packages("stringdist")' 
+RUN R -e 'install.packages("R.utils")'
 
 RUN R -e 'install.packages("BiocManager", update=FALSE)' 
 RUN R -e 'BiocManager::install(c( "AnnotationDbi", "data.table", "GO.db", \

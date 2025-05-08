@@ -18,7 +18,7 @@ buildTaxonomy(
   cluster_stats = NULL,
   embeddings = NULL,
   number.of.pcs = 30,
-  dend = NA,
+  dend = NULL,
   taxonomyDir = getwd(),
   cluster_colors = NULL,
   default_embedding = NULL,
