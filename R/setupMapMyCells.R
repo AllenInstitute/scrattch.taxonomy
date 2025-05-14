@@ -61,7 +61,7 @@ addMapMyCells = function(AIT_anndata,
         anndata_calc_path = anndata_path
         AIT_anndata_calc  = AIT_anndata
       } else {
-        mode_dir <- file.path(AIT_anndata$uns$taxonomyDir,AIT_anndata$uns$mode)
+        mode_dir <- file.path(AIT_anndata$uns$taxonomyDir, AIT_anndata$uns$mode)
         anndata_calc_path <- file.path(mode_dir, paste0(AIT_anndata$uns$title, ".h5ad"))
         dir.create(mode_dir)
         keep <- !(AIT_anndata$uns$filter[[AIT_anndata$uns$mode]])
@@ -107,16 +107,19 @@ addMapMyCells = function(AIT_anndata,
       try({
         # remove the files is they were code generated
         if (is.null(user_precomp_stats_path) && 
+            exists("precomp_stats_output_path") && 
             file.exists(precomp_stats_output_path)) {
           file.remove(precomp_stats_output_path)
         }
       })
       try({
-        if(is.null(user_query_markers_path)) {
-          if(file.exists(ref_markers_file_path)) { 
+        if (is.null(user_query_markers_path)) {
+          if (exists("ref_markers_file_path") && 
+              file.exists(ref_markers_file_path)) { 
             file.remove(ref_markers_file_path) 
           }
-          if(file.exists(query_markers_output_path)) { 
+          if (exists("query_markers_output_path") && 
+              file.exists(query_markers_output_path)) { 
             file.remove(query_markers_output_path) 
           }
         }
