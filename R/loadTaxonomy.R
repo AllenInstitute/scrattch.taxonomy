@@ -3,6 +3,8 @@
 #' @param taxonomyDir Directory containing the AIT file -OR- a direct h5ad file name -OR- a URL of a publicly accessible AIT file.
 #' @param anndata_file If taxonomyDir is a directory, anndata_file must be the file name of the anndata object (.h5ad) to be loaded in that directory. If taxonomyDir is a file name or a URL, then anndata_file is ignored.
 #' @param log.file.path Path to write log file to. Defaults to current working directory. 
+#' @param read_subsampled Should a subsampled version of the taxonomy be loaded (default=FALSE). If TRUE, additional parameters for read_subsampled_h5ad must be provided.
+#' @param ... Additional parameters passed to read_subsampled_h5ad (note that "h5ad" is inferred from anndata_file above)
 #'
 #' @return Organized reference object ready for mapping against.
 #' 
@@ -12,7 +14,9 @@
 loadTaxonomy = function(taxonomyDir = getwd(), 
                         anndata_file = "AI_taxonomy.h5ad",
                         log.file.path=getwd(),
-                        force=FALSE){
+                        force=FALSE,
+                        read_subsampled=FALSE,
+                        ...){
   
   ## Allow for h5ad as the first/only input
   if(grepl("h5ad", taxonomyDir)){
@@ -37,9 +41,16 @@ loadTaxonomy = function(taxonomyDir = getwd(),
   
   ## Load from directory name input 
   if(file.exists(file.path(taxonomyDir, anndata_file))){
-    print("Loading reference taxonomy into memory from .h5ad")
-    ## Load taxonomy directly!
-    AIT.anndata = read_h5ad(file.path(taxonomyDir, anndata_file))
+    if(read_subsampled){
+      print("Loading SUBSAMPLED reference taxonomy into memory from .h5ad")
+      ## Load subsampled taxonomy directly!
+      h5ad = file.path(taxonomyDir, anndata_file)
+      AIT.anndata = read_subsampled_h5ad(h5ad,...)
+    } else {
+      print("Loading COMPLETE reference taxonomy into memory from .h5ad")
+      ## Load taxonomy directly!
+      AIT.anndata = read_h5ad(file.path(taxonomyDir, anndata_file))
+    }
     ## Default mode is always standard
     AIT.anndata$uns$mode = "standard"
     ##
@@ -76,4 +87,178 @@ loadTaxonomy = function(taxonomyDir = getwd(),
 
   ## Return
   return(AIT.anndata)
+}
+
+
+
+#' Read an h5ad file into R after subsampling in python
+#'
+#' @param h5ad The location of an h5ad file (if not local, it will be downloaded).
+#' @param cluster_vector Optional subsampling spec. Can be one of:
+#'   (1) character vector of cell IDs to keep,
+#'   (2) logical vector TRUE=keep/FALSE=omit (aligned to obs order),
+#'   (3) numeric vector of 1-based row indices to keep.
+#'   If provided, cluster_column and subsample are ignored.
+#' @param cluster_column The column name in obs where clusters are stored
+#'   (default = "cluster_id"). Ignored if cluster_vector is provided.
+#' @param subsample How much subsampling should be done before running statistics.
+#'   Default is 100 per item in cluster_column. Ignored if cluster_vector is provided.
+#' @param seed The seed to use for reproducibility.
+#' @param python_exe Python executable (default = "python3").
+#' @param keep_files Should the subsampled h5ad be kept on disk?
+#' @param outdir Output directory for temporary or kept files.
+#' @param read_backed If TRUE, read subsampled h5ad with backed="r".
+#'
+#' @return the subsampled AnnData object
+#'
+#' @import anndata
+#' @export
+read_subsampled_h5ad <- function(
+    h5ad,
+    cluster_vector = NULL,
+    cluster_column = "cluster_id",
+    subsample = 100,
+    seed = 42,
+    python_exe = "python3",
+    keep_files = FALSE,
+    outdir = ifelse(keep_files, getwd(), tempdir()),
+    read_backed = FALSE
+) {
+  stopifnot(is.character(h5ad), length(h5ad) == 1)
+  dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
+  
+  # ------------------------------------------------------------
+  # 0) Ensure local h5ad
+  # ------------------------------------------------------------
+  if (grepl("^https?://", h5ad)) {
+    local_h5ad <- file.path(outdir, basename(h5ad))
+    if (!file.exists(local_h5ad)) {
+      options(timeout = 9000)
+      download.file(h5ad, destfile = local_h5ad, mode = "wb", timeout = 9000)
+    }
+  } else {
+    local_h5ad <- h5ad
+  }
+  if (!file.exists(local_h5ad))
+    stop("h5ad file not found: ", local_h5ad)
+  
+  # ------------------------------------------------------------
+  # 1) Determine subsample IDs in R
+  # ------------------------------------------------------------
+  keep_ids <- NULL
+  
+  if (is.null(cluster_vector)) {
+    ## ---------- Mode 1: compute subsample internally ----------
+    if (!requireNamespace("anndata", quietly = TRUE))
+      stop("R package 'anndata' is required.")
+    
+    if (!exists("subsampleCells", mode = "function"))
+      stop("subsampleCells() not found in R environment.")
+    
+    ad <- anndata::read_h5ad(local_h5ad, backed = "r")
+    obs <- ad$obs
+    if (!(cluster_column %in% colnames(obs)))
+      stop("cluster_column not found in obs: ", cluster_column)
+    
+    cl <- obs[, cluster_column]
+    names(cl) <- rownames(obs)
+    
+    keep_mask <- subsampleCells(cl, subSamp = subsample, seed = seed)
+    if (!is.logical(keep_mask) || length(keep_mask) != nrow(obs))
+      stop("subsampleCells() must return a logical vector aligned to obs.")
+    
+    keep_ids <- names(cl)[keep_mask]
+    
+  } else {
+    ## ---------- Mode 2: subsample provided in advance ----------
+    # cluster_vector can be character IDs, logical mask, or numeric indices
+    if (is.character(cluster_vector)) {
+      keep_ids <- as.character(cluster_vector)
+      
+    } else if (is.logical(cluster_vector)) {
+      # need obs order -> read minimally to get names, but NOT backed for stats
+      ad <- anndata::read_h5ad(local_h5ad, backed = "r")
+      if (length(cluster_vector) != nrow(ad$obs))
+        stop("Logical cluster_vector length must equal number of cells.")
+      keep_ids <- rownames(ad$obs)[cluster_vector]
+      
+    } else if (is.numeric(cluster_vector)) {
+      ad <- anndata::read_h5ad(local_h5ad, backed = "r")
+      keep_ids <- rownames(ad$obs)[as.integer(cluster_vector)]
+      
+    } else {
+      stop("cluster_vector must be character, logical, or numeric.")
+    }
+  }
+  
+  if (length(keep_ids) == 0)
+    stop("No cells selected for subsampling.")
+  
+  # ------------------------------------------------------------
+  # 2) Write subsample_ids.csv
+  # ------------------------------------------------------------
+  ids_csv <- file.path(
+    outdir,
+    sprintf("subsample_ids_%d.csv", length(keep_ids))
+  )
+  write.csv(
+    data.frame(cell_id = keep_ids),
+    ids_csv,
+    row.names = FALSE,
+    quote = TRUE
+  )
+  
+  # ------------------------------------------------------------
+  # 3) Python helper: subset h5ad by IDs
+  # ------------------------------------------------------------
+  py_script <- file.path(outdir, "subsample_h5ad.py")
+  writeLines(c(
+    "#!/usr/bin/env python3",
+    "import argparse, pandas as pd, anndata as ad",
+    "def main():",
+    "  ap = argparse.ArgumentParser()",
+    "  ap.add_argument('--h5ad', required=True)",
+    "  ap.add_argument('--ids', required=True)",
+    "  ap.add_argument('--out', required=True)",
+    "  a = ap.parse_args()",
+    "  ids = pd.read_csv(a.ids)['cell_id'].astype(str).tolist()",
+    "  adata = ad.read_h5ad(a.h5ad, backed='r')",
+    "  adata_sub = adata[ids, :].to_memory()",
+    "  adata_sub.write_h5ad(a.out, compression='gzip')",
+    "if __name__ == '__main__': main()"
+  ), py_script)
+  
+  out_h5ad <- file.path(outdir, paste0("subsampled_", basename(local_h5ad)))
+  if (!grepl("\\.h5ad$", out_h5ad, ignore.case = TRUE))
+    out_h5ad <- paste0(out_h5ad, ".h5ad")
+  
+  res <- system2(
+    python_exe,
+    args = c(
+      py_script,
+      "--h5ad", local_h5ad,
+      "--ids", ids_csv,
+      "--out", out_h5ad
+    ),
+    stdout = TRUE,
+    stderr = TRUE
+  )
+  if (!file.exists(out_h5ad))
+    stop("Python subsampling failed:\n", paste(res, collapse = "\n"))
+  
+  # ------------------------------------------------------------
+  # 4) Read subsampled h5ad back into R
+  # ------------------------------------------------------------
+  ad_sub <- if (isTRUE(read_backed)) {
+    anndata::read_h5ad(out_h5ad, backed = "r")
+  } else {
+    anndata::read_h5ad(out_h5ad)
+  }
+  
+  if (!keep_files) {
+    suppressWarnings(file.remove(py_script))
+    suppressWarnings(file.remove(ids_csv))
+  }
+  
+  ad_sub
 }
