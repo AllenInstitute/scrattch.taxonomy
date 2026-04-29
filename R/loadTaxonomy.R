@@ -91,6 +91,8 @@ loadTaxonomy = function(taxonomyDir = getwd(),
 
 
 
+
+
 #' Read an h5ad file into R after subsampling in python
 #'
 #' @param h5ad The location of an h5ad file (if not local, it will be downloaded).
@@ -171,12 +173,10 @@ read_subsampled_h5ad <- function(
     
   } else {
     ## ---------- Mode 2: subsample provided in advance ----------
-    # cluster_vector can be character IDs, logical mask, or numeric indices
     if (is.character(cluster_vector)) {
       keep_ids <- as.character(cluster_vector)
       
     } else if (is.logical(cluster_vector)) {
-      # need obs order -> read minimally to get names, but NOT backed for stats
       ad <- anndata::read_h5ad(local_h5ad, backed = "r")
       if (length(cluster_vector) != nrow(ad$obs))
         stop("Logical cluster_vector length must equal number of cells.")
@@ -210,21 +210,46 @@ read_subsampled_h5ad <- function(
   
   # ------------------------------------------------------------
   # 3) Python helper: subset h5ad by IDs
+  #    - Reads non-backed (avoids X-access errors in backed mode)
+  #    - Forces sp.csc_matrix (not csc_array) + float64 for X & raw
+  #      so R reads dgCMatrix with double-typed x slot
   # ------------------------------------------------------------
   py_script <- file.path(outdir, "subsample_h5ad.py")
   writeLines(c(
     "#!/usr/bin/env python3",
-    "import argparse, pandas as pd, anndata as ad",
+    "import argparse, numpy as np, pandas as pd",
+    "import scipy.sparse as sp, anndata as ad",
+    "",
+    "def csc64(X):",
+    "  '''Guarantee scipy.sparse.csc_matrix with float64 dtype.'''",
+    "  if X is None: return None",
+    "  m = sp.csc_matrix(X) if sp.issparse(X) else sp.csc_matrix(np.asarray(X))",
+    "  m = m.astype(np.float64)",
+    "  m.sort_indices()",
+    "  return m",
+    "",
     "def main():",
     "  ap = argparse.ArgumentParser()",
     "  ap.add_argument('--h5ad', required=True)",
-    "  ap.add_argument('--ids', required=True)",
-    "  ap.add_argument('--out', required=True)",
+    "  ap.add_argument('--ids',  required=True)",
+    "  ap.add_argument('--out',  required=True)",
     "  a = ap.parse_args()",
     "  ids = pd.read_csv(a.ids)['cell_id'].astype(str).tolist()",
-    "  adata = ad.read_h5ad(a.h5ad, backed='r')",
-    "  adata_sub = adata[ids, :].to_memory()",
-    "  adata_sub.write_h5ad(a.out, compression='gzip')",
+    "  seen = set(); ids = [x for x in ids if not (x in seen or seen.add(x))]",
+    "  adata = ad.read_h5ad(a.h5ad)          # full read; avoids backed-mode X issues",
+    "  sub = adata[ids, :].copy()",
+    "  sub.X = csc64(sub.X)",
+    "  if sub.raw is not None:",
+    "    r = sub.raw.to_adata()",
+    "    raw = ad.AnnData(X=csc64(r.X), obs=sub.obs.copy(), var=r.var.copy())",
+    "    raw.obs_names = sub.obs_names.copy()",
+    "    raw.var_names = r.var_names.copy()",
+    "    sub.raw = raw",
+    "  for k in list(sub.layers.keys()):",
+    "    sub.layers[k] = csc64(sub.layers[k])",
+    "  sub.write_h5ad(a.out, compression='gzip')",
+    "  print(f'[done] {len(ids)} cells  X={type(sub.X).__name__}  dtype={sub.X.dtype}')",
+    "",
     "if __name__ == '__main__': main()"
   ), py_script)
   
@@ -262,3 +287,4 @@ read_subsampled_h5ad <- function(
   
   ad_sub
 }
+
