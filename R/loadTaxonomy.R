@@ -46,6 +46,7 @@ loadTaxonomy = function(taxonomyDir = getwd(),
       ## Load subsampled taxonomy directly!
       h5ad = file.path(taxonomyDir, anndata_file)
       AIT.anndata = read_subsampled_h5ad(h5ad,...)
+      AIT.anndata = subsample_uns(AIT.anndata)     # manually subsample some items in the uns
     } else {
       print("Loading COMPLETE reference taxonomy into memory from .h5ad")
       ## Load taxonomy directly!
@@ -84,6 +85,9 @@ loadTaxonomy = function(taxonomyDir = getwd(),
   AIT.anndata$uns$mode = "standard"
   AIT.anndata$uns$taxonomyDir = taxonomyDir
   AIT.anndata$uns$title <- gsub(".h5ad","",anndata_file)
+  
+  if(read_subsampled)
+    AIT.anndata$uns$title <- paste0("subsample_",AIT.anndata$uns$title)
 
   ## Return
   return(AIT.anndata)
@@ -107,7 +111,7 @@ loadTaxonomy = function(taxonomyDir = getwd(),
 #'   Default is 100 per item in cluster_column. Ignored if cluster_vector is provided.
 #' @param seed The seed to use for reproducibility.
 #' @param python_exe Python executable (default = "python3").
-#' @param keep_files Should the subsampled h5ad be kept on disk?
+#' @param keep_files Should the subsampled h5ad be kept on disk? (default=TRUE)
 #' @param outdir Output directory for temporary or kept files.
 #' @param read_backed If TRUE, read subsampled h5ad with backed="r".
 #'
@@ -122,7 +126,7 @@ read_subsampled_h5ad <- function(
     subsample = 100,
     seed = 42,
     python_exe = "python3",
-    keep_files = FALSE,
+    keep_files = TRUE,
     outdir = ifelse(keep_files, getwd(), tempdir()),
     read_backed = FALSE
 ) {
@@ -248,7 +252,10 @@ read_subsampled_h5ad <- function(
     "  for k in list(sub.layers.keys()):",
     "    sub.layers[k] = csc64(sub.layers[k])",
     "  sub.write_h5ad(a.out, compression='gzip')",
-    "  print(f'[done] {len(ids)} cells  X={type(sub.X).__name__}  dtype={sub.X.dtype}')",
+    "  if sub.X is None:",
+    "    print(f'[done] {len(ids)} cells  X=None (using raw)')",
+    "  else:",
+    "    print(f'[done] {len(ids)} cells  X={type(sub.X).__name__}  dtype={sub.X.dtype}')",
     "",
     "if __name__ == '__main__': main()"
   ), py_script)
@@ -287,4 +294,25 @@ read_subsampled_h5ad <- function(
   
   ad_sub
 }
+
+
+
+
+#' Update the uns components of a python-subsampled AIT file.
+#'
+#' @param anndata AIT object
+#'
+#' @return the subsampled AnnData object
+#'
+subsample_uns <- function(AIT.anndata){
+  if(!is.null(AIT.anndata$uns$filter)){
+    for (i in 1:length(AIT.anndata$uns$filter)){
+      AIT.anndata$uns$filter[[i]] = AIT.anndata$uns$filter[[i]][match(rownames(AIT.anndata),AIT.anndata$uns$cellSet)]
+    }
+  }
+  if(!is.null(AIT.anndata$uns$cellSet))
+    AIT.anndata$uns$cellSet <- as.array(rownames(AIT.anndata))
+  return(AIT.anndata)
+}
+
 
